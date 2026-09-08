@@ -9,19 +9,11 @@ import Dashboard from './pages/Dashboard';
 import LearningDashboard from './pages/LearningDashboard';
 
 import AdminLogin from './pages/AdminLogin';
-import Commercial from './pages/Commercial';
 
 const RivetApp = lazy(() => import('./admin/RivetApp'));
 const MarketingApp = lazy(() => import('./marketing/MarketingApp'));
 const MarketingPricing = lazy(() => import('./marketing/PricingPage'));
-import PropertyManagementCleanup from './pages/commercial/PropertyManagementCleanup';
-import ApartmentCleanouts from './pages/commercial/ApartmentCleanouts';
-import EvictionCleanup from './pages/commercial/EvictionCleanup';
-import UnitTurnoverCleanout from './pages/commercial/UnitTurnoverCleanout';
-import BulkTrashRemoval from './pages/commercial/BulkTrashRemoval';
-import IllegalDumpingRemoval from './pages/commercial/IllegalDumpingRemoval';
-import ClientPortalPage from './pages/commercial/ClientPortalPage';
-import ServiceArea from './pages/commercial/ServiceArea';
+const HostedQuoteForm = lazy(() => import('./pages/HostedQuoteForm'));
 import PortalStart from './pages/PortalStart';
 import CommercialAdminPage from './pages/CommercialAdminPage';
 import ServiceAreaAdmin from './pages/ServiceAreaAdmin';
@@ -132,6 +124,9 @@ export default function App() {
       <Route path="/admin/legacy/settings" element={<AdminDashboard />} />
       <Route path="/admin/legacy/commercial" element={<CommercialAdminPage />} />
 
+      {/* Hosted quote request form (tenant-facing) */}
+      <Route path="/request/:slug" element={<HostedQuoteForm />} />
+
       {/* Shared functional routes (quote viewing, payments, dispatch) */}
       <Route path="/quote/:id" element={<ApprovedQuote />} />
       <Route path="/invoice/:token/final" element={<FinalPaymentPage />} />
@@ -142,29 +137,6 @@ export default function App() {
       <Route path="/portal/login" element={<ClientLogin />} />
       <Route path="/portal" element={<ClientPortal />} />
       <Route path="/commercial/quote/:token" element={<CommercialQuotePage />} />
-
-      {/* Squatterz-specific pages (will eventually move to gosquatterz.com) */}
-      <Route path="/b/squatterz" element={<Commercial />} />
-      <Route path="/b/squatterz/property-management-cleanup" element={<PropertyManagementCleanup />} />
-      <Route path="/b/squatterz/apartment-cleanouts" element={<ApartmentCleanouts />} />
-      <Route path="/b/squatterz/eviction-cleanup" element={<EvictionCleanup />} />
-      <Route path="/b/squatterz/unit-turnover-cleanout" element={<UnitTurnoverCleanout />} />
-      <Route path="/b/squatterz/bulk-trash-removal" element={<BulkTrashRemoval />} />
-      <Route path="/b/squatterz/illegal-dumping-removal" element={<IllegalDumpingRemoval />} />
-      <Route path="/b/squatterz/client-portal" element={<ClientPortalPage />} />
-      <Route path="/b/squatterz/service-area" element={<ServiceArea />} />
-
-      {/* Redirects for old Squatterz URLs */}
-      <Route path="/book" element={<Navigate to="/b/squatterz" replace />} />
-      <Route path="/commercial" element={<Navigate to="/b/squatterz" replace />} />
-      <Route path="/commercial/property-management-cleanup" element={<Navigate to="/b/squatterz/property-management-cleanup" replace />} />
-      <Route path="/commercial/apartment-cleanouts" element={<Navigate to="/b/squatterz/apartment-cleanouts" replace />} />
-      <Route path="/commercial/eviction-cleanup" element={<Navigate to="/b/squatterz/eviction-cleanup" replace />} />
-      <Route path="/commercial/unit-turnover-cleanout" element={<Navigate to="/b/squatterz/unit-turnover-cleanout" replace />} />
-      <Route path="/commercial/bulk-trash-removal" element={<Navigate to="/b/squatterz/bulk-trash-removal" replace />} />
-      <Route path="/commercial/illegal-dumping-removal" element={<Navigate to="/b/squatterz/illegal-dumping-removal" replace />} />
-      <Route path="/commercial/client-portal" element={<Navigate to="/b/squatterz/client-portal" replace />} />
-      <Route path="/commercial/service-area" element={<Navigate to="/b/squatterz/service-area" replace />} />
     </Routes>
     </Suspense>
   );

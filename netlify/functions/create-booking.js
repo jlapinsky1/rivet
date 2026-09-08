@@ -230,6 +230,51 @@ export default async function handler(req) {
       }
     }
 
+    // Fire-and-forget lead notification email to the business operator
+    try {
+      const { data: bizSettings } = await supabase
+        .from('businesses')
+        .select('name, settings, owner_user_id')
+        .eq('id', businessId)
+        .single();
+
+      const qfc = bizSettings?.settings?.quoteFormConfig;
+      if (qfc?.notifications?.emailOnRequest) {
+        let notifyEmail = qfc.notifications.notifyEmail;
+        if (!notifyEmail && bizSettings?.owner_user_id) {
+          const { data: ownerData } = await supabase.auth.admin.getUserById(bizSettings.owner_user_id);
+          notifyEmail = ownerData?.user?.email;
+        }
+        if (notifyEmail) {
+          const resendKey = process.env.RESEND_API_KEY;
+          const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@myrivet.io';
+          if (resendKey) {
+            fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${resendKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                from: `Rivet <${fromEmail}>`,
+                to: [notifyEmail],
+                subject: `New quote request from ${customerName} in ${city}`,
+                html: `
+                  <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+                    <h2 style="margin:0 0 16px;">New Quote Request</h2>
+                    <p><strong>${customerName}</strong> submitted a quote request${city ? ` in ${city}` : ''}.</p>
+                    <p style="margin-top:16px;"><a href="${process.env.URL || 'https://myrivet.io'}/admin" style="background:#22c55e;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;">Review in Rivet</a></p>
+                  </div>
+                `,
+              }),
+            }).catch(err => console.error('Lead notification email failed (non-fatal):', err.message));
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Lead notification lookup failed (non-fatal):', err.message);
+    }
+
     // Fire-and-forget geocoding (non-blocking — failure does not affect booking creation)
     const siteUrl = process.env.URL || '';
     if (siteUrl && process.env.SHOP_LAT && process.env.SHOP_LNG) {

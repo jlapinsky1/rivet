@@ -7,9 +7,10 @@ import { useGoalData } from './useGoalData';
 import { MetricCard, WorkRecommendationCard, WorkRow, RecPill, StatusBadge, sourceLabel } from './components';
 import {
   ArrowRight, Building2, CalendarDays, ChevronDown, ChevronRight,
-  Clock3, Filter, MapPin, Phone, Mail, Plus, TrendingUp,
+  Clock3, Copy, ExternalLink, Filter, MapPin, Phone, Mail, Plus, TrendingUp,
   User, Wallet, Zap, Briefcase, DollarSign, Target, Percent, Clock,
 } from 'lucide-react';
+import { getDefaultQuoteFormConfig, mergeQuoteFormConfig } from '../utils/quoteFormConfig';
 
 /* ===== HOME ===== */
 export function HomeScreen({ onOpenItem }: { onOpenItem: (item: WorkItem) => void }) {
@@ -453,13 +454,239 @@ export function SettingsScreen() {
               <div className="settings-field"><label>Daily capacity limit</label><div className="price-input"><input type="number" value={field('dailyCapacityLimit', 4)} onChange={e => handleChange('dailyCapacityLimit', Number(e.target.value))} /><span>jobs</span></div></div>
             </div>
           )}
-          {!['Business', 'Goals & Capacity', 'Pricing & Costs', 'Advanced Engine'].includes(activeSection) && (
+          {activeSection === 'Quote Form' && (
+            <QuoteFormSettings settings={settings} onSave={save} />
+          )}
+          {!['Business', 'Goals & Capacity', 'Pricing & Costs', 'Advanced Engine', 'Quote Form'].includes(activeSection) && (
             <div className="settings-section">
               <h3>{activeSection}</h3>
               <p className="settings-placeholder">Configuration for {activeSection.toLowerCase()} will appear here.</p>
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ===== QUOTE FORM SETTINGS ===== */
+function QuoteFormSettings({ settings, onSave }: { settings: any; onSave: (updates: Record<string, any>) => void }) {
+  const qfc = mergeQuoteFormConfig(settings.quoteFormConfig || null, 'junk_removal');
+  const slug = settings.slug || 'your-business';
+  const publicUrl = `${window.location.origin}/request/${slug}`;
+  const [copied, setCopied] = useState(false);
+
+  function updateConfig(path: string, value: any) {
+    const parts = path.split('.');
+    const updated = JSON.parse(JSON.stringify(qfc));
+    let obj = updated;
+    for (let i = 0; i < parts.length - 1; i++) {
+      obj = obj[parts[i]];
+    }
+    obj[parts[parts.length - 1]] = value;
+    onSave({ quoteFormConfig: updated });
+  }
+
+  function copyLink() {
+    navigator.clipboard.writeText(publicUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="settings-section" style={{ maxWidth: 600 }}>
+      {/* Section A: Form Status */}
+      <h3>Quote Request Form</h3>
+      <div className="settings-field">
+        <label>Form status</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            onClick={() => updateConfig('published', !qfc.published)}
+            style={{
+              padding: '6px 16px',
+              borderRadius: 8,
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: 13,
+              backgroundColor: qfc.published ? '#22c55e' : '#374151',
+              color: qfc.published ? '#fff' : '#9ca3af',
+            }}
+          >
+            {qfc.published ? 'Published' : 'Unpublished'}
+          </button>
+          <span style={{ fontSize: 12, color: '#6b7280' }}>
+            {qfc.published ? 'Customers can access your form' : 'Form is hidden from customers'}
+          </span>
+        </div>
+      </div>
+
+      {qfc.published && (
+        <div className="settings-field">
+          <label>Public URL</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <code style={{ flex: 1, fontSize: 12, color: '#d1d5db', background: '#1f2937', padding: '8px 12px', borderRadius: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {publicUrl}
+            </code>
+            <button onClick={copyLink} title="Copy link" style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #374151', background: 'transparent', cursor: 'pointer', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Copy size={14} />
+              <span style={{ fontSize: 12 }}>{copied ? 'Copied!' : 'Copy'}</span>
+            </button>
+            <a href={publicUrl} target="_blank" rel="noopener noreferrer" title="Preview form" style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #374151', background: 'transparent', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', fontSize: 12 }}>
+              <ExternalLink size={14} />
+              Preview
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* Section B: Branding */}
+      <h4 style={{ marginTop: 28 }}>Branding</h4>
+      <div className="settings-field">
+        <label>Tagline</label>
+        <input type="text" value={qfc.branding.tagline} onChange={e => updateConfig('branding.tagline', e.target.value)} placeholder="e.g. We Haul It All" />
+      </div>
+      <div className="settings-field">
+        <label>Accent color</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <input type="color" value={qfc.branding.accentColor} onChange={e => updateConfig('branding.accentColor', e.target.value)} style={{ width: 40, height: 32, padding: 0, border: 'none', cursor: 'pointer' }} />
+          <input type="text" value={qfc.branding.accentColor} onChange={e => updateConfig('branding.accentColor', e.target.value)} placeholder="#22c55e" style={{ width: 100, fontFamily: 'monospace' }} />
+        </div>
+      </div>
+      <div className="settings-field">
+        <label>Phone number</label>
+        <input type="text" value={qfc.branding.phone || ''} onChange={e => updateConfig('branding.phone', e.target.value || null)} placeholder="(555) 555-5555" />
+      </div>
+      <div className="settings-field">
+        <label>CTA button text</label>
+        <input type="text" value={qfc.branding.ctaText} onChange={e => updateConfig('branding.ctaText', e.target.value)} placeholder="Get Free Estimate" />
+      </div>
+
+      {/* Section C: Form Steps */}
+      <h4 style={{ marginTop: 28 }}>Photos</h4>
+      <div className="settings-field">
+        <label>Require photos</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            onClick={() => updateConfig('steps.photos.enabled', !qfc.steps.photos.enabled)}
+            style={{
+              padding: '6px 16px',
+              borderRadius: 8,
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: 13,
+              backgroundColor: qfc.steps.photos.enabled ? '#22c55e' : '#374151',
+              color: qfc.steps.photos.enabled ? '#fff' : '#9ca3af',
+            }}
+          >
+            {qfc.steps.photos.enabled ? 'On' : 'Off'}
+          </button>
+          {!qfc.steps.photos.enabled && (
+            <span style={{ fontSize: 12, color: '#f59e0b' }}>Estimate confidence will be lower without photos</span>
+          )}
+        </div>
+      </div>
+      {qfc.steps.photos.enabled && (
+        <div className="settings-field">
+          <label>Minimum photos required</label>
+          <div className="settings-inline">
+            <input type="number" min={1} max={10} value={qfc.steps.photos.minPhotos} onChange={e => updateConfig('steps.photos.minPhotos', Math.max(1, Math.min(10, Number(e.target.value))))} style={{ width: 60 }} />
+            <span>photos</span>
+          </div>
+        </div>
+      )}
+
+      {/* Section D: Field Configuration */}
+      <h4 style={{ marginTop: 28 }}>Optional Fields</h4>
+      {([
+        { key: 'stairs', label: 'Stairs question' },
+        { key: 'elevator', label: 'Elevator question' },
+        { key: 'description', label: 'Description field' },
+        { key: 'secondChoiceDate', label: 'Second choice date' },
+      ] as const).map(({ key, label }) => (
+        <div key={key} className="settings-field">
+          <label>{label}</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              onClick={() => updateConfig(`fields.${key}.enabled`, !(qfc.fields as any)[key].enabled)}
+              style={{
+                padding: '4px 12px',
+                borderRadius: 6,
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: 12,
+                backgroundColor: (qfc.fields as any)[key].enabled ? '#22c55e' : '#374151',
+                color: (qfc.fields as any)[key].enabled ? '#fff' : '#9ca3af',
+              }}
+            >
+              {(qfc.fields as any)[key].enabled ? 'Shown' : 'Hidden'}
+            </button>
+            {(qfc.fields as any)[key].label !== undefined && (qfc.fields as any)[key].enabled && (
+              <input
+                type="text"
+                value={(qfc.fields as any)[key].label}
+                onChange={e => updateConfig(`fields.${key}.label`, e.target.value)}
+                placeholder="Custom label"
+                style={{ flex: 1, fontSize: 13 }}
+              />
+            )}
+          </div>
+        </div>
+      ))}
+
+      <h4 style={{ marginTop: 28 }}>Field Labels</h4>
+      <div className="settings-field">
+        <label>Quantity question</label>
+        <input type="text" value={qfc.fields.quantity.label} onChange={e => updateConfig('fields.quantity.label', e.target.value)} />
+      </div>
+      <div className="settings-field">
+        <label>Access type question</label>
+        <input type="text" value={qfc.fields.accessType.label} onChange={e => updateConfig('fields.accessType.label', e.target.value)} />
+      </div>
+      <div className="settings-field">
+        <label>Time preference question</label>
+        <input type="text" value={qfc.fields.timePreference.label} onChange={e => updateConfig('fields.timePreference.label', e.target.value)} />
+      </div>
+
+      {/* Section E: Lead Notifications */}
+      <h4 style={{ marginTop: 28 }}>Lead Notifications</h4>
+      <div className="settings-field">
+        <label>Email me when a request arrives</label>
+        <button
+          onClick={() => updateConfig('notifications.emailOnRequest', !qfc.notifications.emailOnRequest)}
+          style={{
+            padding: '6px 16px',
+            borderRadius: 8,
+            border: 'none',
+            cursor: 'pointer',
+            fontWeight: 600,
+            fontSize: 13,
+            backgroundColor: qfc.notifications.emailOnRequest ? '#22c55e' : '#374151',
+            color: qfc.notifications.emailOnRequest ? '#fff' : '#9ca3af',
+          }}
+        >
+          {qfc.notifications.emailOnRequest ? 'On' : 'Off'}
+        </button>
+      </div>
+      {qfc.notifications.emailOnRequest && (
+        <div className="settings-field">
+          <label>Notification email</label>
+          <input type="email" value={qfc.notifications.notifyEmail || ''} onChange={e => updateConfig('notifications.notifyEmail', e.target.value || null)} placeholder="Defaults to your account email" />
+        </div>
+      )}
+
+      {/* Section F: Confirmation */}
+      <h4 style={{ marginTop: 28 }}>Confirmation Screen</h4>
+      <div className="settings-field">
+        <label>Headline</label>
+        <input type="text" value={qfc.confirmation.headline} onChange={e => updateConfig('confirmation.headline', e.target.value)} />
+      </div>
+      <div className="settings-field">
+        <label>Body text</label>
+        <textarea value={qfc.confirmation.body} onChange={e => updateConfig('confirmation.body', e.target.value)} rows={3} style={{ width: '100%', resize: 'vertical' }} />
       </div>
     </div>
   );

@@ -59,7 +59,9 @@ export function detectRiskFlags(booking, estimate) {
   const flags = [];
 
   // --- Photo quality ---
-  if ((booking.photoCount || 0) < 3) {
+  if ((booking.photoCount || 0) === 0) {
+    flags.push({ flag: 'no_photos', severity: 'warning', message: 'No photos provided — estimate based on description only' });
+  } else if ((booking.photoCount || 0) < 3) {
     flags.push({ flag: 'low_photos', severity: 'warning', message: `Only ${booking.photoCount || 0} photo(s) uploaded (minimum 3 recommended)` });
   }
 
@@ -236,7 +238,12 @@ export function calculateConfidence(booking, flags) {
     else if (f.severity === 'info') { score -= 3; }
   }
 
-  if ((booking.photoCount || 0) >= 6) score += 5;
+  // Zero photos penalty (stronger than per-warning deduction — intentionally degrades confidence)
+  if ((booking.photoCount || 0) === 0) {
+    score -= 15;
+  } else if ((booking.photoCount || 0) >= 6) {
+    score += 5;
+  }
   if (booking.detectedItems?.length > 0) score += 5;
   if (booking.description?.trim().length > 20) score += 5;
 
