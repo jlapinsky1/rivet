@@ -198,7 +198,7 @@ async function handleInvoicePaymentPaid(stripe, supabase, event) {
   const { data: booking, error: bookingErr } = await supabase
     .from('bookings')
     .select(
-      'id, status, stripe_invoice_id, stripe_customer_id, ' +
+      'id, business_id, status, stripe_invoice_id, stripe_customer_id, ' +
       'stripe_deposit_payment_intent_id, stripe_final_payment_intent_id, ' +
       'deposit_confirmed_at, financially_completed_at, quote_token_hash'
     )
@@ -273,6 +273,7 @@ async function handleInvoicePaymentPaid(stripe, supabase, event) {
 
         await supabase.from('audit_log').insert({
           booking_id: bookingId,
+          business_id: booking.business_id,
           event_type: 'final_payment_confirmed',
           metadata: {
             payment_intent_id: piId,
@@ -303,6 +304,7 @@ async function handleInvoicePaymentPaid(stripe, supabase, event) {
 
       await supabase.from('audit_log').insert({
         booking_id: bookingId,
+        business_id: booking.business_id,
         event_type: 'final_payment_confirmed',
         metadata: {
           payment_intent_id: piId,
@@ -328,7 +330,7 @@ async function handleInvoicePaid(stripe, supabase, event) {
 
   const { data: booking, error: bookingErr } = await supabase
     .from('bookings')
-    .select('id, stripe_invoice_id, financially_completed_at')
+    .select('id, business_id, stripe_invoice_id, financially_completed_at')
     .eq('id', bookingId)
     .single();
 
@@ -352,6 +354,7 @@ async function handleInvoicePaid(stripe, supabase, event) {
 
   await supabase.from('audit_log').insert({
     booking_id: bookingId,
+    business_id: booking.business_id,
     event_type: 'final_payment_confirmed',
     metadata: {
       invoice_id: invoice.id,
@@ -372,9 +375,17 @@ async function handlePaymentFailed(supabase, event) {
 
   if (!bookingId || pi.metadata?.payment_stage !== 'deposit') return;
 
+  // Look up business_id for audit entry
+  const { data: failedBooking } = await supabase
+    .from('bookings')
+    .select('business_id')
+    .eq('id', bookingId)
+    .single();
+
   // Audit only — booking stays in awaiting_deposit for retry
   await supabase.from('audit_log').insert({
     booking_id: bookingId,
+    business_id: failedBooking?.business_id,
     event_type: 'deposit_failed',
     metadata: {
       payment_intent_id: pi.id,

@@ -1,6 +1,6 @@
-# Profitability & Operations Platform
+# Rivet — Profitability & Operations Platform
 
-This document covers the full operational platform built on top of the junk-removal-quoter. It answers four questions every job should pass through:
+This document covers the operational platform powering Rivet. It answers four questions every job should pass through:
 
 1. **Am I on pace to hit my financial goal?**
 2. **Should I accept this job?**
@@ -1152,7 +1152,7 @@ These bugs were discovered and fixed during end-to-end sandbox testing:
 | File | Purpose |
 |---|---|
 | `netlify/functions/_shared/stripe.js` | Stripe client, `toCents`, `calculateDepositCents`, idempotency key helpers (`ikey.*`); residential + commercial customer/invoice helpers |
-| `netlify/functions/_shared/supabase.js` | `verifyAdmin()`, `verifyCommercialClient()`, `getServiceClient()`, `generateToken()`, `sha256()` |
+| `netlify/functions/_shared/supabase.js` | `verifyAdmin()`, `verifyBusinessMember()`, `verifyCommercialClient()`, `getServiceClient()`, `generateToken()`, `sha256()` |
 | `netlify/functions/approve-quote.js` | Creates Stripe customer + invoice; voids old invoice on re-approval (residential) |
 | `netlify/functions/create-deposit-payment.js` | Reserves slot, creates deposit PI, attaches to invoice (residential) |
 | `netlify/functions/stripe-webhook.js` | Handles `invoice_payment.paid` and `invoice.paid` for both residential (`booking_id` metadata) and commercial (`job_id` metadata) |

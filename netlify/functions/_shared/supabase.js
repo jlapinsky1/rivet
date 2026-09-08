@@ -37,6 +37,52 @@ export async function verifyAdmin(req) {
 }
 
 /**
+ * Verify JWT and business membership.
+ * Accepts business_id from explicit param, header, or auto-resolves if user has one business.
+ * ALWAYS validates that the authenticated user is a member of the business.
+ * Returns { user, businessId } or null.
+ */
+export async function verifyBusinessMember(req, { businessId: explicitBusinessId } = {}) {
+  const auth = req.headers.get('authorization');
+  if (!auth?.startsWith('Bearer ')) return null;
+  const token = auth.slice(7);
+
+  const supabase = getServiceClient();
+
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user) return null;
+
+  // Resolve business_id: explicit param > header
+  const resolvedBusinessId = explicitBusinessId
+    || req.headers.get('x-business-id');
+
+  if (!resolvedBusinessId) {
+    // No business_id provided — auto-select if user has exactly one business
+    const { data: memberships, error: memErr } = await supabase
+      .from('business_memberships')
+      .select('business_id')
+      .eq('user_id', user.id);
+
+    if (memErr || !memberships || memberships.length === 0) return null;
+    if (memberships.length === 1) {
+      return { user, businessId: memberships[0].business_id };
+    }
+    // Multiple businesses but none specified
+    return null;
+  }
+
+  // Validate membership for the specified business
+  const { count, error: memErr } = await supabase
+    .from('business_memberships')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('business_id', resolvedBusinessId);
+
+  if (memErr || count === 0) return null;
+  return { user, businessId: resolvedBusinessId };
+}
+
+/**
  * Verify Cloudflare Turnstile token.
  * Returns { success: true } or { success: false, error: string }.
  */

@@ -85,7 +85,7 @@ async function handleResendFinalLink(supabase, bookingId, admin) {
   const { data: booking, error: bookingErr } = await supabase
     .from('bookings')
     .select(
-      'id, status, customer_email, customer_name, ' +
+      'id, business_id, status, customer_email, customer_name, ' +
       'stripe_invoice_id, stripe_final_payment_intent_id, financially_completed_at'
     )
     .eq('id', bookingId)
@@ -124,6 +124,7 @@ async function handleResendFinalLink(supabase, bookingId, admin) {
 
   const { error: insertErr } = await supabase.from('payment_access_tokens').insert({
     booking_id: bookingId,
+    business_id: booking.business_id,
     token_hash: tokenHash,
     purpose: 'final_payment',
     expires_at: tokenExpiry,
@@ -152,6 +153,7 @@ async function handleResendFinalLink(supabase, bookingId, admin) {
 
   await supabase.from('audit_log').insert({
     booking_id: bookingId,
+    business_id: booking.business_id,
     event_type: 'final_payment_requested',
     admin_id: admin.id,
     metadata: {
@@ -180,7 +182,7 @@ async function handleReconcile(supabase, bookingId, admin, req) {
   const { data: booking, error: bookingErr } = await supabase
     .from('bookings')
     .select(
-      'id, status, stripe_invoice_id, stripe_customer_id, ' +
+      'id, business_id, status, stripe_invoice_id, stripe_customer_id, ' +
       'stripe_deposit_payment_intent_id, deposit_confirmed_at, financially_completed_at'
     )
     .eq('id', bookingId)
@@ -227,6 +229,7 @@ async function handleReconcile(supabase, bookingId, admin, req) {
 
     await supabase.from('audit_log').insert({
       booking_id: bookingId,
+      business_id: booking.business_id,
       event_type: 'stripe_reconciled',
       admin_id: admin.id,
       metadata: { action: 'confirmed_deposit', via: 'admin_payment_action' },
@@ -248,6 +251,7 @@ async function handleReconcile(supabase, bookingId, admin, req) {
 
     await supabase.from('audit_log').insert({
       booking_id: bookingId,
+      business_id: booking.business_id,
       event_type: 'stripe_reconciled',
       admin_id: admin.id,
       metadata: { action: 'set_financially_completed_at', via: 'admin_payment_action' },
@@ -266,7 +270,7 @@ async function handleReconcile(supabase, bookingId, admin, req) {
 async function handleGenerateCustomerLink(supabase, bookingId, admin) {
   const { data: booking, error: bookingErr } = await supabase
     .from('bookings')
-    .select('id, stripe_final_payment_intent_id, financially_completed_at')
+    .select('id, business_id, stripe_final_payment_intent_id, financially_completed_at')
     .eq('id', bookingId)
     .single();
 
@@ -293,6 +297,7 @@ async function handleGenerateCustomerLink(supabase, bookingId, admin) {
 
   const { error: insertErr } = await supabase.from('payment_access_tokens').insert({
     booking_id: bookingId,
+    business_id: booking.business_id,
     token_hash: tokenHash,
     purpose: 'final_payment',
     expires_at: tokenExpiry,
@@ -305,6 +310,7 @@ async function handleGenerateCustomerLink(supabase, bookingId, admin) {
 
   await supabase.from('audit_log').insert({
     booking_id: bookingId,
+    business_id: booking.business_id,
     event_type: 'token_revoked',
     admin_id: admin.id,
     metadata: { action: 'generate_customer_link' },

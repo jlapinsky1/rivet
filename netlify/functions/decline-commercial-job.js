@@ -24,7 +24,7 @@ export default async function handler(req) {
         id, status, unit, description,
         properties!inner(
           name, address,
-          commercial_clients!inner(id, contact_name, company_name, user_id)
+          commercial_clients!inner(id, business_id, contact_name, company_name, user_id)
         )
       `)
       .eq('id', jobId)
@@ -78,6 +78,7 @@ export default async function handler(req) {
 
     await supabase.from('audit_log').insert({
       booking_id: null,
+      business_id: client.business_id,
       event_type: 'booking_declined',
       admin_id: admin.id,
       reason: reason || null,

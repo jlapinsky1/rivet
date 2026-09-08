@@ -1,5 +1,5 @@
 import {
-  getServiceClient, verifyAdmin, generateToken, sha256,
+  getServiceClient, verifyAdmin, verifyBusinessMember, generateToken, sha256,
   jsonResponse, errorResponse,
 } from './_shared/supabase.js';
 import {
@@ -66,7 +66,9 @@ export default async function handler(req) {
   if (req.method !== 'POST') return errorResponse('Method not allowed', 405);
 
   try {
-    const admin = await verifyAdmin(req);
+    // Try new business membership auth first, fall back to legacy admin auth
+    const bizAuth = await verifyBusinessMember(req);
+    const admin = bizAuth?.user || await verifyAdmin(req);
     if (!admin) return errorResponse('Unauthorized', 401);
 
     const {
@@ -125,7 +127,7 @@ export default async function handler(req) {
     const { data: booking, error: bookingErr } = await supabase
       .from('bookings')
       .select(
-        'id, customer_name, customer_email, full_address, ' +
+        'id, business_id, customer_name, customer_email, full_address, ' +
         'stripe_customer_id, stripe_invoice_id, deposit_confirmed_at'
       )
       .eq('id', bookingId)
@@ -175,6 +177,7 @@ export default async function handler(req) {
           await stripe.invoices.voidInvoice(booking.stripe_invoice_id);
           await supabase.from('audit_log').insert({
             booking_id: bookingId,
+            business_id: bizAuth?.businessId || booking.business_id,
             event_type: 'invoice_voided',
             admin_id: admin.id,
             metadata: {

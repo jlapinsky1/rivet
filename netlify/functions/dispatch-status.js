@@ -66,7 +66,7 @@ export default async function handler(req) {
 
     const { data: booking, error: bookingErr } = await supabase
       .from('bookings')
-      .select('id, status, deposit_confirmed_at')
+      .select('id, business_id, status, deposit_confirmed_at')
       .eq('id', bookingId)
       .single();
 
@@ -140,6 +140,7 @@ export default async function handler(req) {
     // ── Audit log ────────────────────────────────────────────────────────────
     await supabase.from('audit_log').insert({
       booking_id: bookingId,
+      business_id: booking.business_id,
       event_type: AUDIT_EVENT[targetStatus],
       admin_id:   admin.id,
       metadata:   { previous_status: booking.status, new_status: targetStatus },

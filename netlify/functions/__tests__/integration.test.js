@@ -352,6 +352,16 @@ vi.mock('../_shared/supabase.js', () => ({
     if (!isAdmin) return null;
     return user;
   },
+  verifyBusinessMember: async (req) => {
+    const auth = req.headers.get('authorization');
+    if (!auth?.startsWith('Bearer ')) return null;
+    const token = auth.slice(7);
+    const { data: { user } } = await mockSupabase.auth.getUser(token);
+    if (!user) return null;
+    const membership = (mockSupabase._db.business_memberships || []).find(m => m.user_id === user.id);
+    if (!membership) return null;
+    return { user, businessId: membership.business_id };
+  },
   verifyTurnstile: async () => ({ success: true }),
   checkRateLimit: async (sb, ip, endpoint) => {
     const result = await sb.rpc('check_rate_limit', { p_ip: ip, p_endpoint: endpoint });
@@ -416,9 +426,13 @@ async function sha256(input) {
 // Tests
 // =============================================================
 
+const TEST_BUSINESS_ID = 'test-business-id';
+
 beforeEach(() => {
   mockSupabase = createMockSupabase({
     admin_users: [{ user_id: 'admin-user-id' }],
+    businesses: [{ id: TEST_BUSINESS_ID, slug: 'test-biz', name: 'Test Business', vertical: 'junk_removal', timezone: 'America/New_York', settings: {}, created_at: new Date().toISOString() }],
+    business_memberships: [{ id: 'mem-1', business_id: TEST_BUSINESS_ID, user_id: 'admin-user-id', role: 'owner' }],
   });
 });
 
@@ -439,6 +453,7 @@ describe('Upload session and booking', () => {
     mockSupabase._db.upload_sessions.push({
       id: sessionId, status: 'active', max_photos: 10, max_file_bytes: 10485760,
       expires_at: new Date(Date.now() + 3600000).toISOString(),
+      business_id: TEST_BUSINESS_ID,
     });
     mockSupabase._db.session_photos.push({
       id: crypto.randomUUID(), session_id: sessionId,
@@ -471,6 +486,7 @@ describe('Upload session and booking', () => {
     mockSupabase._db.upload_sessions.push({
       id: sessionId, status: 'active', max_photos: 10, max_file_bytes: 10485760,
       expires_at: new Date(Date.now() + 3600000).toISOString(),
+      business_id: TEST_BUSINESS_ID,
     });
 
     const payload = {
@@ -547,6 +563,7 @@ describe('Upload URL', () => {
     mockSupabase._db.upload_sessions.push({
       id: sessionId, status: 'active', max_photos: 10, max_file_bytes: 10485760,
       expires_at: new Date(Date.now() + 3600000).toISOString(),
+      business_id: TEST_BUSINESS_ID,
     });
 
     const res = await getUploadUrl(makeRequest('POST', {
@@ -562,6 +579,7 @@ describe('Upload URL', () => {
     mockSupabase._db.upload_sessions.push({
       id: sessionId, status: 'active', max_photos: 10, max_file_bytes: 10485760,
       expires_at: new Date(Date.now() + 3600000).toISOString(),
+      business_id: TEST_BUSINESS_ID,
     });
 
     const res = await getUploadUrl(makeRequest('POST', {
@@ -643,7 +661,7 @@ describe('Admin authorization', () => {
   it('approves quote with valid admin token', async () => {
     const bookingId = crypto.randomUUID();
     mockSupabase._db.bookings.push({
-      id: bookingId, status: 'pending_review', quote_version: 0,
+      id: bookingId, status: 'pending_review', quote_version: 0, business_id: TEST_BUSINESS_ID,
     });
 
     const res = await approveQuote(makeRequest('POST', {
@@ -682,7 +700,7 @@ describe('Quote token lifecycle', () => {
     tokenHash = await sha256(rawToken);
 
     mockSupabase._db.bookings.push({
-      id: bookingId, status: 'quote_sent', quote_version: 1,
+      id: bookingId, status: 'quote_sent', quote_version: 1, business_id: TEST_BUSINESS_ID,
       customer_name: 'Test', full_address: '123 Main', quantity: 'A few items',
     });
     mockSupabase._db.quote_snapshots.push({
@@ -767,7 +785,7 @@ describe('Customer DTO field allowlist', () => {
     const tokenHash = await sha256(rawToken);
 
     mockSupabase._db.bookings.push({
-      id: bookingId, status: 'quote_sent', customer_name: 'Safe',
+      id: bookingId, status: 'quote_sent', customer_name: 'Safe', business_id: TEST_BUSINESS_ID,
       full_address: '1 St', quantity: 'Few', description: 'stuff',
       preferred_date: '2026-08-01', second_choice_date: null, time_preference: 'morning',
       // Internal fields that MUST NOT appear
@@ -835,7 +853,7 @@ describe('Quote acceptance', () => {
     tokenHash = await sha256(rawToken);
 
     mockSupabase._db.bookings.push({
-      id: bookingId, status: 'quote_sent', quote_version: 1,
+      id: bookingId, status: 'quote_sent', quote_version: 1, business_id: TEST_BUSINESS_ID,
     });
     mockSupabase._db.quote_snapshots.push({
       id: 'snap-acc', booking_id: bookingId, version: 1,
@@ -925,8 +943,8 @@ describe('Concurrent slot reservation', () => {
     const bookingId2 = crypto.randomUUID();
 
     mockSupabase._db.bookings.push(
-      { id: bookingId1, status: 'quote_sent', quote_version: 1 },
-      { id: bookingId2, status: 'quote_sent', quote_version: 1 },
+      { id: bookingId1, status: 'quote_sent', quote_version: 1, business_id: TEST_BUSINESS_ID },
+      { id: bookingId2, status: 'quote_sent', quote_version: 1, business_id: TEST_BUSINESS_ID },
     );
     mockSupabase._db.quote_snapshots.push(
       { id: 'snap-c1', booking_id: bookingId1, version: 1, approved_price: 300, customer_terms: { customerConfirmations: ['a', 'b', 'c'] }, expires_at: new Date(Date.now() + 86400000).toISOString() },
@@ -972,7 +990,7 @@ describe('Job completion', () => {
   beforeEach(() => {
     bookingId = crypto.randomUUID();
     mockSupabase._db.bookings.push({
-      id: bookingId, status: 'scheduled',
+      id: bookingId, status: 'scheduled', business_id: TEST_BUSINESS_ID,
       deposit_confirmed_at: new Date().toISOString(),
       approved_quote: '350.00',
     });
