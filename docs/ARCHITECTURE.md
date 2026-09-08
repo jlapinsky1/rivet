@@ -17,6 +17,7 @@ Rivet helps service business owners (junk removal, handyman, and future vertical
 - [Multi-Tenancy Model](#multi-tenancy-model)
 - [Key Design Principles](#key-design-principles)
 - [Directory Structure](#directory-structure)
+- [Hosted Quote Request Forms](#hosted-quote-request-forms)
 - [Related Documentation](#related-documentation)
 
 ---
@@ -28,7 +29,7 @@ The platform is a full-stack web application deployed on Netlify with a Supabase
 | User Type | Interface | Auth Model |
 |-----------|-----------|------------|
 | **Business Operator** (tenant) | Admin dashboard at `/admin/*` | Supabase JWT + `business_memberships` |
-| **End Customer** (residential) | Booking flow, quote pages, payment pages | Unauthenticated + token-based |
+| **End Customer** (residential) | Hosted quote form (`/request/:slug`), quote pages, payment pages | Unauthenticated + token-based |
 | **Commercial Client** (property manager) | Portal at `/portal/*` | Supabase JWT + `commercial_clients` |
 | **Dispatch Crew** | PWA at `/dispatch/*` | Dispatch token (booking-scoped) |
 
@@ -41,7 +42,7 @@ Each business operator is a **tenant**. All tenant data is isolated by `business
 | Layer | Technology | Purpose |
 |-------|------------|---------|
 | Frontend | React 18 + Vite, TypeScript (admin), Tailwind + custom CSS | SPA with mobile-first booking flow, desktop-first admin |
-| API | Netlify Functions (ES modules, v2) | Serverless endpoints, ~40 functions |
+| API | Netlify Functions (ES modules, v2) | Serverless endpoints, ~50 functions |
 | Database | Supabase (PostgreSQL 15 + RLS) | Primary data store, row-level security |
 | Auth | Supabase Auth (JWT) | User authentication, session management |
 | File Storage | Supabase Storage | Booking photos (private bucket, signed URLs) |
@@ -68,12 +69,13 @@ Each business operator is a **tenant**. All tenant data is isolated by `business
                     │                                              │
                     │  ┌──────────────┐    ┌────────────────────┐  │
                     │  │  Static Site │    │  Netlify Functions  │  │
-                    │  │  (React SPA) │    │  (~40 endpoints)   │  │
+                    │  │  (React SPA) │    │  (~50 endpoints)   │  │
                     │  │              │    │                    │  │
                     │  │  /admin/*    │───▶│  /api/*            │  │
-                    │  │  /portal/*   │    │                    │  │
-                    │  │  /dispatch/* │    │  Auth: JWT +       │  │
-                    │  │  /quote/:t   │    │  business_memberships│ │
+                    │  │  /request/:s │    │                    │  │
+                    │  │  /portal/*   │    │  Auth: JWT +       │  │
+                    │  │  /dispatch/* │    │  business_memberships│ │
+                    │  │  /quote/:t   │    │                    │  │
                     │  └──────────────┘    └─────────┬──────────┘  │
                     │                                │              │
                     │  ┌──────────────┐              │              │
@@ -113,7 +115,7 @@ Each business operator is a **tenant**. All tenant data is isolated by `business
 
 ### Frontend (React SPA)
 
-- **Booking flow** (`/`): Mobile-first, unauthenticated. Photo upload → details → scheduling.
+- **Hosted quote form** (`/request/:slug`): Tenant-branded, config-driven quote request form. See [Hosted Quote Request Forms](#hosted-quote-request-forms).
 - **Rivet admin dashboard** (`/admin`): The primary operator interface. TypeScript + custom CSS design system. Sidebar navigation, real-time goal tracking, decision engine recommendations, quote approval, work management. Lives in `src/admin/`.
 - **Legacy admin** (`/admin/legacy/*`): The original admin pages (Dashboard, RequestQueue, Settings, CommercialAdminPage). Retained for backward compatibility during migration. Will be removed once all functionality is in the Rivet UI.
 - **Commercial portal** (`/portal/*`): Property manager self-service. Estimate requests, quote acceptance, payment.
@@ -195,7 +197,7 @@ The codebase prefers explicit code over clever abstractions. Two verticals use a
 ```
 junk-removal-quoter/
 ├── netlify/
-│   ├── functions/                    # ~40 serverless API endpoints
+│   ├── functions/                    # ~50 serverless API endpoints
 │   │   ├── _shared/                  # Shared server utilities
 │   │   │   ├── supabase.js           #   Auth, DB client, helpers
 │   │   │   ├── stripe.js             #   Stripe client, price math
@@ -206,7 +208,8 @@ junk-removal-quoter/
 │   │   ├── __tests__/
 │   │   │   └── integration.test.js   #   33 integration tests (mock Supabase)
 │   │   ├── approve-quote.js          #   Admin: approve + Stripe invoice
-│   │   ├── create-booking.js         #   Public: submit residential booking
+│   │   ├── create-booking.js         #   Public: submit booking + lead notification
+│   │   ├── get-business-config.js    #   Public: tenant form config (unauthenticated)
 │   │   ├── stripe-webhook.js         #   Stripe event handler
 │   │   └── ...                       #   (see API_REFERENCE.md)
 │   └── netlify.toml                  # Deploy config, redirects, headers
@@ -228,7 +231,10 @@ junk-removal-quoter/
 │   │   ├── commercial/               #   Commercial marketing chrome
 │   │   └── ...
 │   ├── hooks/                        # Custom React hooks
-│   ├── pages/                        # Route-level page components (legacy admin)
+│   ├── pages/                        # Route-level page components
+│   │   ├── VerticalQuoteForm.jsx     #   Config-driven quote request form
+│   │   ├── HostedQuoteForm.jsx       #   /request/:slug route (fetches config)
+│   │   ├── BookingFlow.jsx           #   Thin wrapper (Squatterz defaults)
 │   │   ├── Dashboard.jsx             #   Legacy admin dashboard
 │   │   ├── CommercialAdminPage.jsx   #   Commercial admin queue
 │   │   ├── PortalStart.jsx           #   Commercial estimate wizard
@@ -240,6 +246,7 @@ junk-removal-quoter/
 │   │   ├── goalEngine.js             #   Goal tracking calculations
 │   │   ├── decisionEngine.js         #   Take/Review/Pass recommendations
 │   │   ├── decisionRules.js          #   Decision rule definitions
+│   │   ├── quoteFormConfig.js        #   Form config defaults, merge, locked values
 │   │   ├── estimateBuilder.js        #   Junk removal cost estimation
 │   │   ├── calibrationEngine.js      #   Estimate accuracy learning
 │   │   ├── storage.js                #   Settings (DB-first, localStorage fallback)
@@ -270,6 +277,108 @@ junk-removal-quoter/
 ├── PLATFORM.md                       # Operational platform (goals, decisions, calibration)
 └── LAUNCH_CHECKLIST.md               # Pre-launch verification
 ```
+
+---
+
+## Hosted Quote Request Forms
+
+Rivet provides each tenant a hosted quote request form at `/request/:slug`. Tenants link to this from their own marketing sites and trucks. The form is configurable per business but **bounded by the decision engine's data model** — operators can customize branding, labels, and field visibility, but cannot add fields outside what the estimator consumes.
+
+### How It Works
+
+```
+Tenant's website                  Rivet (myrivet.io)
+─────────────────          ──────────────────────────────────
+  "Get a Quote"    ───▶    /request/:slug
+  (link/button)              │
+                             ├── GET /api/public/business-config?slug=...
+                             │     └── Returns: name, vertical, published, quoteFormConfig
+                             │
+                             ├── HostedQuoteForm.jsx
+                             │     └── Merges saved config with defaults
+                             │
+                             └── VerticalQuoteForm.jsx (config-driven)
+                                   ├── Step 1: Info (name, phone, email)
+                                   ├── Step 2: Location (address, city, ZIP)
+                                   ├── Step 3: Photos (optional, configurable)
+                                   ├── Step 4: Details (quantity, access, stairs)
+                                   └── Step 5: Schedule (dates, time preference)
+                                         │
+                                         └── POST /api/create-booking
+                                               └── Booking appears in tenant's admin
+```
+
+### Config Data Model
+
+Stored in `businesses.settings.quoteFormConfig` (JSONB — no migration needed):
+
+```javascript
+{
+  published: false,                    // Tenant must explicitly publish
+  notifications: {
+    emailOnRequest: true,              // Email operator on new request
+    notifyEmail: null,                 // Defaults to owner's auth email
+  },
+  branding: {
+    tagline: "",                       // e.g. "We Haul It All"
+    accentColor: "#22c55e",            // CTA buttons, progress bar
+    phone: null,                       // Form header phone number
+    ctaText: "Get Free Estimate",      // Submit button text
+  },
+  steps: {
+    photos: { enabled: true, minPhotos: 3 },
+  },
+  fields: {
+    quantity:        { label, options: [{ value, label, sub }] },
+    accessType:      { label, options: [{ value, label }] },
+    stairs:          { enabled: true, label },
+    elevator:        { enabled: true, label },
+    description:     { enabled: true, label, placeholder },
+    secondChoiceDate:{ enabled: true },
+    email:           { required: false },
+  },
+  companionContent: [ /* 5 entries for desktop sidebar */ ],
+  confirmation:     { headline, body },
+}
+```
+
+**Missing config = defaults.** `mergeQuoteFormConfig(saved, vertical)` deep-merges saved config over defaults so missing keys always fall back to sensible values.
+
+### The Estimator Contract
+
+Option **values are immutable** — they map directly to lookup tables in `estimateBuilder.js`:
+
+| Config Field | Estimator Lookup | Example Values |
+|---|---|---|
+| `quantity.options[].value` | `QUANTITY_TO_LOAD` | `"A few items (1-5)"`, `"Multiple rooms"` |
+| `accessType.options[].value` | `ACCESS_MAP` | `"curbside"`, `"basement"` |
+| `stairs` | `STAIRS_TIME_ADD` | `"yes"`, `"no"` |
+
+Operators can change display **labels** and **subtitles** but never the values the engine uses. The merge function matches options by `value` key to preserve this contract.
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/utils/quoteFormConfig.js` | Default config factory, `mergeQuoteFormConfig()`, locked value constants |
+| `src/pages/VerticalQuoteForm.jsx` | Config-driven form (~1100 lines), accepts `{ config, businessName, businessSlug }` |
+| `src/pages/HostedQuoteForm.jsx` | Route handler for `/request/:slug`, fetches config, handles loading/404/unpublished |
+| `src/pages/BookingFlow.jsx` | Thin wrapper — renders `VerticalQuoteForm` with Squatterz defaults |
+| `netlify/functions/get-business-config.js` | Public API: returns safe subset of business config (no pricing/engine data) |
+| `src/admin/screens.tsx` | "Quote Form" settings section in Rivet admin |
+
+### Photo-Disabled Behavior
+
+When a tenant disables the photos step (`steps.photos.enabled: false`):
+
+- The form skips the photo upload step entirely
+- `riskFlags.js` adds a `no_photos` flag (severity: warning) — distinct from `low_photos` (< 3)
+- `calculateConfidence()` applies a -15 penalty (stronger than per-warning -10)
+- The decision engine becomes more conservative due to degraded confidence
+
+### Lead Notifications
+
+When `quoteFormConfig.notifications.emailOnRequest` is true, `create-booking.js` sends a fire-and-forget email to the operator via Resend after booking creation. The recipient is `notifications.notifyEmail` or, if null, the business owner's auth email (resolved via `businesses.owner_user_id` → `auth.users`).
 
 ---
 
