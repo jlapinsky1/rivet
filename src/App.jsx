@@ -12,6 +12,8 @@ import AdminLogin from './pages/AdminLogin';
 import Commercial from './pages/Commercial';
 
 const RivetApp = lazy(() => import('./admin/RivetApp'));
+const MarketingApp = lazy(() => import('./marketing/MarketingApp'));
+const MarketingPricing = lazy(() => import('./marketing/PricingPage'));
 import PropertyManagementCleanup from './pages/commercial/PropertyManagementCleanup';
 import ApartmentCleanouts from './pages/commercial/ApartmentCleanouts';
 import EvictionCleanup from './pages/commercial/EvictionCleanup';
@@ -118,28 +120,51 @@ export default function App() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-gray-100 flex items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full" /></div>}>
     <Routes>
-      <Route path="/" element={<Commercial />} />
-      <Route path="/book" element={<Navigate to="/" replace />} />
-      <Route path="/quote/:id" element={<ApprovedQuote />} />
-      <Route path="/invoice/:token/final" element={<FinalPaymentPage />} />
-      <Route path="/commercial" element={<Navigate to="/" replace />} />
-      <Route path="/commercial/property-management-cleanup" element={<PropertyManagementCleanup />} />
-      <Route path="/commercial/apartment-cleanouts" element={<ApartmentCleanouts />} />
-      <Route path="/commercial/eviction-cleanup" element={<EvictionCleanup />} />
-      <Route path="/commercial/unit-turnover-cleanout" element={<UnitTurnoverCleanout />} />
-      <Route path="/commercial/bulk-trash-removal" element={<BulkTrashRemoval />} />
-      <Route path="/commercial/illegal-dumping-removal" element={<IllegalDumpingRemoval />} />
-      <Route path="/commercial/client-portal" element={<ClientPortalPage />} />
-      <Route path="/commercial/service-area" element={<ServiceArea />} />
-      <Route path="/portal/start" element={<PortalStart />} />
-      <Route path="/portal/login" element={<ClientLogin />} />
-      <Route path="/portal" element={<ClientPortal />} />
+      {/* Rivet platform routes */}
+      <Route path="/" element={<MarketingApp />} />
+      <Route path="/pricing" element={<MarketingPricing />} />
+      <Route path="/login" element={<RivetApp />} />
+      <Route path="/signup" element={<RivetApp />} />
       <Route path="/admin" element={<RivetApp />} />
+
+      {/* Legacy admin */}
       <Route path="/admin/legacy" element={<Navigate to="/admin/legacy/commercial" replace />} />
       <Route path="/admin/legacy/settings" element={<AdminDashboard />} />
       <Route path="/admin/legacy/commercial" element={<CommercialAdminPage />} />
-      <Route path="/commercial/quote/:token" element={<CommercialQuotePage />} />
+
+      {/* Shared functional routes (quote viewing, payments, dispatch) */}
+      <Route path="/quote/:id" element={<ApprovedQuote />} />
+      <Route path="/invoice/:token/final" element={<FinalPaymentPage />} />
       <Route path="/dispatch" element={<DispatchPage />} />
+
+      {/* Commercial portal */}
+      <Route path="/portal/start" element={<PortalStart />} />
+      <Route path="/portal/login" element={<ClientLogin />} />
+      <Route path="/portal" element={<ClientPortal />} />
+      <Route path="/commercial/quote/:token" element={<CommercialQuotePage />} />
+
+      {/* Squatterz-specific pages (will eventually move to gosquatterz.com) */}
+      <Route path="/b/squatterz" element={<Commercial />} />
+      <Route path="/b/squatterz/property-management-cleanup" element={<PropertyManagementCleanup />} />
+      <Route path="/b/squatterz/apartment-cleanouts" element={<ApartmentCleanouts />} />
+      <Route path="/b/squatterz/eviction-cleanup" element={<EvictionCleanup />} />
+      <Route path="/b/squatterz/unit-turnover-cleanout" element={<UnitTurnoverCleanout />} />
+      <Route path="/b/squatterz/bulk-trash-removal" element={<BulkTrashRemoval />} />
+      <Route path="/b/squatterz/illegal-dumping-removal" element={<IllegalDumpingRemoval />} />
+      <Route path="/b/squatterz/client-portal" element={<ClientPortalPage />} />
+      <Route path="/b/squatterz/service-area" element={<ServiceArea />} />
+
+      {/* Redirects for old Squatterz URLs */}
+      <Route path="/book" element={<Navigate to="/b/squatterz" replace />} />
+      <Route path="/commercial" element={<Navigate to="/b/squatterz" replace />} />
+      <Route path="/commercial/property-management-cleanup" element={<Navigate to="/b/squatterz/property-management-cleanup" replace />} />
+      <Route path="/commercial/apartment-cleanouts" element={<Navigate to="/b/squatterz/apartment-cleanouts" replace />} />
+      <Route path="/commercial/eviction-cleanup" element={<Navigate to="/b/squatterz/eviction-cleanup" replace />} />
+      <Route path="/commercial/unit-turnover-cleanout" element={<Navigate to="/b/squatterz/unit-turnover-cleanout" replace />} />
+      <Route path="/commercial/bulk-trash-removal" element={<Navigate to="/b/squatterz/bulk-trash-removal" replace />} />
+      <Route path="/commercial/illegal-dumping-removal" element={<Navigate to="/b/squatterz/illegal-dumping-removal" replace />} />
+      <Route path="/commercial/client-portal" element={<Navigate to="/b/squatterz/client-portal" replace />} />
+      <Route path="/commercial/service-area" element={<Navigate to="/b/squatterz/service-area" replace />} />
     </Routes>
     </Suspense>
   );
