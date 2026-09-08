@@ -2,31 +2,41 @@
   command = "npm run build"
   publish = "dist"
 
+# Old Squatterz URLs → /b/squatterz prefix
 [[redirects]]
   from = "/commercial"
-  to = "/"
+  to = "/b/squatterz"
   status = 301
 
 [[redirects]]
   from = "/commercial/"
-  to = "/"
+  to = "/b/squatterz"
+  status = 301
+
+[[redirects]]
+  from = "/commercial/:subpage"
+  to = "/b/squatterz/:subpage"
   status = 301
 
 [[redirects]]
   from = "/book"
-  to = "/"
+  to = "/b/squatterz"
   status = 301
 
+# SPA fallback — must be last
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
 # Private routes — noindex so crawlers don't index authenticated content.
-# Do NOT add these to robots.txt — crawlers must be able to visit these
-# pages to read the noindex directive.
 [[headers]]
   for = "/admin/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/login"
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
 

@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Scope marketing styles so they don't bleed into admin/booking pages */
+  .marketing-page {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #fbfaf7; /* cream-50 */
+    color: #0c1c15; /* forest-950 */
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  .marketing-page ::selection {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: #0c1c15;
+  }
+
+  .marketing-page :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px #10b981, 0 0 0 4px #fbfaf7;
+  }
+}
+
+@layer components {
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  }
+
+  .reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+  .reveal-delay-4 { transition-delay: 0.4s; }
+
+  input[type='range'] {
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 9999px;
+    background: #10b981;
+    border: 3px solid #0c1c15;
+    cursor: pointer;
+    box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.3);
+    transition: transform 0.15s ease;
+  }
+
+  input[type='range']::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+
+  input[type='range']::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 9999px;
+    background: #10b981;
+    border: 3px solid #0c1c15;
+    cursor: pointer;
+    box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.3);
+    transition: transform 0.15s ease;
+  }
+
+  input[type='range']::-moz-range-thumb:hover {
+    transform: scale(1.15);
+  }
+}
