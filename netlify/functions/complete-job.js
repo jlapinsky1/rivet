@@ -1,5 +1,5 @@
 import {
-  getServiceClient, verifyAdmin,
+  getServiceClient, verifyAdmin, verifyBusinessMember,
   jsonResponse, errorResponse,
 } from './_shared/supabase.js';
 import { toCents } from './_shared/stripe.js';
@@ -9,7 +9,8 @@ export default async function handler(req) {
   if (req.method !== 'POST') return errorResponse('Method not allowed', 405);
 
   try {
-    const admin = await verifyAdmin(req);
+    const bizAuth = await verifyBusinessMember(req);
+    const admin = bizAuth?.user || await verifyAdmin(req);
     if (!admin) return errorResponse('Unauthorized', 401);
 
     const body = await req.json();
@@ -60,7 +61,7 @@ export default async function handler(req) {
     const { data: booking, error: bookingErr } = await supabase
       .from('bookings')
       .select(
-        'id, status, deposit_confirmed_at, stripe_invoice_id, stripe_customer_id, ' +
+        'id, business_id, status, deposit_confirmed_at, stripe_invoice_id, stripe_customer_id, ' +
         'stripe_final_payment_intent_id, customer_email, customer_name, approved_quote'
       )
       .eq('id', bookingId)
@@ -87,6 +88,7 @@ export default async function handler(req) {
       // Log override
       await supabase.from('audit_log').insert({
         booking_id: bookingId,
+        business_id: booking.business_id,
         event_type: 'dispatch_override',
         admin_id:   admin.id,
         reason:     overrideReason.trim(),

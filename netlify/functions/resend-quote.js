@@ -27,7 +27,7 @@ export default async function handler(req) {
     // Load booking
     const { data: booking, error: bookingErr } = await supabase
       .from('bookings')
-      .select('id, status, customer_name, customer_email, full_address, approved_quote, quote_expires_at')
+      .select('id, business_id, status, customer_name, customer_email, full_address, approved_quote, quote_expires_at')
       .eq('id', bookingId)
       .single();
 
@@ -78,6 +78,7 @@ export default async function handler(req) {
     // Audit revocation
     await supabase.from('audit_log').insert({
       booking_id: bookingId,
+      business_id: booking.business_id,
       event_type: 'token_revoked',
       admin_id: admin.id,
       metadata: { token_id: activeToken.id, reason: 'resend_quote' },
@@ -88,6 +89,7 @@ export default async function handler(req) {
       .from('quote_tokens')
       .insert({
         booking_id: bookingId,
+        business_id: booking.business_id,
         quote_snapshot_id: activeToken.quote_snapshot_id,
         token_hash: tokenHash,
         expires_at: newExpiry,
@@ -164,6 +166,7 @@ export default async function handler(req) {
     // Audit
     await supabase.from('audit_log').insert({
       booking_id: bookingId,
+      business_id: booking.business_id,
       event_type: 'quote_resent',
       admin_id: admin.id,
       metadata: { customer_email: booking.customer_email, new_expiry: newExpiry },

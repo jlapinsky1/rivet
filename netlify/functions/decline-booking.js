@@ -20,7 +20,7 @@ export default async function handler(req) {
 
     const { data: booking, error: loadErr } = await supabase
       .from('bookings')
-      .select('id, status, customer_name, customer_email, full_address')
+      .select('id, business_id, status, customer_name, customer_email, full_address')
       .eq('id', bookingId)
       .single();
 
@@ -64,6 +64,7 @@ export default async function handler(req) {
 
     await supabase.from('audit_log').insert({
       booking_id: bookingId,
+      business_id: booking.business_id,
       event_type: 'booking_declined',
       admin_id: admin.id,
       reason: reason || null,

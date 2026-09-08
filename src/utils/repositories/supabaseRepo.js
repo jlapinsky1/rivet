@@ -69,15 +69,42 @@ function normalizeBooking(row) {
   };
 }
 
+// Cached business context for the current session
+let _businessContext = null;
+
+async function getBusinessContext() {
+  if (_businessContext) return _businessContext;
+
+  const { data, error } = await supabase
+    .from('business_memberships')
+    .select('business_id, role, businesses:business_id(id, name, slug, vertical, timezone, settings)')
+    .limit(1)
+    .single();
+
+  if (error || !data) return null;
+  _businessContext = {
+    businessId: data.business_id,
+    role: data.role,
+    business: data.businesses,
+  };
+  return _businessContext;
+}
+
+// Clear cached context on auth state change
+supabase.auth.onAuthStateChange(() => { _businessContext = null; });
+
 async function adminFetch(path, options = {}) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
+
+  const ctx = await getBusinessContext();
 
   const res = await fetch(path, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${session.access_token}`,
+      ...(ctx?.businessId && { 'x-business-id': ctx.businessId }),
       ...options.headers,
     },
   });
@@ -90,6 +117,15 @@ async function adminFetch(path, options = {}) {
 
 const supabaseRepo = {
   mode: 'supabase',
+
+  // ── Business Context ──
+  getBusinessContext,
+
+  async getBusinessSettings() {
+    const ctx = await getBusinessContext();
+    if (!ctx?.business?.settings) return null;
+    return ctx.business.settings;
+  },
 
   // ── Auth ──
   async signIn(email, password) {
@@ -309,6 +345,9 @@ const supabaseRepo = {
   },
 
   async upsertGoal(goalData) {
+    const ctx = await getBusinessContext();
+    const withBiz = { ...goalData, business_id: ctx?.businessId };
+
     // Deactivate existing active goal of same type first
     if (goalData.active !== false) {
       await supabase
@@ -319,7 +358,7 @@ const supabaseRepo = {
     }
     const { data, error } = await supabase
       .from('business_goals')
-      .upsert(goalData)
+      .upsert(withBiz)
       .select()
       .single();
     if (error) throw error;
@@ -327,9 +366,10 @@ const supabaseRepo = {
   },
 
   async saveGoalSnapshot(snapshot) {
+    const ctx = await getBusinessContext();
     const { error } = await supabase
       .from('goal_snapshots')
-      .upsert(snapshot, { onConflict: 'goal_id,snapshot_date' });
+      .upsert({ ...snapshot, business_id: ctx?.businessId }, { onConflict: 'goal_id,snapshot_date' });
     if (error) throw error;
   },
 
@@ -381,9 +421,10 @@ const supabaseRepo = {
   },
 
   async upsertCalibrationRecord(record) {
+    const ctx = await getBusinessContext();
     const { data, error } = await supabase
       .from('calibration_records')
-      .upsert(record)
+      .upsert({ ...record, business_id: ctx?.businessId })
       .select()
       .single();
     if (error) throw error;
@@ -484,7 +525,8 @@ const supabaseRepo = {
   },
 
   async appendAuditEntry(entry) {
-    const { error } = await supabase.from('audit_log').insert(entry);
+    const ctx = await getBusinessContext();
+    const { error } = await supabase.from('audit_log').insert({ ...entry, business_id: ctx?.businessId });
     if (error) throw error;
   },
 

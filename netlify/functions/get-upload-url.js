@@ -36,7 +36,7 @@ export default async function handler(req) {
     // Verify session exists, is active, and not expired
     const { data: session, error: sessionErr } = await supabase
       .from('upload_sessions')
-      .select('id, status, max_photos, max_file_bytes, expires_at')
+      .select('id, status, max_photos, max_file_bytes, expires_at, business_id')
       .eq('id', sessionId)
       .single();
 
@@ -71,8 +71,9 @@ export default async function handler(req) {
       return errorResponse(`Maximum of ${session.max_photos} photos reached`);
     }
 
-    // Generate server-controlled storage path (ext already validated above)
-    const storagePath = `sessions/${sessionId}/${crypto.randomUUID()}.${ext}`;
+    // Generate server-controlled storage path with business_id prefix
+    const bizPrefix = session.business_id || 'unknown';
+    const storagePath = `${bizPrefix}/sessions/${sessionId}/${crypto.randomUUID()}.${ext}`;
 
     // Create signed upload URL
     const { data: urlData, error: urlErr } = await supabase.storage

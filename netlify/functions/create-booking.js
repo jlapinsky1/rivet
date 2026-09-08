@@ -83,10 +83,22 @@ export default async function handler(req) {
       .eq('session_id', sessionId)
       .order('sort_order');
 
+    // Resolve business_id from the upload session
+    const { data: sessionBiz } = await supabase
+      .from('upload_sessions')
+      .select('business_id')
+      .eq('id', sessionId)
+      .single();
+    const businessId = sessionBiz?.business_id;
+    if (!businessId) {
+      return errorResponse('Unable to determine business context', 400);
+    }
+
     // Create booking
     const { data: booking, error: bookingErr } = await supabase
       .from('bookings')
       .insert({
+        business_id: businessId,
         customer_name: customerName,
         customer_phone: customerPhone,
         customer_email: body.customerEmail || null,
@@ -156,6 +168,7 @@ export default async function handler(req) {
     // Audit log
     await supabase.from('audit_log').insert({
       booking_id: booking.id,
+      business_id: businessId,
       event_type: 'booking_created',
       metadata: {
         ip_address: ip,

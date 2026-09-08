@@ -25,7 +25,7 @@ export default async function handler(req) {
     // Verify booking exists
     const { data: booking, error: bookingErr } = await supabase
       .from('bookings')
-      .select('id')
+      .select('id, business_id')
       .eq('id', bookingId)
       .single();
 
@@ -39,6 +39,7 @@ export default async function handler(req) {
       .from('support_notes')
       .insert({
         booking_id: bookingId,
+        business_id: booking.business_id,
         note_text: noteText.trim(),
         admin_id: admin.id,
         admin_email: adminEmail,
@@ -54,6 +55,7 @@ export default async function handler(req) {
     // Audit log entry
     await supabase.from('audit_log').insert({
       booking_id: bookingId,
+      business_id: booking.business_id,
       event_type: 'support_note_added',
       admin_id: admin.id,
       metadata: { note_id: note.id },

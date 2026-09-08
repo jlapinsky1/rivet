@@ -60,6 +60,14 @@ export async function runCompleteJob({
     .eq('booking_id', bookingId)
     .maybeSingle();
 
+  // Resolve business_id for child record inserts
+  const { data: bookingBiz } = await supabase
+    .from('bookings')
+    .select('business_id')
+    .eq('id', bookingId)
+    .single();
+  const businessId = bookingBiz?.business_id;
+
   if (existingCompletion) {
     completionId = existingCompletion.id;
     isIdempotent = true;
@@ -68,6 +76,7 @@ export async function runCompleteJob({
       .from('booking_completions')
       .insert({
         booking_id:              bookingId,
+        business_id:             businessId,
         completed_at:            completedAt,
         technician_name:         technicianName.trim(),
         technician_id:           technicianId?.trim() || null,
@@ -137,6 +146,7 @@ export async function runCompleteJob({
   if (!isIdempotent) {
     await supabase.from('audit_log').insert({
       booking_id:  bookingId,
+      business_id: businessId,
       event_type:  'booking_completed',
       admin_id:    admin.id,
       after_value: { finalAmountCents, completionId },
@@ -196,6 +206,7 @@ export async function runCompleteJob({
 
         await supabase.from('audit_log').insert({
           booking_id: bookingId,
+          business_id: businessId,
           event_type: 'final_payment_requested',
           admin_id:   admin.id,
           metadata: {
@@ -225,6 +236,7 @@ export async function runCompleteJob({
 
           await supabase.from('payment_access_tokens').insert({
             booking_id: bookingId,
+            business_id: businessId,
             token_hash: paymentTokenHash,
             purpose:    'final_payment',
             expires_at: tokenExpiry,

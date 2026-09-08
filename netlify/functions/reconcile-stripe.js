@@ -20,7 +20,7 @@ export default async function handler(req) {
     const { data: booking, error: bookingErr } = await supabase
       .from('bookings')
       .select(
-        'id, status, stripe_customer_id, stripe_invoice_id, ' +
+        'id, business_id, status, stripe_customer_id, stripe_invoice_id, ' +
         'stripe_deposit_payment_intent_id, stripe_final_payment_intent_id, ' +
         'deposit_confirmed_at, financially_completed_at, approved_quote'
       )
@@ -63,6 +63,7 @@ export default async function handler(req) {
 
           await supabase.from('audit_log').insert({
             booking_id: bookingId,
+            business_id: booking.business_id,
             event_type: 'stripe_reconciled',
             admin_id: admin.id,
             metadata: {
@@ -142,6 +143,7 @@ export default async function handler(req) {
 
         await supabase.from('audit_log').insert({
           booking_id: bookingId,
+          business_id: booking.business_id,
           event_type: 'stripe_reconciled',
           admin_id: admin.id,
           metadata: {
@@ -169,6 +171,7 @@ export default async function handler(req) {
 
       await supabase.from('audit_log').insert({
         booking_id: bookingId,
+        business_id: booking.business_id,
         event_type: 'stripe_reconciled',
         admin_id: admin.id,
         metadata: {

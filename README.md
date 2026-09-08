@@ -1,6 +1,17 @@
-# Junk Removal Quoter
+# Rivet
 
-A full-stack platform for a junk removal business: residential booking flow, admin operations dashboard, commercial client portal, and AI-assisted photo quoting — all running on Netlify Functions + Supabase.
+**Better jobs. Better margins.**
+
+A multi-tenant SaaS platform for service businesses — residential booking flow, admin operations dashboard, commercial client portal, AI-assisted photo quoting, and a profitability decision engine. Built on Netlify Functions + Supabase.
+
+> **Documentation:** See [`docs/`](./docs/) for comprehensive architecture documentation:
+> - [Architecture Overview](./docs/ARCHITECTURE.md) — system design, tech stack, directory structure
+> - [Multi-Tenancy](./docs/MULTI_TENANCY.md) — tenant isolation, RLS, business membership auth
+> - [Database Schema](./docs/DATABASE.md) — all tables, columns, relationships, migrations
+> - [Authentication](./docs/AUTHENTICATION.md) — auth flows, token types, security model
+> - [API Reference](./docs/API_REFERENCE.md) — every endpoint with auth, params, responses
+> - [Contributing](./docs/CONTRIBUTING.md) — developer and AI agent onboarding guide
+> - [Platform Operations](./PLATFORM.md) — goal engine, decision engine, calibration, Stripe workflow
 
 ---
 

@@ -51,7 +51,22 @@ export const DEFAULT_SETTINGS = {
   },
 };
 
+// Cached DB settings to avoid repeated fetches within same page load
+let _dbSettingsCache = null;
+let _dbSettingsFetched = false;
+
+/**
+ * Load settings with DB-first, localStorage fallback.
+ * The localStorage fallback exists ONLY to bridge the migration for Tenant #1.
+ * Remove this fallback once Squatterz is confirmed migrated to DB settings.
+ */
 export function getSettings() {
+  // If DB settings were loaded (async), prefer them
+  if (_dbSettingsFetched && _dbSettingsCache) {
+    return { ...DEFAULT_SETTINGS, ..._dbSettingsCache };
+  }
+
+  // Fallback: localStorage (temporary bridge for migration)
   try {
     const stored = localStorage.getItem(SETTINGS_KEY);
     if (stored) {
@@ -62,6 +77,25 @@ export function getSettings() {
     console.error('Failed to load settings:', e);
   }
   return { ...DEFAULT_SETTINGS };
+}
+
+/**
+ * Async settings loader — call once on app init to prime the cache from DB.
+ * Returns the merged settings (DB > defaults).
+ */
+export async function loadSettingsFromDB(repo) {
+  try {
+    const dbSettings = await repo.getBusinessSettings();
+    if (dbSettings && Object.keys(dbSettings).length > 0) {
+      _dbSettingsCache = dbSettings;
+      _dbSettingsFetched = true;
+      return { ...DEFAULT_SETTINGS, ...dbSettings };
+    }
+  } catch (e) {
+    console.error('Failed to load DB settings, using localStorage fallback:', e);
+  }
+  _dbSettingsFetched = true;
+  return getSettings();
 }
 
 export function saveSettings(settings) {
