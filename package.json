@@ -6,30 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "postbuild": "react-snap",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
-  },
-  "reactSnap": {
-    "source": "dist",
-    "include": [
-      "/",
-      "/commercial/property-management-cleanup",
-      "/commercial/apartment-cleanouts",
-      "/commercial/eviction-cleanup",
-      "/commercial/unit-turnover-cleanout",
-      "/commercial/bulk-trash-removal",
-      "/commercial/illegal-dumping-removal",
-      "/commercial/client-portal",
-      "/commercial/service-area"
-    ],
-    "skipThirdPartyRequests": true,
-    "headless": true,
-    "puppeteerArgs": [
-      "--no-sandbox",
-      "--disable-setuid-sandbox"
-    ]
   },
   "dependencies": {
     "@netlify/blobs": "^10.7.10",
