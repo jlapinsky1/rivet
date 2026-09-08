@@ -1,6 +1,6 @@
 # Rivet — System Architecture
 
-> Last updated: 2026-09-08 | Phase 1 Multi-Tenancy Complete
+> Last updated: 2026-09-08 | Phase 1 Multi-Tenancy + Rivet Admin UI Complete
 
 This document describes the full system architecture for **Rivet** — a multi-tenant operations and profitability platform for service businesses. *Better jobs. Better margins.*
 
@@ -40,7 +40,7 @@ Each business operator is a **tenant**. All tenant data is isolated by `business
 
 | Layer | Technology | Purpose |
 |-------|------------|---------|
-| Frontend | React 18 + Vite, Tailwind CSS | SPA with mobile-first booking flow, desktop-first admin |
+| Frontend | React 18 + Vite, TypeScript (admin), Tailwind + custom CSS | SPA with mobile-first booking flow, desktop-first admin |
 | API | Netlify Functions (ES modules, v2) | Serverless endpoints, ~40 functions |
 | Database | Supabase (PostgreSQL 15 + RLS) | Primary data store, row-level security |
 | Auth | Supabase Auth (JWT) | User authentication, session management |
@@ -114,7 +114,8 @@ Each business operator is a **tenant**. All tenant data is isolated by `business
 ### Frontend (React SPA)
 
 - **Booking flow** (`/`): Mobile-first, unauthenticated. Photo upload → details → scheduling.
-- **Admin dashboard** (`/admin/*`): Desktop-first. Goal tracking, decision engine, request queue, quote approval, job completion, Stripe reconciliation.
+- **Rivet admin dashboard** (`/admin`): The primary operator interface. TypeScript + custom CSS design system. Sidebar navigation, real-time goal tracking, decision engine recommendations, quote approval, work management. Lives in `src/admin/`.
+- **Legacy admin** (`/admin/legacy/*`): The original admin pages (Dashboard, RequestQueue, Settings, CommercialAdminPage). Retained for backward compatibility during migration. Will be removed once all functionality is in the Rivet UI.
 - **Commercial portal** (`/portal/*`): Property manager self-service. Estimate requests, quote acceptance, payment.
 - **Dispatch PWA** (`/dispatch/*`): iPhone-optimized. Job status updates, photo uploads, issue reporting.
 - **Marketing pages** (`/commercial/*`): SEO-optimized, prerendered with react-snap.
@@ -211,12 +212,24 @@ junk-removal-quoter/
 │   └── netlify.toml                  # Deploy config, redirects, headers
 │
 ├── src/
-│   ├── components/                   # React components
+│   ├── admin/                        # Rivet admin dashboard (TypeScript)
+│   │   ├── RivetApp.tsx              #   Auth gate (login screen + session check)
+│   │   ├── RivetDashboard.tsx        #   Dashboard shell (sidebar, topbar, routing)
+│   │   ├── screens.tsx               #   Home, Work, Schedule, Customers, Reports, Settings
+│   │   ├── WorkDetailDrawer.tsx      #   Job detail slide-over with approve/decline actions
+│   │   ├── components.tsx            #   Shared UI (MetricCard, RecPill, WorkRow, etc.)
+│   │   ├── types.ts                  #   WorkItem, Company, Customer types + mock data
+│   │   ├── WorkItemsContext.tsx      #   React context for shared work item data
+│   │   ├── useWorkItems.ts           #   Hook: fetches bookings → decision engine → WorkItem
+│   │   ├── useGoalData.ts            #   Hook: goal progress, weekly metrics, pace
+│   │   ├── useSettings.ts            #   Hook: read/write business settings (DB + localStorage)
+│   │   └── admin.css                 #   Custom CSS design system (1000+ lines, CSS vars)
+│   ├── components/                   # React components (legacy + shared)
 │   │   ├── commercial/               #   Commercial marketing chrome
 │   │   └── ...
 │   ├── hooks/                        # Custom React hooks
-│   ├── pages/                        # Route-level page components
-│   │   ├── Dashboard.jsx             #   Main admin dashboard
+│   ├── pages/                        # Route-level page components (legacy admin)
+│   │   ├── Dashboard.jsx             #   Legacy admin dashboard
 │   │   ├── CommercialAdminPage.jsx   #   Commercial admin queue
 │   │   ├── PortalStart.jsx           #   Commercial estimate wizard
 │   │   └── ...

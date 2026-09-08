@@ -47,6 +47,10 @@ This guide provides everything you need to understand, navigate, and safely modi
 | `supabaseRepo.js` | All frontend data access | Adding/changing data fetches |
 | `storage.js` | Business settings | Changing default config |
 | `integration.test.js` | Mock Supabase integration tests | Any API endpoint change |
+| `src/admin/screens.tsx` | All Rivet admin screens (Home, Work, Schedule, etc.) | Changing the operator dashboard UI |
+| `src/admin/useWorkItems.ts` | Booking → WorkItem normalization + decision engine | Changing how jobs appear in the admin UI |
+| `src/admin/WorkDetailDrawer.tsx` | Job detail slide-over with approve/decline | Changing job actions or detail display |
+| `src/admin/admin.css` | Rivet design system (CSS variables, all UI styles) | Changing visual design |
 
 ---
 

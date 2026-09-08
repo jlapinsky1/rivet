@@ -127,6 +127,19 @@ const supabaseRepo = {
     return ctx.business.settings;
   },
 
+  async saveBusinessSettings(settings) {
+    const ctx = await getBusinessContext();
+    if (!ctx?.businessId) throw new Error('No business context');
+    const { error } = await supabase
+      .from('businesses')
+      .update({ settings })
+      .eq('id', ctx.businessId);
+    if (error) throw error;
+    // Invalidate cached context so next read picks up new settings
+    _businessContext = null;
+    return true;
+  },
+
   // ── Auth ──
   async signIn(email, password) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
