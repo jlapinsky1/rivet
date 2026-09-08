@@ -10,6 +10,8 @@ import LearningDashboard from './pages/LearningDashboard';
 
 import AdminLogin from './pages/AdminLogin';
 import Commercial from './pages/Commercial';
+
+const RivetApp = lazy(() => import('./admin/RivetApp'));
 import PropertyManagementCleanup from './pages/commercial/PropertyManagementCleanup';
 import ApartmentCleanouts from './pages/commercial/ApartmentCleanouts';
 import EvictionCleanup from './pages/commercial/EvictionCleanup';
@@ -132,9 +134,10 @@ export default function App() {
       <Route path="/portal/start" element={<PortalStart />} />
       <Route path="/portal/login" element={<ClientLogin />} />
       <Route path="/portal" element={<ClientPortal />} />
-      <Route path="/admin" element={<Navigate to="/admin/commercial" replace />} />
-      <Route path="/admin/settings" element={<AdminDashboard />} />
-      <Route path="/admin/commercial" element={<CommercialAdminPage />} />
+      <Route path="/admin" element={<RivetApp />} />
+      <Route path="/admin/legacy" element={<Navigate to="/admin/legacy/commercial" replace />} />
+      <Route path="/admin/legacy/settings" element={<AdminDashboard />} />
+      <Route path="/admin/legacy/commercial" element={<CommercialAdminPage />} />
       <Route path="/commercial/quote/:token" element={<CommercialQuotePage />} />
       <Route path="/dispatch" element={<DispatchPage />} />
     </Routes>
