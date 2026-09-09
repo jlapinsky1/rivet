@@ -5,18 +5,13 @@ import { ChevronLeft, ChevronDown, Download, FlaskConical, X } from 'lucide-reac
 
 // ─── Access Gate ───
 
-export function isDecisionLabEnabled(): boolean {
-  try {
-    if (localStorage.getItem('rivet_lab') === '1') return true;
-  } catch { /* SSR or private mode */ }
-  if (typeof window !== 'undefined') {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('lab') === '1') {
-      try { localStorage.setItem('rivet_lab', '1'); } catch { /* ignore */ }
-      return true;
-    }
-  }
-  return false;
+const LAB_USERS = new Set([
+  'mason@myrivet.io',
+]);
+
+export function isDecisionLabEnabled(userEmail?: string | null): boolean {
+  if (!userEmail) return false;
+  return LAB_USERS.has(userEmail);
 }
 
 // ─── Types ───

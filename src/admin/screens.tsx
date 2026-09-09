@@ -4,6 +4,7 @@ import { settingsNav } from './types';
 import { useCustomers } from '../hooks/useCustomers';
 import { useWorkItemsContext } from './WorkItemsContext';
 import { useSettings } from './useSettings';
+import { useAuth } from '../lib/AuthProvider';
 import { useGoalData } from './useGoalData';
 import { MetricCard, WorkRecommendationCard, WorkRow, RecPill, StatusBadge, sourceLabel } from './components';
 import { DecisionLab, isDecisionLabEnabled } from './DecisionLab';
@@ -394,6 +395,7 @@ export function ReportsScreen() {
 export function SettingsScreen() {
   const [activeSection, setActiveSection] = useState('Business');
   const { settings, saving, error: saveError, save } = useSettings();
+  const { user } = useAuth();
 
   function field(key: string, fallback: any = '') {
     return settings[key] ?? fallback;
@@ -403,7 +405,7 @@ export function SettingsScreen() {
     save({ [key]: value });
   }
 
-  const labEnabled = useMemo(() => isDecisionLabEnabled(), []);
+  const labEnabled = useMemo(() => isDecisionLabEnabled(user?.email), [user?.email]);
   const visibleNav = useMemo(() => labEnabled ? settingsNav : settingsNav.filter(s => s !== 'Decision Lab'), [labEnabled]);
 
   return (

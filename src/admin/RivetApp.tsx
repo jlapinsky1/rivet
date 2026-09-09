@@ -86,7 +86,7 @@ function RivetAppContent() {
     return <LoginScreen />;
   }
 
-  const displayName = (user?.user_metadata?.display_name as string) ?? business?.businessName ?? 'there';
+  const displayName = (user?.user_metadata?.display_name as string) || business?.businessName || 'there';
   const businessName = business?.businessName ?? 'My Business';
   const words = businessName.split(' ');
   const businessInitials = words.length >= 2
