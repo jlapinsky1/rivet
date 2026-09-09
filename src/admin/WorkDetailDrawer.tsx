@@ -1,11 +1,24 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { WorkItem } from './types';
+import type { ReasonCode } from '../estimator/types';
+import { createAdjustmentEntry, saveAdjustment } from '../estimator/persistence';
 import { recCopy, recIcon, reasonGlyph, sourceLabel, StatusBadge, BillingBadge } from './components';
 import { ArrowRight, ChevronDown, CircleHelp, Clock3, Loader2, MapPin, Phone, Mail, FileText, Building2, User, X } from 'lucide-react';
 import { getRepo } from '../utils/repository';
 import { buildEstimate } from '../utils/estimateBuilder';
 import { getSettings } from '../utils/storage';
 import { CUSTOMER_TERMS } from '../utils/quoteSnapshot';
+
+const REASON_CODE_LABELS: Record<ReasonCode, string> = {
+  SYSTEM_TOO_LOW: 'System estimate too low',
+  SYSTEM_TOO_HIGH: 'System estimate too high',
+  SCOPE_CHANGED: 'Scope changed',
+  NEW_CUSTOMER_INFO: 'New customer info',
+  OWNER_EXPERIENCE: 'My experience',
+  MATERIAL_COST_DIFFERENT: 'Material cost different',
+  SITE_CONDITION_DIFFERENT: 'Site condition different',
+  OTHER: 'Other',
+};
 
 type DrawerProps = {
   item: WorkItem;
@@ -16,6 +29,9 @@ type DrawerProps = {
 export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProps) {
   const [price, setPrice] = useState(item.price);
   const [showAnalysis, setShowAnalysis] = useState(false);
+  const [showReasonPicker, setShowReasonPicker] = useState(false);
+  const [pendingPrice, setPendingPrice] = useState<number | null>(null);
+  const previousPriceRef = useRef(item.price);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
@@ -234,9 +250,61 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
             <label htmlFor="price" className="quote-label">Your {isCommercial ? 'invoice' : 'quote'} amount</label>
             <div className="price-input">
               <span>$</span>
-              <input id="price" type="number" value={price} onChange={(e) => setPrice(Number(e.target.value))} />
+              <input id="price" type="number" value={price} onChange={(e) => {
+                const newPrice = Number(e.target.value);
+                const prev = previousPriceRef.current;
+                const changePercent = prev > 0 ? Math.abs(newPrice - prev) / prev : 0;
+
+                setPrice(newPrice);
+
+                if (item.estimationRunId && changePercent > 0.05) {
+                  setPendingPrice(newPrice);
+                  setShowReasonPicker(true);
+                } else if (item.estimationRunId && newPrice !== prev) {
+                  // Small change (<= 5%): log automatically as OWNER_EXPERIENCE
+                  const entry = createAdjustmentEntry({
+                    estimationRunId: item.estimationRunId,
+                    businessId: 'default',
+                    userId: 'owner',
+                    field: 'price',
+                    systemValue: item.price,
+                    previousValue: prev,
+                    newValue: newPrice,
+                    reasonCode: 'OWNER_EXPERIENCE',
+                  });
+                  saveAdjustment(entry).catch(console.error);
+                  previousPriceRef.current = newPrice;
+                }
+              }} />
               <span>USD</span>
             </div>
+            {showReasonPicker && pendingPrice !== null && (
+              <div className="reason-picker">
+                <p>Why are you changing the price?</p>
+                <div className="reason-options">
+                  {(Object.keys(REASON_CODE_LABELS) as ReasonCode[]).map((code) => (
+                    <button key={code} className="reason-option" onClick={() => {
+                      const entry = createAdjustmentEntry({
+                        estimationRunId: item.estimationRunId!,
+                        businessId: 'default',
+                        userId: 'owner',
+                        field: 'price',
+                        systemValue: item.price,
+                        previousValue: previousPriceRef.current,
+                        newValue: pendingPrice,
+                        reasonCode: code,
+                      });
+                      saveAdjustment(entry).catch(console.error);
+                      previousPriceRef.current = pendingPrice;
+                      setShowReasonPicker(false);
+                      setPendingPrice(null);
+                    }}>
+                      {REASON_CODE_LABELS[code]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className={`price-impact ${priceStatus}`}>
               <span className="impact-icon">{priceStatus === 'take' ? '\u2713' : priceStatus === 'review' ? '!' : '\u00d7'}</span>
               <div>

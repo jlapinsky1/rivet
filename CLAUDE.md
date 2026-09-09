@@ -36,11 +36,11 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full system design.
 ```
 src/estimator/          — Full pipeline (types, baselines, extract, estimator, decision, persistence)
 src/estimator/__tests__ — 68 tests (estimator: 41, decision: 14, pipeline: 13)
-src/DecisionLab.tsx     — Internal evaluation page (Settings > Decision Lab, access-gated)
+src/admin/DecisionLab.tsx — Internal evaluation page (Settings > Decision Lab, access-gated)
+src/admin/WorkDetailDrawer.tsx — Price editing + adjustment logging (>5% requires reason code)
 src/demo/seed.ts        — Mason Home Services seed data (runs real pipeline)
 src/demo/customers.ts   — 13 residential + 2 commercial customers
 src/demo/seedSupabase.ts — Pushes estimation runs/adjustments/outcomes to Supabase
-src/WorkDetailDrawer.tsx — Price editing + adjustment logging (>5% requires reason code)
 netlify/functions/extract.ts — Server-side Claude API
 supabase/schema.sql     — DDL (dev-only, no RLS)
 ```
@@ -58,4 +58,4 @@ Seeded account treated identically to a real customer. No special code paths.
 - Seed script: `npx tsx src/demo/seedSupabase.ts` (pushes pipeline data to Supabase)
 - 22 work items (10 pending + 12 completed) generated through real estimator pipeline
 - 12 actual outcomes, multiple human adjustment entries with various reason codes
-- Static data (workItems, customers) imported in `src/types.ts` from `src/demo/seed.ts`
+- Static data (workItems, customers) imported in `src/admin/types.ts` from `src/demo/seed.ts`

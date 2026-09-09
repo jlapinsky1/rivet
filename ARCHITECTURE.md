@@ -86,10 +86,13 @@ src/
     pipeline.test.ts  — E2E both paths, shared overhead, adjustment logging, junk regression (13 tests)
   lib/
     supabase.ts       — Supabase client singleton
-  types.ts            — WorkItem UI type + account data (imports from demo/seed)
-  DecisionLab.tsx     — Internal evaluation page (access-gated, reads Supabase)
-  WorkDetailDrawer.tsx — Job detail panel with price editing + adjustment logging
-  App.tsx / screens.tsx — UI shell (Mason Home Services branding)
+  admin/
+    types.ts          — WorkItem UI type + account data (imports from demo/seed)
+    DecisionLab.tsx   — Internal evaluation page (access-gated, reads Supabase)
+    WorkDetailDrawer.tsx — Job detail panel with price editing + adjustment logging
+    screens.tsx       — UI screens (Mason Home Services branding)
+    RivetApp.tsx      — Admin app entry with Supabase auth
+    RivetDashboard.tsx — Main dashboard shell with sidebar
   demo/
     seed.ts           — Seed data generator (runs real pipeline, exports workItems/runs/adjustments/outcomes)
     customers.ts      — 13 residential + 2 commercial customers (Nashville TN)
@@ -303,7 +306,7 @@ Batch query functions for Decision Lab:
 
 ---
 
-## Decision Lab: `src/DecisionLab.tsx`
+## Decision Lab: `src/admin/DecisionLab.tsx`
 
 Internal-only evaluation page under Settings. Access-gated via `localStorage.rivet_lab === '1'` or `?lab=1` URL param.
 
@@ -326,13 +329,13 @@ Seeded account that functions identically to a real customer account. No special
 - `src/demo/seed.ts` generates 22 work items (10 pending + 12 completed) through the real estimator pipeline
 - `src/demo/customers.ts` provides 13 residential + 2 commercial customers in Nashville TN
 - `src/demo/seedSupabase.ts` pushes estimation runs, adjustments, and outcomes to Supabase
-- Static data imported in `src/types.ts`; pipeline data persisted via Supabase
+- Static data imported in `src/admin/types.ts`; pipeline data persisted via Supabase
 
 Business config: ownerOpportunityRate $75, helperRate $30, mileage $0.70, materialMarkup 20%, minimumJobPrice $175, minimumHourlyRate $70, profitFloor $75, marginFloor 35%, confidenceThreshold 0.70, weeklyGoal $2500, weeklyCapacity 35h.
 
 ---
 
-## UI Integration: `src/WorkDetailDrawer.tsx`
+## UI Integration: `src/admin/WorkDetailDrawer.tsx`
 
 Price changes > 5% require a reason code. Small changes auto-log as `OWNER_EXPERIENCE`.
 
