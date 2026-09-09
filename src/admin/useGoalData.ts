@@ -59,9 +59,10 @@ export function useGoalData(businessSettings?: Record<string, any>): GoalData {
       };
     }
 
-    const weeklyGoal = businessSettings?.weeklyGoal as number | undefined;
+    // Use same defaults as Settings UI (field('weeklyGoal', 2500), field('weeklyHours', 35))
+    const weeklyGoal = (businessSettings?.weeklyGoal as number) ?? 2500;
     const weeklyHours = (businessSettings?.weeklyHours as number) || 35;
-    const hasGoal = !!weeklyGoal && weeklyGoal > 0;
+    const hasGoal = weeklyGoal > 0;
 
     const { daysLeftInWeek } = getWeekBounds();
 
