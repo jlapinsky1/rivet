@@ -545,17 +545,100 @@ const supabaseRepo = {
 
   // ── Dispatch ──
   async getDispatchJobsToday() {
-    return adminFetch('/api/dispatch-jobs-today');
+    const ctx = await getBusinessContext();
+    const BUSINESS_TIMEZONE = ctx?.business?.timezone || 'America/New_York';
+    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: BUSINESS_TIMEZONE }).format(new Date());
+    const jobs = [];
+
+    // Work items (Rivet estimation pipeline)
+    if (ctx?.businessId) {
+      const { data: workItems } = await supabase
+        .from('work_items')
+        .select('*')
+        .eq('business_id', ctx.businessId)
+        .in('op_status', ['approved', 'scheduled', 'in_progress', 'completed'])
+        .order('created_at', { ascending: true });
+
+      if (workItems) {
+        for (const w of workItems) {
+          if (w.preferred_date && w.preferred_date !== todayStr) continue;
+          jobs.push({
+            id: w.id, source: 'work_item', bookingRef: null,
+            status: ({ scheduled: 'scheduled', in_progress: 'in_progress', completed: 'completed', approved: 'scheduled' })[w.op_status] || 'scheduled',
+            depositConfirmed: true,
+            appointmentDate: w.preferred_date ?? null, appointmentWindow: null, scheduledPickup: null,
+            customerName: w.customer_name ?? null, customerPhone: w.phone ?? null,
+            fullAddress: w.address ?? null, accessInstructions: null,
+            quantity: null, accessType: null, stairs: null, elevator: null,
+            description: w.description ?? null, internalJobNotes: w.customer_notes ?? null,
+            title: w.title ?? null, price: w.price ?? null, hours: w.hours ?? null, travel: w.travel ?? null,
+            enRouteAt: null, arrivedAt: null, startedAt: null, completedAt: null,
+          });
+        }
+      }
+    }
+
+    // Bookings (junk removal flow) — optional, may not exist
+    try {
+      const { data: bookings, error: bErr } = await supabase
+        .from('bookings')
+        .select('id, status, deposit_confirmed_at, preferred_date, time_preference, scheduled_pickup, customer_name, customer_phone, full_address, access_type, quantity, stairs, elevator, description, internal_notes, en_route_at, arrived_at, started_at, completed_at')
+        .in('status', ['scheduled', 'en_route', 'arrived', 'in_progress', 'completed'])
+        .eq('preferred_date', todayStr)
+        .order('scheduled_pickup', { ascending: true });
+
+      if (!bErr && bookings) {
+        for (const b of bookings) {
+          jobs.push({
+            id: b.id, source: 'booking',
+            bookingRef: 'RES-' + b.id.slice(0, 8).toUpperCase(),
+            status: b.status, depositConfirmed: b.deposit_confirmed_at != null,
+            appointmentDate: b.preferred_date ?? null, appointmentWindow: b.time_preference ?? null,
+            scheduledPickup: b.scheduled_pickup ?? null,
+            customerName: b.customer_name ?? null, customerPhone: b.customer_phone ?? null,
+            fullAddress: b.full_address ?? null, accessInstructions: b.access_type ?? null,
+            quantity: b.quantity ?? null, accessType: b.access_type ?? null,
+            stairs: b.stairs ?? null, elevator: b.elevator ?? null,
+            description: b.description ?? null, internalJobNotes: b.internal_notes ?? null,
+            title: null, price: null, hours: null, travel: null,
+            enRouteAt: b.en_route_at ?? null, arrivedAt: b.arrived_at ?? null,
+            startedAt: b.started_at ?? null, completedAt: b.completed_at ?? null,
+          });
+        }
+      }
+    } catch (_) { /* bookings table may not exist */ }
+
+    // Sort: active first
+    const STATUS_ORDER = { in_progress: 0, arrived: 1, en_route: 2, scheduled: 3, completed: 4 };
+    jobs.sort((a, b) => (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3));
+
+    const nextJob = jobs.find(j => j.status !== 'completed');
+    return { jobs, nextJobId: nextJob?.id ?? null, date: todayStr };
   },
 
   async getDispatchJob(bookingId) {
     return adminFetch(`/api/dispatch-job?bookingId=${encodeURIComponent(bookingId)}`);
   },
 
-  async updateDispatchStatus(bookingId, targetStatus, idempotencyKey) {
+  async updateDispatchStatus(jobId, targetStatus, idempotencyKey) {
+    // Try work_items first (Rivet jobs), fall back to bookings
+    const TIMESTAMP_COL = { en_route: 'en_route_at', arrived: 'arrived_at', in_progress: 'started_at' };
+    const now = new Date().toISOString();
+    const updates = { op_status: targetStatus === 'en_route' ? 'scheduled' : targetStatus, updated_at: now };
+
+    // Check if it's a work_item
+    const { data: wi } = await supabase.from('work_items').select('id').eq('id', jobId).maybeSingle();
+    if (wi) {
+      const statusMap = { en_route: 'in_progress', arrived: 'in_progress', in_progress: 'in_progress', scheduled: 'scheduled' };
+      const { error } = await supabase.from('work_items').update({ op_status: statusMap[targetStatus] || targetStatus, updated_at: now }).eq('id', jobId);
+      if (error) throw new Error(error.message);
+      return { success: true, booking: { id: jobId, status: targetStatus } };
+    }
+
+    // Fall back to bookings (via Netlify function for deposit/photo enforcement)
     return adminFetch('/api/dispatch-status', {
       method: 'POST',
-      body: JSON.stringify({ bookingId, targetStatus, idempotencyKey }),
+      body: JSON.stringify({ bookingId: jobId, targetStatus, idempotencyKey }),
     });
   },
 
