@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../utils/supabaseClient';
-import { getRepo } from '../utils/repository';
-import type { User } from '@supabase/supabase-js';
+import { useState } from 'react';
+import { AuthProvider, useAuth } from '../lib/AuthProvider';
 import RivetDashboard from './RivetDashboard';
 import './admin.css';
 
-function LoginScreen({ onLogin }: { onLogin: () => void }) {
+function LoginScreen() {
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -15,16 +14,9 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
     e.preventDefault();
     setError(null);
     setLoading(true);
-
-    try {
-      const repo = await getRepo();
-      await repo.signIn(email, password);
-      onLogin();
-    } catch (err: any) {
-      setError(err.message || 'Invalid email or password');
-    } finally {
-      setLoading(false);
-    }
+    const result = await signIn(email, password);
+    if (result.error) setError(result.error);
+    setLoading(false);
   }
 
   return (
@@ -75,59 +67,11 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
   );
 }
 
-export default function RivetApp() {
-  const [user, setUser] = useState<User | null | undefined>(undefined);
-  const [businessName, setBusinessName] = useState('');
-  const [businessInitials, setBusinessInitials] = useState('');
-
-  useEffect(() => {
-    let unsub: any;
-    (async () => {
-      const repo = await getRepo();
-      const session = await repo.getSession();
-      setUser(session || null);
-
-      if (session) {
-        loadBusinessContext();
-      }
-
-      if (repo.onAuthStateChange) {
-        const { data } = repo.onAuthStateChange((u: any) => {
-          setUser(u || null);
-          if (u) loadBusinessContext();
-        });
-        unsub = data?.subscription;
-      }
-    })();
-    return () => unsub?.unsubscribe?.();
-  }, []);
-
-  async function loadBusinessContext() {
-    try {
-      const repo = await getRepo();
-      const ctx = await repo.getBusinessContext();
-      if (ctx?.business) {
-        setBusinessName(ctx.business.name || '');
-        const words = (ctx.business.name || '').split(' ');
-        setBusinessInitials(
-          words.length >= 2
-            ? (words[0][0] + words[1][0]).toUpperCase()
-            : (words[0] || '').slice(0, 2).toUpperCase()
-        );
-      }
-    } catch {
-      // Business context may not be available yet
-    }
-  }
-
-  async function handleSignOut() {
-    const repo = await getRepo();
-    await repo.signOut();
-    setUser(null);
-  }
+function RivetAppContent() {
+  const { loading, session, user, business, signOut } = useAuth();
 
   // Loading
-  if (user === undefined) {
+  if (loading) {
     return (
       <div className="login-page">
         <div className="login-loading">
@@ -138,26 +82,31 @@ export default function RivetApp() {
   }
 
   // Not authenticated
-  if (!user) {
-    return (
-      <LoginScreen
-        onLogin={() =>
-          getRepo()
-            .then(r => r.getSession())
-            .then(s => {
-              setUser(s);
-              if (s) loadBusinessContext();
-            })
-        }
-      />
-    );
+  if (!session) {
+    return <LoginScreen />;
   }
+
+  const displayName = (user?.user_metadata?.display_name as string) ?? business?.businessName ?? 'there';
+  const businessName = business?.businessName ?? 'My Business';
+  const words = businessName.split(' ');
+  const businessInitials = words.length >= 2
+    ? (words[0][0] + words[1][0]).toUpperCase()
+    : words[0].slice(0, 2).toUpperCase();
 
   return (
     <RivetDashboard
-      businessName={businessName || 'My Business'}
-      businessInitials={businessInitials || 'MB'}
-      onSignOut={handleSignOut}
+      businessName={businessName}
+      businessInitials={businessInitials}
+      displayName={displayName}
+      onSignOut={signOut}
     />
+  );
+}
+
+export default function RivetApp() {
+  return (
+    <AuthProvider>
+      <RivetAppContent />
+    </AuthProvider>
   );
 }

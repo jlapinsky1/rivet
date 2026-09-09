@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import type { WorkItem, OperationalStatus } from './types';
-import { companies, individuals, settingsNav } from './types';
+import { settingsNav } from './types';
+import { useCustomers } from '../hooks/useCustomers';
 import { useWorkItemsContext } from './WorkItemsContext';
 import { useSettings } from './useSettings';
 import { useGoalData } from './useGoalData';
@@ -262,6 +263,7 @@ export function ScheduleScreen({ onOpenItem }: { onOpenItem: (item: WorkItem) =>
 
 /* ===== CUSTOMERS ===== */
 export function CustomersScreen() {
+  const { individuals, companies } = useCustomers();
   const [tab, setTab] = useState<'All' | 'People' | 'Companies'>('All');
   return (
     <div className="dashboard">

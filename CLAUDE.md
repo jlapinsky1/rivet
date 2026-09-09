@@ -26,7 +26,8 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full system design.
 - Calibration only from completed-job actuals, never from human estimate edits
 - Unknown `jobFamily` → always Review, never auto-Pass
 - Estimation runs are immutable, adjustments are append-only
-- Supabase persistence is **DEV-ONLY** — no RLS yet
+- **All data is tenant-scoped** via `business_id` (UUID) + RLS policies
+- UI fetches data via hooks (`useWorkItems`, `useCustomers`) — never from static imports
 - All WorkItems are serviceType 'Handyman' (regression tested)
 - App code never changes between demo and real accounts
 - All baselines marked `needs_domain_validation`
@@ -34,15 +35,22 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full system design.
 ## Key Files
 
 ```
-src/estimator/          — Full pipeline (types, baselines, extract, estimator, decision, persistence)
-src/estimator/__tests__ — 68 tests (estimator: 41, decision: 14, pipeline: 13)
-src/admin/DecisionLab.tsx — Internal evaluation page (Settings > Decision Lab, access-gated)
+src/lib/AuthProvider.tsx    — Supabase auth + business context provider
+src/hooks/useWorkItems.ts   — Tenant-scoped work items from Supabase
+src/hooks/useCustomers.ts   — Tenant-scoped customers/companies from Supabase
+src/admin/RivetApp.tsx      — Login + dashboard entry (mounted at /login route)
+src/admin/useWorkItems.ts   — Work items hook used by admin dashboard (also Supabase-backed)
+src/estimator/              — Full pipeline (types, baselines, extract, estimator, decision, persistence)
+src/estimator/__tests__     — 68 tests (estimator: 41, decision: 14, pipeline: 13)
+src/admin/DecisionLab.tsx   — Internal evaluation page (Settings > Decision Lab, access-gated)
 src/admin/WorkDetailDrawer.tsx — Price editing + adjustment logging (>5% requires reason code)
-src/demo/seed.ts        — Mason Home Services seed data (runs real pipeline)
-src/demo/customers.ts   — 13 residential + 2 commercial customers
-src/demo/seedSupabase.ts — Pushes estimation runs/adjustments/outcomes to Supabase
+src/demo/seed.ts            — Mason Home Services seed data (runs real pipeline, used by tests)
+src/demo/customers.ts       — 13 residential + 2 commercial customers (test reference data)
 netlify/functions/extract.ts — Server-side Claude API
-supabase/schema.sql     — DDL (dev-only, no RLS)
+supabase/migrations/020_multi_tenant.sql — Multi-tenant foundation (businesses, memberships, RLS)
+supabase/migrations/021_handyman_tenant_tables.sql — work_items, customers, companies, properties
+supabase/seed-mason-data.sql — Business + membership + customers + companies for demo account
+supabase/seed-data.sql       — Auto-generated estimation runs + work items
 ```
 
 ## Decision Lab
@@ -53,9 +61,19 @@ Shows estimation runs table, full pipeline detail view, filters (customer, trade
 
 ## Demo Account (Mason Home Services)
 
+Login: `mason@myrivet.io` / `MasonDemo2024!`
+
 Seeded account treated identically to a real customer. No special code paths.
 
-- Seed script: `npx tsx src/demo/seedSupabase.ts` (pushes pipeline data to Supabase)
+### Seed Order (Supabase SQL Editor):
+1. `supabase/schema.sql` — estimation tables
+2. `supabase/migrations/020_multi_tenant.sql` — businesses, memberships, RLS
+3. `supabase/migrations/021_handyman_tenant_tables.sql` — work_items, customers, companies, properties
+4. `supabase/seed-demo-user.sql` — creates auth user
+5. `supabase/seed-mason-data.sql` — business, membership, customers, companies, properties
+6. `supabase/seed-data.sql` — estimation runs, adjustments, outcomes, work items (regenerate with `npx tsx supabase/generate-seed-sql.ts`)
+
+- Business UUID: `a0000000-0000-0000-0000-000000000001`
 - 22 work items (10 pending + 12 completed) generated through real estimator pipeline
 - 12 actual outcomes, multiple human adjustment entries with various reason codes
-- Static data (workItems, customers) imported in `src/admin/types.ts` from `src/demo/seed.ts`
+- All data scoped to Mason's business_id — never visible to other accounts

@@ -79,9 +79,10 @@ function DrawerWithRefresh({ item, onClose }: { item: WorkItem; onClose: () => v
   return <WorkDetailDrawer item={item} onClose={onClose} onActionComplete={refresh} />;
 }
 
-export default function RivetDashboard({ businessName, businessInitials, onSignOut }: {
+export default function RivetDashboard({ businessName, businessInitials, displayName, onSignOut }: {
   businessName: string;
   businessInitials: string;
+  displayName?: string;
   onSignOut: () => void;
 }) {
   const [active, setActive] = useState('Home');
@@ -91,8 +92,8 @@ export default function RivetDashboard({ businessName, businessInitials, onSignO
   const openItem = (item: WorkItem) => setSelectedItem(item);
   const closeItem = () => setSelectedItem(null);
 
-  const firstName = businessName.split(' ')[0] || 'there';
-  const topbarTitle = active === 'Home' ? `Good morning, ${firstName}` : active;
+  const greeting = displayName || businessName.split(' ')[0] || 'there';
+  const topbarTitle = active === 'Home' ? `Good morning, ${greeting}` : active;
   const topbarCrumb = active === 'Home' ? 'Today' : active;
 
   return (

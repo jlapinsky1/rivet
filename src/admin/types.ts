@@ -82,20 +82,21 @@ export type IndividualCustomer = {
   totalRevenue: number;
 };
 
-// --- Account Data: Mason Home Services ---
-// Static seed data -- same structure as any account.
-// Estimation pipeline data (runs, adjustments, outcomes) lives in Supabase.
+// ─── Static seed data (for tests only — UI fetches from Supabase) ───
 
 import { demoWorkItems } from '../demo/seed';
 import { demoIndividuals, demoCompanies } from '../demo/customers';
 
+/** @deprecated Use useWorkItems hook for UI. Kept for pipeline regression tests. */
 export const workItems: WorkItem[] = demoWorkItems;
+/** @deprecated Use useCustomers hook for UI. Kept for tests. */
 export const companies: Company[] = demoCompanies;
+/** @deprecated Use useCustomers hook for UI. Kept for tests. */
 export const individuals: IndividualCustomer[] = demoIndividuals;
 
 export const navItems: { label: string; icon: LucideIcon; count?: number }[] = [
   { label: 'Home', icon: Home },
-  { label: 'Work', icon: Briefcase, count: workItems.filter(w => w.opStatus === 'needs_review').length },
+  { label: 'Work', icon: Briefcase },
   { label: 'Schedule', icon: CalendarDays },
   { label: 'Customers', icon: Users },
   { label: 'Reports', icon: BarChart3 },

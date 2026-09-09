@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { WorkItem } from './types';
+import type { WorkItem } from '../admin/types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthProvider';
 
