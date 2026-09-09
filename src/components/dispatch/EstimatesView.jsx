@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, MapPin, TrendingUp, Clock, ChevronRight } from 'lucide-react';
+import { RefreshCw, MapPin, TrendingUp, Clock } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getSettings } from '../../utils/storage';
 import EstimateJobSheet from './EstimateJobSheet';
@@ -51,24 +51,6 @@ function timeAgo(dateStr) {
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
 }
-
-function getJobTags(item) {
-  const tags = [];
-  const margin = item.price > 0 ? item.profit / item.price : 0;
-  if (margin >= 0.45) tags.push({ label: 'High margin', color: 'green' });
-  else if (margin < 0.25) tags.push({ label: 'Thin margin', color: 'amber' });
-  if (item.hoursNum > 0 && item.hoursNum <= 3) tags.push({ label: 'Quick job', color: 'blue' });
-  if (item.hoursNum > 0 && item.hoursNum <= 6) tags.push({ label: 'Fits schedule', color: 'green' });
-  if (item.confidence < 60) tags.push({ label: 'Low confidence', color: 'amber' });
-  if (item.recommendation === 'take') tags.push({ label: 'Recommended', color: 'green' });
-  return tags.slice(0, 3);
-}
-
-const TAG_STYLES = {
-  green: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  amber: 'bg-amber-50 text-amber-700 border-amber-200',
-  blue: 'bg-blue-50 text-blue-700 border-blue-200',
-};
 
 const TABS = [
   { key: 'queue', label: 'Queue' },
@@ -122,24 +104,19 @@ export default function EstimatesView({ user, safeTop }) {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    loadData();
-  };
+  const handleRefresh = () => { setRefreshing(true); loadData(); };
 
-  // Categorize items
+  // Categorize
   const queueItems = items.filter(w => w.opStatus === 'needs_review');
   const acceptedItems = items.filter(w => ['approved', 'quoted', 'scheduled'].includes(w.opStatus));
   const passedItems = items.filter(w => w.opStatus === 'declined');
   const completedItems = items.filter(w => w.opStatus === 'completed');
 
   const tabItems = activeTab === 'queue' ? queueItems
-    : activeTab === 'accepted' ? acceptedItems
-    : passedItems;
-
+    : activeTab === 'accepted' ? acceptedItems : passedItems;
   const tabCounts = { queue: queueItems.length, accepted: acceptedItems.length, passed: passedItems.length };
 
-  // Weekly progress
+  // Weekly progress (profit-based, matching admin dashboard)
   const earnedThisWeek = completedItems.reduce((s, w) => s + w.profit, 0)
     + acceptedItems.reduce((s, w) => s + w.profit, 0);
   const progressPct = weeklyGoal > 0 ? Math.min(100, Math.round(earnedThisWeek / weeklyGoal * 100)) : 0;
@@ -159,12 +136,8 @@ export default function EstimatesView({ user, safeTop }) {
   async function handleAction(item, action) {
     const newStatus = action === 'accept' ? 'approved' : 'declined';
     try {
-      await supabase
-        .from('work_items')
-        .update({ op_status: newStatus })
-        .eq('id', item.id);
+      await supabase.from('work_items').update({ op_status: newStatus }).eq('id', item.id);
 
-      // Record owner decision if we have an estimation run
       if (item.estimationRunId) {
         const { saveOwnerDecision } = await import('../../estimator/persistence');
         const now = new Date();
@@ -213,94 +186,94 @@ export default function EstimatesView({ user, safeTop }) {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-7 h-7 border-[3px] border-blue-500 border-t-transparent rounded-full" />
       </div>
     );
   }
 
   return (
     <>
-      {/* Dark header */}
-      <div className="bg-slate-900 px-5 pt-2 pb-5 flex-shrink-0" style={safeTop}>
-        <div className="flex items-start justify-between mb-1">
-          <p className="text-blue-400 text-[11px] font-bold tracking-widest">{dateStr}</p>
-          <span className="text-gray-400 text-[11px] flex items-center gap-1">
-            <span className="text-amber-400 text-sm">&#10024;</span> AI reviewed
-          </span>
+      {/* ── Dark header ── */}
+      <div className="bg-slate-900 flex-shrink-0" style={safeTop}>
+        <div className="px-5 pt-3 pb-5">
+          <div className="flex items-start justify-between">
+            <p className="text-blue-400 text-[11px] font-semibold tracking-widest">{dateStr}</p>
+            <span className="text-gray-500 text-[11px] flex items-center gap-1">
+              <span className="text-amber-400">&#10024;</span> AI reviewed
+            </span>
+          </div>
+          <h1 className="text-white text-2xl font-bold mt-1">
+            {greeting}{displayName ? `, ${displayName}` : ''}
+          </h1>
         </div>
-        <h1 className="text-white text-[22px] font-bold leading-tight">
-          {greeting}{displayName ? `, ${displayName}` : ''}
-        </h1>
       </div>
 
-      {/* Scrollable content */}
+      {/* ── Scrollable body ── */}
       <div className="flex-1 overflow-y-auto bg-gray-50" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <div className="px-4 py-4 space-y-4 max-w-lg mx-auto">
+        <div className="px-5 pt-4 pb-6">
 
-          {/* Revenue target card */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-500 text-sm font-medium">Weekly revenue target</span>
-              <span className="text-slate-900 text-sm font-bold">
-                ${earnedThisWeek.toLocaleString()} / ${weeklyGoal.toLocaleString()}
+          {/* Revenue target */}
+          <div className="bg-white rounded-2xl px-4 py-4 shadow-sm">
+            <div className="flex items-baseline justify-between mb-2.5">
+              <span className="text-gray-500 text-[13px] font-medium">Weekly revenue target</span>
+              <span className="text-sm font-bold text-slate-800">
+                ${earnedThisWeek.toLocaleString()} <span className="text-gray-400 font-normal">/ ${weeklyGoal.toLocaleString()}</span>
               </span>
             </div>
-            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-[6px] bg-gray-100 rounded-full overflow-hidden">
               <div
                 className="h-full bg-blue-500 rounded-full transition-all duration-500"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
-            <div className="flex items-center gap-4 mt-3">
-              <span className="text-sm text-slate-700">
-                <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-1.5" />
-                <strong>{queueItems.length}</strong> in queue
+            <div className="flex items-center gap-5 mt-3">
+              <span className="text-[13px] text-gray-500">
+                <span className="inline-block w-[6px] h-[6px] rounded-full bg-blue-500 mr-1.5 relative top-[-1px]" />
+                <strong className="text-slate-800">{queueItems.length}</strong> in queue
               </span>
-              <span className="text-sm text-slate-700">
-                <TrendingUp className="inline w-3.5 h-3.5 mr-1 text-emerald-500" />
-                <strong>${pendingValue.toLocaleString()}</strong> pending
+              <span className="text-[13px] text-gray-500">
+                <TrendingUp className="inline w-3.5 h-3.5 mr-1 text-emerald-500 relative top-[-1px]" />
+                <strong className="text-slate-800">${pendingValue.toLocaleString()}</strong> pending
               </span>
             </div>
           </div>
 
-          {/* Error state */}
+          {/* Error */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-center">
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-center mt-4">
               <p className="text-red-700 font-medium text-sm mb-2">{error}</p>
               <button onClick={handleRefresh} className="text-sm text-blue-600 font-semibold">Try again</button>
             </div>
           )}
 
-          {/* Your jobs heading */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">Your jobs</h2>
-              <p className="text-gray-400 text-sm">Make the call that's right for your week.</p>
-            </div>
+          {/* Section header */}
+          <div className="flex items-center justify-between mt-6 mb-1">
+            <h2 className="text-[17px] font-bold text-slate-900">Your jobs</h2>
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 active:bg-gray-100 disabled:opacity-40"
+              className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 active:bg-gray-100 disabled:opacity-40"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
+          <p className="text-[13px] text-gray-400 mb-4">Make the call that's right for your week.</p>
 
-          {/* Tab bar */}
-          <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+          {/* Tabs */}
+          <div className="flex bg-gray-100 rounded-xl p-1 mb-4">
             {TABS.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                className={`flex-1 py-2 rounded-lg text-[13px] font-semibold transition-all duration-150 ${
                   activeTab === tab.key
                     ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-gray-500'
+                    : 'text-gray-400'
                 }`}
               >
                 {tab.label}
                 {tabCounts[tab.key] > 0 && (
-                  <span className={`ml-1.5 text-xs ${activeTab === tab.key ? 'text-blue-500' : 'text-gray-400'}`}>
+                  <span className={`ml-1 ${activeTab === tab.key ? 'text-blue-500' : 'text-gray-400'}`}>
                     {tabCounts[tab.key]}
                   </span>
                 )}
@@ -308,98 +281,58 @@ export default function EstimatesView({ user, safeTop }) {
             ))}
           </div>
 
-          {/* Job cards */}
+          {/* Job list */}
           {tabItems.length === 0 ? (
-            <div className="py-12 text-center">
-              <div className="text-gray-300 text-4xl mb-3">
-                {activeTab === 'queue' ? '\uD83D\uDCCB' : activeTab === 'accepted' ? '\u2705' : '\u274C'}
-              </div>
-              <p className="text-gray-400 text-sm font-medium">
-                {activeTab === 'queue' ? 'No estimates in queue' : activeTab === 'accepted' ? 'No accepted jobs yet' : 'No passed jobs'}
+            <div className="py-16 text-center">
+              <p className="text-gray-300 text-sm">
+                {activeTab === 'queue' ? 'No estimates in queue' : activeTab === 'accepted' ? 'No accepted jobs' : 'No passed jobs'}
               </p>
             </div>
           ) : (
             <div className="space-y-3">
               {tabItems.map(item => {
                 const margin = item.price > 0 ? Math.round(item.profit / item.price * 100) : 0;
-                const targetPct = weeklyGoal > 0 ? Math.round(item.profit / weeklyGoal * 100) : 0;
-                const tags = getJobTags(item);
 
                 return (
                   <button
                     key={item.id}
                     onClick={() => setSelectedItem(item)}
-                    className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden active:scale-[0.98] transition-transform duration-100"
+                    className="w-full text-left bg-white rounded-2xl shadow-sm overflow-hidden active:scale-[0.98] transition-transform duration-100"
                   >
-                    {/* Blue accent bar */}
-                    <div className="h-1 bg-blue-500" />
-
-                    <div className="p-4">
-                      {/* Title row */}
-                      <div className="flex items-start justify-between mb-1">
-                        <div className="min-w-0 flex-1 mr-3">
-                          <h3 className="text-base font-bold text-slate-900 truncate">{item.title}</h3>
-                          <p className="text-sm text-gray-500 truncate">{item.customerName}</p>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="text-lg font-bold text-slate-900">${item.price.toLocaleString()}</p>
-                          <p className="text-xs text-gray-400">{timeAgo(item.createdAt)}</p>
-                        </div>
-                      </div>
-
-                      {/* Address */}
-                      {item.address && (
-                        <p className="text-sm text-gray-500 mt-2 flex items-start gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-gray-400" />
-                          <span className="truncate">{item.address}</span>
-                        </p>
-                      )}
-
-                      {/* Metrics row */}
-                      <div className="flex items-center gap-3 mt-3 text-sm">
-                        <span className="text-emerald-600 font-semibold flex items-center gap-1">
-                          <TrendingUp className="w-3.5 h-3.5" />
-                          {margin}% margin
+                    <div className="h-[3px] bg-blue-500 rounded-t-2xl" />
+                    <div className="px-4 py-3.5">
+                      {/* Row 1: title + price */}
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="text-[15px] font-semibold text-slate-900 leading-snug">{item.title}</h3>
+                        <span className="text-[17px] font-bold text-slate-900 flex-shrink-0">
+                          ${item.price.toLocaleString()}
                         </span>
-                        {item.travel && (
-                          <span className="text-gray-500 flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5" />
-                            {item.travel}
-                          </span>
-                        )}
-                        {targetPct > 0 && (
-                          <span className="text-gray-500 font-medium">
-                            Target {targetPct}%
-                          </span>
-                        )}
                       </div>
 
-                      {/* Tags */}
-                      {tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          {tags.map(tag => (
-                            <span
-                              key={tag.label}
-                              className={`text-xs font-semibold px-2.5 py-1 rounded-lg border ${TAG_STYLES[tag.color]}`}
-                            >
-                              {tag.label}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                      {/* Row 2: customer + time */}
+                      <div className="flex items-center justify-between mt-0.5">
+                        <span className="text-[13px] text-gray-400">{item.customerName}</span>
+                        <span className="text-[12px] text-gray-400">{timeAgo(item.createdAt)}</span>
+                      </div>
+
+                      {/* Row 3: metrics — compact single line */}
+                      <div className="flex items-center gap-3 mt-2.5 text-[12px]">
+                        <span className="text-emerald-600 font-semibold">{margin}% margin</span>
+                        {item.travel && (
+                          <span className="text-gray-400">{item.travel}</span>
+                        )}
+                        <span className="text-gray-400">{item.hours}</span>
+                      </div>
                     </div>
                   </button>
                 );
               })}
             </div>
           )}
-
-          {/* Bottom spacer for safe area */}
-          <div className="h-4" />
         </div>
       </div>
 
-      {/* Job detail sheet */}
+      {/* Detail sheet */}
       {selectedItem && (
         <EstimateJobSheet
           item={selectedItem}
@@ -412,7 +345,7 @@ export default function EstimatesView({ user, safeTop }) {
 
       {/* Toast */}
       {toast && (
-        <div className={`fixed bottom-24 left-4 right-4 mx-auto max-w-sm rounded-xl px-4 py-3 text-white text-sm font-semibold shadow-lg z-[60] text-center
+        <div className={`fixed bottom-24 left-5 right-5 mx-auto max-w-sm rounded-xl px-4 py-3 text-white text-sm font-semibold shadow-lg z-[60] text-center
           ${toast.type === 'error' ? 'bg-red-600' : 'bg-emerald-600'}`}>
           {toast.message}
         </div>

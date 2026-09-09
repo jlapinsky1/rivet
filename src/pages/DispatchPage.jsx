@@ -8,14 +8,17 @@ import TodayJobsList from '../components/dispatch/TodayJobsList';
 import DispatchJobDetail from '../components/dispatch/DispatchJobDetail';
 import EstimatesView from '../components/dispatch/EstimatesView';
 
-// Explicit values — avoid inset shorthand for max iOS compat
+// Use 100dvh (dynamic viewport height) instead of position:fixed + inset:0.
+// iOS Safari's position:fixed breaks after keyboard interactions; dvh adapts
+// correctly to the visual viewport including keyboard and toolbar changes.
 const appShell = {
-  position: 'fixed',
-  top: 0, left: 0, right: 0, bottom: 0,
   display: 'flex',
   flexDirection: 'column',
+  height: '100dvh',          // modern iOS/Android — adapts to keyboard & toolbar
+  maxHeight: '-webkit-fill-available', // Safari <15.4 fallback
   overflow: 'hidden',
   background: '#f3f4f6',
+  position: 'relative',
 };
 const safeTop    = { paddingTop:    'env(safe-area-inset-top)' };
 const safeBottom = { paddingBottom: 'env(safe-area-inset-bottom)' };
@@ -39,38 +42,17 @@ export default function DispatchPage() {
   const [statusLoading, setStatusLoading] = useState(false);
   const [toast, setToast]           = useState(null);
   const [isOffline, setIsOffline]   = useState(!navigator.onLine);
-  const [view, setView]             = useState('jobs'); // 'jobs' | 'estimates'
+  const [view, setView]             = useState('estimates'); // 'jobs' | 'estimates'
 
-  // Lock document scroll so iOS can't scroll the page behind our fixed shell.
-  // Re-apply whenever `user` changes (login → authenticated transition) because
-  // the iOS keyboard shifts the viewport during login and position:fixed doesn't
-  // recover automatically.
+  // Prevent background scrolling — keep it simple, just lock overflow
   useEffect(() => {
-    const { style: b } = document.body;
-    const { style: h } = document.documentElement;
-
-    // Reset any scroll offset the keyboard left behind
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-
-    // Force a layout recalc by briefly clearing then re-applying
-    b.overflow = ''; b.position = ''; b.width = '';
-    h.overflow = '';
-
-    // Re-apply on next frame so the browser processes the reset
-    const raf = requestAnimationFrame(() => {
-      b.overflow = 'hidden'; b.position = 'fixed'; b.width = '100%'; b.height = '100%';
-      h.overflow = 'hidden';
-      window.scrollTo(0, 0);
-    });
-
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
     return () => {
-      cancelAnimationFrame(raf);
-      b.overflow = ''; b.position = ''; b.width = ''; b.height = '';
-      h.overflow = '';
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     };
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     const goOffline = () => setIsOffline(true);
