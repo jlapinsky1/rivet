@@ -62,6 +62,9 @@ supabase/migrations/021_handyman_tenant_tables.sql — work_items, customers, co
 supabase/seed-mason-data.sql — Business + membership + customers + companies for demo account
 supabase/seed-data.sql       — Auto-generated estimation runs + work items
 supabase/migrations/022_feedback_loop.sql — owner_decisions table + quoted_price on actual_outcomes
+public/embed.js               — Drop-in embeddable quote form (inline + popup modes)
+src/pages/VerticalQuoteForm.jsx — Quote request form (embed-aware via ?embed=1)
+src/pages/HostedQuoteForm.jsx  — Route wrapper for /request/:slug
 ```
 
 ## Decision Lab

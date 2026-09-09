@@ -105,9 +105,14 @@ src/
     RivetApp.tsx      — Admin app entry with Supabase auth
     RivetDashboard.tsx — Main dashboard shell with sidebar
   demo/
-    seed.ts           — Seed data generator (runs real pipeline, exports workItems/runs/adjustments/outcomes)
+    seed.ts           — Seed data generator (runs real pipeline, exports workItems/runs/adjustments/outcomes/ownerDecisions)
     customers.ts      — 13 residential + 2 commercial customers (Nashville TN)
     seedSupabase.ts   — Script to push estimation runs/adjustments/outcomes to Supabase
+  pages/
+    HostedQuoteForm.jsx — Route wrapper for /request/:slug
+    VerticalQuoteForm.jsx — Quote request form (embed-aware via ?embed=1, posts rivet-resize/rivet-submitted)
+public/
+  embed.js            — Drop-in embeddable quote form script (inline + popup modes)
 netlify/
   functions/
     extract.ts        — Server-side Claude API call (ANTHROPIC_API_KEY never in browser)
@@ -461,6 +466,8 @@ Seeded account that functions identically to a real customer account. No special
 - `src/demo/customers.ts` provides 13 residential + 2 commercial customers in Nashville TN
 - `src/demo/seedSupabase.ts` pushes estimation runs, adjustments, and outcomes to Supabase
 - Static data imported in `src/admin/types.ts`; pipeline data persisted via Supabase
+- Seed data includes 12 owner decisions with varied situational snapshots (Monday fresh week through Friday nearly-hit-goal, different capacity/earnings states)
+- Regenerate with: `npx tsx supabase/generate-seed-sql.ts` → outputs `supabase/seed-data.sql`
 
 Business config: ownerOpportunityRate $75, helperRate $30, mileage $0.70, materialMarkup 20%, minimumJobPrice $175, minimumHourlyRate $70, profitFloor $75, marginFloor 35%, confidenceThreshold 0.70, weeklyGoal $2500, weeklyCapacity 35h.
 
@@ -509,6 +516,74 @@ Every owner action (approve, decline, review/pass) records an `OwnerDecision` wi
 - Shared overhead: multiple components don't multiply setup/cleanup
 - Adjustment logging: systemValue preserved, timestamps
 - Service type regression: all Handyman, no Junk Removal
+
+---
+
+## Embeddable Quote Form
+
+Drop-in script for clients to embed a "Request a Quote" form on their website. Follows the Calendly pattern — one script tag, zero configuration beyond the business slug.
+
+### Files
+
+| File | Purpose |
+|------|---------|
+| `public/embed.js` | Client-facing embed script (inline + popup modes) |
+| `src/pages/VerticalQuoteForm.jsx` | Quote request form (detects `?embed=1` for iframe mode) |
+| `src/pages/HostedQuoteForm.jsx` | Route wrapper at `/request/:slug` → renders `VerticalQuoteForm` |
+| `netlify.toml` | CORS headers on `embed.js`, `X-Frame-Options` + CSP for `/request/*` |
+
+### Usage
+
+**Inline mode** — renders iframe in a container:
+```html
+<div id="rivet-quote"></div>
+<script src="https://myrivet.io/embed.js" data-business="mason-home-services"></script>
+```
+
+**Popup mode** — renders a trigger button that opens a modal:
+```html
+<script src="https://myrivet.io/embed.js"
+        data-business="mason-home-services"
+        data-mode="popup"
+        data-button-text="Request a Quote"
+        data-button-color="#22c55e"></script>
+```
+
+### Data Attributes
+
+| Attribute | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `data-business` | Yes | — | Business slug |
+| `data-mode` | No | `inline` | `inline` or `popup` |
+| `data-target` | No | `#rivet-quote` | CSS selector for inline container |
+| `data-button-text` | No | `Request a Quote` | Popup button label |
+| `data-button-color` | No | `#22c55e` | Popup button background color |
+
+### postMessage Protocol
+
+The iframe communicates with the parent via `window.postMessage`:
+
+| Message Type | Direction | Payload | Purpose |
+|-------------|-----------|---------|---------|
+| `rivet-resize` | iframe → parent | `{ type, height: number }` | Auto-resize iframe to content height |
+| `rivet-submitted` | iframe → parent | `{ type }` | Form submitted successfully |
+| `rivet-close` | iframe → parent | `{ type }` | User wants to close (popup mode) |
+
+`VerticalQuoteForm` uses a `ResizeObserver` on `document.body` to detect height changes and post `rivet-resize` messages to the parent window. Only active when `?embed=1` is present.
+
+### Netlify Headers
+
+```toml
+# embed.js — CORS for cross-origin script loading
+Access-Control-Allow-Origin: *
+Cache-Control: public, max-age=3600
+
+# /request/* — allow iframe embedding from any origin
+X-Frame-Options: ALLOWALL
+Content-Security-Policy: frame-ancestors *
+```
+
+The global `X-Frame-Options: DENY` on `/*` is overridden by the route-specific `/request/*` rule (Netlify processes more-specific rules first).
 
 ---
 
