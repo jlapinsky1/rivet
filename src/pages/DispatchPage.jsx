@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Truck, LogOut } from 'lucide-react';
+import { RefreshCw, Truck, LogOut, ClipboardList } from 'lucide-react';
 import { getRepo } from '../utils/repository';
 import AdminLogin from './AdminLogin';
 import ConnectionStatus from '../components/dispatch/ConnectionStatus';
 import NextJobCard from '../components/dispatch/NextJobCard';
 import TodayJobsList from '../components/dispatch/TodayJobsList';
 import DispatchJobDetail from '../components/dispatch/DispatchJobDetail';
+import EstimatesView from '../components/dispatch/EstimatesView';
 
 // Explicit values — avoid inset shorthand for max iOS compat
 const appShell = {
@@ -38,6 +39,7 @@ export default function DispatchPage() {
   const [statusLoading, setStatusLoading] = useState(false);
   const [toast, setToast]           = useState(null);
   const [isOffline, setIsOffline]   = useState(!navigator.onLine);
+  const [view, setView]             = useState('jobs'); // 'jobs' | 'estimates'
 
   // Lock document scroll so iOS can't scroll the page behind our fixed shell
   useEffect(() => {
@@ -148,17 +150,24 @@ export default function DispatchPage() {
   }
 
   // ── Shared bottom nav ─────────────────────────────────────────────────────
-  const BottomNav = ({ onJobs }) => (
+  const BottomNav = ({ onJobs, activeView }) => (
     <div
       className="bg-white border-t border-gray-200 flex-shrink-0 flex"
       style={safeBottom}
     >
       <button
         onClick={onJobs}
-        className="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-blue-600"
+        className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 ${activeView === 'jobs' ? 'text-blue-600' : 'text-gray-400'}`}
       >
         <Truck className="w-6 h-6" />
         <span className="text-[10px] font-semibold tracking-wide">Jobs</span>
+      </button>
+      <button
+        onClick={() => { setSelectedJobId(null); setView('estimates'); }}
+        className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 ${activeView === 'estimates' ? 'text-blue-600' : 'text-gray-400'}`}
+      >
+        <ClipboardList className="w-6 h-6" />
+        <span className="text-[10px] font-semibold tracking-wide">Estimates</span>
       </button>
       <button
         onClick={handleSignOut}
@@ -169,6 +178,17 @@ export default function DispatchPage() {
       </button>
     </div>
   );
+
+  // ── Estimates view ───────────────────────────────────────────────────────
+  if (view === 'estimates') {
+    return (
+      <div style={appShell}>
+        <ConnectionStatus />
+        <EstimatesView user={user} safeTop={safeTop} />
+        <BottomNav onJobs={() => setView('jobs')} activeView="estimates" />
+      </div>
+    );
+  }
 
   // ── Job detail view ──────────────────────────────────────────────────────
   if (selectedJobId) {
@@ -183,7 +203,7 @@ export default function DispatchPage() {
             onJobCompleted={loadJobs}
           />
         </div>
-        <BottomNav onJobs={goBack} />
+        <BottomNav onJobs={goBack} activeView="jobs" />
       </div>
     );
   }
@@ -251,7 +271,7 @@ export default function DispatchPage() {
       </div>
 
       {/* Bottom tab bar */}
-      <BottomNav onJobs={() => {}} />
+      <BottomNav onJobs={() => setView('jobs')} activeView="jobs" />
 
       {/* Toast */}
       {toast && (
