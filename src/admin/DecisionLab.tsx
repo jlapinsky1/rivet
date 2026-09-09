@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { EstimationRun, AdjustmentEntry, ActualOutcome } from '../estimator/types';
 import { getRunsForBusiness, getAllOutcomes, getAllAdjustments } from '../estimator/persistence';
+import { useAuth } from '../lib/AuthProvider';
 import { ChevronLeft, ChevronDown, Download, FlaskConical, X } from 'lucide-react';
 
 // ─── Access Gate ───
@@ -31,8 +32,6 @@ type FilterState = {
   confidence: string; // 'all' | 'high' | 'medium' | 'low'
   customer: string; // 'all' | customer name
 };
-
-const BUSINESS_ID = 'mason-home-services';
 
 // ─── Helpers ───
 
@@ -528,6 +527,7 @@ function RunDetail({ item, onBack }: { item: LabRun; onBack: () => void }) {
 // ─── Main Component ───
 
 export function DecisionLab() {
+  const { business } = useAuth();
   const [items, setItems] = useState<LabRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -543,14 +543,15 @@ export function DecisionLab() {
   const [showExportMenu, setShowExportMenu] = useState(false);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (business) loadData();
+  }, [business]);
 
   async function loadData() {
+    if (!business) return;
     setLoading(true);
     setError(null);
     try {
-      const runs = await getRunsForBusiness(BUSINESS_ID);
+      const runs = await getRunsForBusiness(business.businessId);
       const runIds = runs.map(r => r.id);
       const [outcomeMap, adjustmentMap] = await Promise.all([
         getAllOutcomes(runIds),

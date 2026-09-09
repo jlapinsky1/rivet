@@ -5,7 +5,6 @@
 
 import { useMemo } from 'react';
 import { useWorkItemsContext } from './WorkItemsContext';
-import { getSettings } from '../utils/storage';
 
 type GoalData = {
   hasGoal: boolean;
@@ -46,7 +45,7 @@ function getWeekBounds(): { mondayStr: string; sundayStr: string; daysLeftInWeek
   };
 }
 
-export function useGoalData(): GoalData {
+export function useGoalData(businessSettings?: Record<string, any>): GoalData {
   const { workItems, loading } = useWorkItemsContext();
 
   return useMemo(() => {
@@ -60,23 +59,13 @@ export function useGoalData(): GoalData {
       };
     }
 
-    const settings = getSettings();
-    const weeklyGoal = settings.weeklyGoal as number | undefined;
-    const weeklyHours = (settings.weeklyHours as number) || 35;
-
-    if (!weeklyGoal || weeklyGoal <= 0) {
-      return {
-        hasGoal: false, loading: false,
-        earnedThisWeek: 0, weeklyTarget: 0, progressPct: 0,
-        availableHours: 0, scheduledJobs: 0, neededPerHour: 0,
-        paceStatus: 'on_pace', paceLabel: 'ON PACE',
-        jobsBooked: 0, requiredDailyProfit: 0,
-      };
-    }
+    const weeklyGoal = businessSettings?.weeklyGoal as number | undefined;
+    const weeklyHours = (businessSettings?.weeklyHours as number) || 35;
+    const hasGoal = !!weeklyGoal && weeklyGoal > 0;
 
     const { daysLeftInWeek } = getWeekBounds();
 
-    // Completed work items contribute to earned profit
+    // Always compute from Supabase work items regardless of goal state
     const completed = workItems.filter(w => w.opStatus === 'completed');
     const earnedThisWeek = completed.reduce((sum, w) => sum + (w.profit || 0), 0);
 
@@ -84,13 +73,13 @@ export function useGoalData(): GoalData {
     const scheduledProfit = scheduled.reduce((sum, w) => sum + (w.profit || 0), 0);
 
     const totalEarned = earnedThisWeek + scheduledProfit;
-    const progressPct = weeklyGoal > 0 ? Math.min(100, Math.round((totalEarned / weeklyGoal) * 100)) : 0;
-
     const hoursPerDay = weeklyHours / 5;
     const availableHours = Math.round(daysLeftInWeek * hoursPerDay);
-    const remaining = Math.max(0, weeklyGoal - totalEarned);
-    const neededPerHour = availableHours > 0 ? Math.round(remaining / availableHours) : 0;
-    const requiredDailyProfit = daysLeftInWeek > 0 ? Math.round(remaining / daysLeftInWeek) : 0;
+
+    const progressPct = hasGoal ? Math.min(100, Math.round((totalEarned / weeklyGoal!) * 100)) : 0;
+    const remaining = hasGoal ? Math.max(0, weeklyGoal! - totalEarned) : 0;
+    const neededPerHour = hasGoal && availableHours > 0 ? Math.round(remaining / availableHours) : 0;
+    const requiredDailyProfit = hasGoal && daysLeftInWeek > 0 ? Math.round(remaining / daysLeftInWeek) : 0;
 
     let paceStatus: string;
     if (progressPct >= 100) paceStatus = 'achieved';
@@ -100,10 +89,10 @@ export function useGoalData(): GoalData {
     else paceStatus = 'behind';
 
     return {
-      hasGoal: true,
+      hasGoal,
       loading: false,
       earnedThisWeek: totalEarned,
-      weeklyTarget: weeklyGoal,
+      weeklyTarget: weeklyGoal ?? 0,
       progressPct,
       availableHours,
       scheduledJobs: scheduled.length,
@@ -113,5 +102,5 @@ export function useGoalData(): GoalData {
       jobsBooked: scheduled.length,
       requiredDailyProfit,
     };
-  }, [workItems, loading]);
+  }, [workItems, loading, businessSettings]);
 }

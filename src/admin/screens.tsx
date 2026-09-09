@@ -18,7 +18,8 @@ import { getDefaultQuoteFormConfig, mergeQuoteFormConfig } from '../utils/quoteF
 /* ===== HOME ===== */
 export function HomeScreen({ onOpenItem }: { onOpenItem: (item: WorkItem) => void }) {
   const { workItems, loading } = useWorkItemsContext();
-  const goal = useGoalData();
+  const { settings } = useSettings();
+  const goal = useGoalData(settings);
   const needsReview = workItems.filter((w) => w.opStatus === 'needs_review');
   const lead = needsReview[0];
 
