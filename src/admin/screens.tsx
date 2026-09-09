@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { WorkItem, OperationalStatus } from './types';
 import { companies, individuals, settingsNav } from './types';
 import { useWorkItemsContext } from './WorkItemsContext';
 import { useSettings } from './useSettings';
 import { useGoalData } from './useGoalData';
 import { MetricCard, WorkRecommendationCard, WorkRow, RecPill, StatusBadge, sourceLabel } from './components';
+import { DecisionLab, isDecisionLabEnabled } from './DecisionLab';
 import {
   ArrowRight, Building2, CalendarDays, ChevronDown, ChevronRight,
   Clock3, Copy, ExternalLink, Filter, MapPin, Phone, Mail, Plus, TrendingUp,
@@ -213,12 +214,12 @@ export function WorkScreen({ onOpenItem }: { onOpenItem: (item: WorkItem) => voi
 /* ===== SCHEDULE ===== */
 export function ScheduleScreen({ onOpenItem }: { onOpenItem: (item: WorkItem) => void }) {
   const { workItems } = useWorkItemsContext();
-  const scheduled = workItems.filter((w) => w.opStatus === 'scheduled' || w.opStatus === 'approved' || w.opStatus === 'in_progress');
+  const scheduledItems = workItems.filter((w) => w.opStatus === 'scheduled');
   const days = [
-    { day: 'THU', date: 12, items: [{ title: 'Kitchen cabinet repair', time: '9:00 AM', duration: '3 hrs', customer: 'Chris Wallace' }] },
-    { day: 'FRI', date: 13, items: [{ title: 'Bathroom tile repair', time: '10:00 AM', duration: '5–6 hrs', customer: 'Sarah Lin' }] },
-    { day: 'SAT', date: 14, items: [] },
-    { day: 'SUN', date: 15, items: [] },
+    { day: 'WED', date: 10, items: scheduledItems.slice(0, 1).map(w => ({ title: w.title, time: '9:00 AM', duration: w.hours, customer: w.customerName })) },
+    { day: 'THU', date: 11, items: scheduledItems.slice(1, 2).map(w => ({ title: w.title, time: '10:00 AM', duration: w.hours, customer: w.customerName })) },
+    { day: 'FRI', date: 12, items: [] },
+    { day: 'SAT', date: 13, items: [] },
   ];
   return (
     <div className="dashboard">
@@ -400,6 +401,9 @@ export function SettingsScreen() {
     save({ [key]: value });
   }
 
+  const labEnabled = useMemo(() => isDecisionLabEnabled(), []);
+  const visibleNav = useMemo(() => labEnabled ? settingsNav : settingsNav.filter(s => s !== 'Decision Lab'), [labEnabled]);
+
   return (
     <div className="dashboard settings-dashboard">
       <div className="work-header">
@@ -410,13 +414,14 @@ export function SettingsScreen() {
           {saveError && <small className="settings-save-error">{saveError}</small>}
         </div>
       </div>
-      <div className="settings-layout">
+      <div className={`settings-layout ${activeSection === 'Decision Lab' ? 'lab-active' : ''}`}>
         <nav className="settings-nav">
-          {settingsNav.map((section) => (
+          {visibleNav.map((section) => (
             <button key={section} className={activeSection === section ? 'active' : ''} onClick={() => setActiveSection(section)}>{section}</button>
           ))}
         </nav>
         <div className="settings-content">
+          {activeSection === 'Decision Lab' && labEnabled && <DecisionLab />}
           {activeSection === 'Business' && (
             <div className="settings-section">
               <h3>Business profile</h3>
@@ -436,13 +441,12 @@ export function SettingsScreen() {
           {activeSection === 'Pricing & Costs' && (
             <div className="settings-section">
               <h3>What does an hour of your time need to be worth?</h3>
-              <div className="settings-field"><label>Minimum price (smallest job worth doing)</label><div className="price-input"><span>$</span><input type="number" value={field('minimumPrice', 150)} onChange={e => handleChange('minimumPrice', Number(e.target.value))} /><span>USD</span></div></div>
-              <h4>Vehicle costs</h4>
-              <div className="settings-field"><label>Gas price per gallon</label><div className="price-input"><span>$</span><input type="number" step="0.10" value={field('gasPrice', 3.50)} onChange={e => handleChange('gasPrice', Number(e.target.value))} /><span>/gal</span></div></div>
-              <div className="settings-field"><label>Vehicle MPG</label><div className="price-input"><input type="number" value={field('mpg', 15)} onChange={e => handleChange('mpg', Number(e.target.value))} /><span>mpg</span></div></div>
-              <h4>Disposal</h4>
-              <div className="settings-field"><label>Dump fee per load</label><div className="price-input"><span>$</span><input type="number" value={field('dumpFee', 25)} onChange={e => handleChange('dumpFee', Number(e.target.value))} /><span>USD</span></div></div>
-              <div className="settings-field"><label>Landfill address</label><input type="text" value={field('landfillAddress')} onChange={e => handleChange('landfillAddress', e.target.value)} /></div>
+              <div className="settings-field"><label>Minimum hourly rate</label><div className="price-input"><span>$</span><input type="number" value={field('minimumHourlyRate', 70)} onChange={e => handleChange('minimumHourlyRate', Number(e.target.value))} /><span>/hr</span></div></div>
+              <div className="settings-field"><label>Smallest job worth leaving the house for</label><div className="price-input"><span>$</span><input type="number" value={field('minimumPrice', 175)} onChange={e => handleChange('minimumPrice', Number(e.target.value))} /><span>USD</span></div></div>
+              <h4>Typical costs</h4>
+              <div className="settings-field"><label>Labor rate (if you hire help)</label><div className="price-input"><span>$</span><input type="number" value={field('helperRate', 30)} onChange={e => handleChange('helperRate', Number(e.target.value))} /><span>/hr</span></div></div>
+              <div className="settings-field"><label>Mileage rate</label><div className="price-input"><span>$</span><input type="number" step="0.01" value={field('mileageRate', 0.70)} onChange={e => handleChange('mileageRate', Number(e.target.value))} /><span>/mi</span></div></div>
+              <div className="settings-field"><label>Material markup</label><div className="price-input"><input type="number" value={field('materialMarkup', 20)} onChange={e => handleChange('materialMarkup', Number(e.target.value))} /><span>%</span></div></div>
             </div>
           )}
           {activeSection === 'Advanced Engine' && (
@@ -457,7 +461,7 @@ export function SettingsScreen() {
           {activeSection === 'Quote Form' && (
             <QuoteFormSettings settings={settings} onSave={save} />
           )}
-          {!['Business', 'Goals & Capacity', 'Pricing & Costs', 'Advanced Engine', 'Quote Form'].includes(activeSection) && (
+          {!['Business', 'Goals & Capacity', 'Pricing & Costs', 'Advanced Engine', 'Quote Form', 'Decision Lab'].includes(activeSection) && (
             <div className="settings-section">
               <h3>{activeSection}</h3>
               <p className="settings-placeholder">Configuration for {activeSection.toLowerCase()} will appear here.</p>
