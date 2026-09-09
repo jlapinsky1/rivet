@@ -13,9 +13,12 @@ import type {
   EconomicJob,
   BusinessEconomicsConfig,
   DecisionContext,
+  DecisionSnapshot,
   EstimationRun,
   AdjustmentEntry,
   ActualOutcome,
+  OwnerDecision,
+  OwnerAction,
   Recommendation,
   ReasonCode,
 } from '../estimator/types';
@@ -251,7 +254,7 @@ function makeAdj(
 let outcomeCounter = 0;
 function makeOutcome(
   runId: string,
-  actual: { laborHours: number; materialCost: number; procurementHours: number; revenue: number; returnTrips: number; notes?: string },
+  actual: { laborHours: number; materialCost: number; procurementHours: number; revenue: number; returnTrips: number; quotedPrice?: number; notes?: string },
   recordedAt: string,
 ): ActualOutcome {
   outcomeCounter++;
@@ -263,8 +266,57 @@ function makeOutcome(
     actualProcurementHours: actual.procurementHours,
     finalRevenue: actual.revenue,
     returnTrips: actual.returnTrips,
+    quotedPrice: actual.quotedPrice,
     recordedAt,
     notes: actual.notes,
+  };
+}
+
+// ─── Helper: owner decisions ───
+
+let decisionCounter = 0;
+function makeOwnerDecision(
+  run: EstimationRun,
+  pipeline: PipelineResult,
+  action: OwnerAction,
+  ownerPrice: number | null,
+  quotedPrice: number | null,
+  decidedAt: string,
+  opts?: { dayOfWeek?: number; hourOfDay?: number; remainingHours?: number; earnedToDate?: number; jobsDone?: number; queueDepth?: number },
+): OwnerDecision {
+  decisionCounter++;
+  const weeklyGoal = demoBusinessConfig.weeklyEarningsGoal;
+  const earned = opts?.earnedToDate ?? demoDecisionContext.weeklyEarningsToDate;
+  const remaining = opts?.remainingHours ?? demoDecisionContext.remainingCapacityHours;
+
+  const snapshot: DecisionSnapshot = {
+    dayOfWeek: opts?.dayOfWeek ?? 2,        // Tuesday default (matches demo context)
+    weekNumber: 34,
+    hourOfDay: opts?.hourOfDay ?? 10,
+    remainingCapacityHours: remaining,
+    hoursWorkedThisWeek: demoBusinessConfig.weeklyCapacityHours - remaining,
+    jobsCompletedThisWeek: opts?.jobsDone ?? 4,
+    weeklyEarningsToDate: earned,
+    weeklyEarningsGoal: weeklyGoal,
+    gapToWeeklyGoal: weeklyGoal - earned,
+    requiredContributionPerCapacityHour: remaining > 0 ? Math.round((weeklyGoal - earned) / remaining) : 0,
+    queueDepth: opts?.queueDepth ?? 3,
+    queueTotalValue: 900,
+    queueTotalHours: 10,
+  };
+
+  return {
+    id: `demo-decision-${String(decisionCounter).padStart(3, '0')}`,
+    estimationRunId: run.id,
+    businessId: DEMO_BUSINESS_ID,
+    userId: 'mason-owner',
+    rivetRecommendation: pipeline.decision.recommendation,
+    ownerAction: action,
+    rivetPrice: pipeline.economicJob.evaluatedPrice,
+    ownerPrice,
+    quotedPrice,
+    decisionSnapshot: snapshot,
+    decidedAt,
   };
 }
 
@@ -572,7 +624,8 @@ const cExtract1: ExtractionResult = {
 };
 const cPipe1 = runPipeline(cExtract1, 6);
 const cRun1 = buildRun(cPipe1, { createdAt: '2026-08-15T10:00:00Z', workId: 2001, projectFamily: 'drywall_repair' });
-const cOutcome1 = makeOutcome(cRun1.id, { laborHours: 1.6, materialCost: 28, procurementHours: 0.5, revenue: Math.round(cPipe1.economicJob.evaluatedPrice), returnTrips: 0 }, '2026-08-16T17:00:00Z');
+const cQuote1 = Math.round(cPipe1.economicJob.evaluatedPrice);
+const cOutcome1 = makeOutcome(cRun1.id, { laborHours: 1.6, materialCost: 28, procurementHours: 0.5, revenue: cQuote1, returnTrips: 0, quotedPrice: cQuote1 }, '2026-08-16T17:00:00Z');
 
 // B. Human correction was better — TV mount above fireplace
 const cExtract2: ExtractionResult = {
@@ -592,7 +645,7 @@ const cRun2 = buildRun(cPipe2, { createdAt: '2026-08-18T09:00:00Z', workId: 2002
 const cAdj2: AdjustmentEntry[] = [
   makeAdj(cRun2.id, 'laborHours', cPipe2.economicJob.laborHours.expected, cPipe2.economicJob.laborHours.expected, 3.5, 'OWNER_EXPERIENCE', '2026-08-18T09:30:00Z', 'Stone fireplace always takes longer'),
 ];
-const cOutcome2 = makeOutcome(cRun2.id, { laborHours: 3.2, materialCost: 55, procurementHours: 0.75, revenue: 380, returnTrips: 0 }, '2026-08-19T16:00:00Z');
+const cOutcome2 = makeOutcome(cRun2.id, { laborHours: 3.2, materialCost: 55, procurementHours: 0.75, revenue: 380, returnTrips: 0, quotedPrice: 380 }, '2026-08-19T16:00:00Z');
 
 // C. Human correction was worse — fence post reset
 const cExtract3: ExtractionResult = {
@@ -611,7 +664,7 @@ const cRun3 = buildRun(cPipe3, { createdAt: '2026-08-20T11:00:00Z', workId: 2003
 const cAdj3: AdjustmentEntry[] = [
   makeAdj(cRun3.id, 'laborHours', cPipe3.economicJob.laborHours.expected, cPipe3.economicJob.laborHours.expected, 5.5, 'SITE_CONDITION_DIFFERENT', '2026-08-20T11:20:00Z', 'Customer says very rocky soil'),
 ];
-const cOutcome3 = makeOutcome(cRun3.id, { laborHours: 3.8, materialCost: 52, procurementHours: 0.5, revenue: 340, returnTrips: 0 }, '2026-08-21T15:00:00Z');
+const cOutcome3 = makeOutcome(cRun3.id, { laborHours: 3.8, materialCost: 52, procurementHours: 0.5, revenue: 340, returnTrips: 0, quotedPrice: 340 }, '2026-08-21T15:00:00Z');
 
 // D. Both missed — hidden rot discovered after trim removal
 const cExtract4: ExtractionResult = {
@@ -631,7 +684,7 @@ const cAdj4: AdjustmentEntry[] = [
   makeAdj(cRun4.id, 'laborHours', cPipe4.economicJob.laborHours.expected, cPipe4.economicJob.laborHours.expected, cPipe4.economicJob.laborHours.expected + 0.5, 'OWNER_EXPERIENCE', '2026-08-22T08:15:00Z', 'Old house, trim usually fights back'),
 ];
 const cOutcome4 = makeOutcome(cRun4.id, {
-  laborHours: 6.5, materialCost: 145, procurementHours: 1.5, revenue: 520, returnTrips: 1,
+  laborHours: 6.5, materialCost: 145, procurementHours: 1.5, revenue: 520, returnTrips: 1, quotedPrice: 520,
   notes: 'Hidden rot discovered after removing trim. Had to replace studs and blocking behind wall. Return trip for materials.',
 }, '2026-08-24T17:00:00Z');
 
@@ -653,7 +706,7 @@ const cAdj5: AdjustmentEntry[] = [
   makeAdj(cRun5.id, 'materialCost', cPipe5.economicJob.materialCost.expected, cPipe5.economicJob.materialCost.expected, 180, 'MATERIAL_COST_DIFFERENT', '2026-08-25T09:20:00Z', 'Composite decking is pricier than standard'),
 ];
 const cOutcome5 = makeOutcome(cRun5.id, {
-  laborHours: 5.5, materialCost: 285, procurementHours: 1.0, revenue: 680, returnTrips: 0,
+  laborHours: 5.5, materialCost: 285, procurementHours: 1.0, revenue: 680, returnTrips: 0, quotedPrice: 680,
   notes: 'Composite decking was $35/board vs expected $20. Total material much higher than estimated.',
 }, '2026-08-26T16:00:00Z');
 
@@ -673,8 +726,9 @@ const cExtract6: ExtractionResult = {
 };
 const cPipe6 = runPipeline(cExtract6, 9);
 const cRun6 = buildRun(cPipe6, { createdAt: '2026-08-27T10:00:00Z', workId: 2006, projectFamily: 'drywall_repair' });
+const cQuote6 = Math.round(cPipe6.economicJob.evaluatedPrice);
 const cOutcome6 = makeOutcome(cRun6.id, {
-  laborHours: 4.5, materialCost: 65, procurementHours: 1.0, revenue: 420, returnTrips: 1,
+  laborHours: 4.5, materialCost: 65, procurementHours: 1.0, revenue: 420, returnTrips: 1, quotedPrice: cQuote6,
   notes: 'First coat of mud needed 24h to dry. Had to return next day for second coat, sand, and paint. Rivet underestimated the visits.',
 }, '2026-08-29T15:00:00Z');
 
@@ -693,7 +747,8 @@ const cExtract7: ExtractionResult = {
 };
 const cPipe7 = runPipeline(cExtract7, 11);
 const cRun7 = buildRun(cPipe7, { createdAt: '2026-08-30T08:00:00Z', workId: 2007, projectFamily: 'exterior_door_replacement' });
-const cOutcome7 = makeOutcome(cRun7.id, { laborHours: 5.8, materialCost: 118, procurementHours: 0.75, revenue: Math.round(cPipe7.economicJob.evaluatedPrice), returnTrips: 0 }, '2026-08-30T17:00:00Z');
+const cQuote7 = Math.round(cPipe7.economicJob.evaluatedPrice);
+const cOutcome7 = makeOutcome(cRun7.id, { laborHours: 5.8, materialCost: 118, procurementHours: 0.75, revenue: cQuote7, returnTrips: 0, quotedPrice: cQuote7 }, '2026-08-30T17:00:00Z');
 
 // H. Multiple adjustments — medium drywall with scope change
 const cExtract8: ExtractionResult = {
@@ -720,7 +775,8 @@ const cAdj8: AdjustmentEntry[] = [
   makeAdj(cRun8.id, 'laborHours', sysLabor8, sysLabor8 + 1.0, sysLabor8 + 1.5, 'NEW_CUSTOMER_INFO', '2026-09-01T14:00:00Z', 'Customer mentioned a second smaller hole in closet'),
   makeAdj(cRun8.id, 'price', sysPrice8, sysPrice8, sysPrice8 + 80, 'SCOPE_CHANGED', '2026-09-01T14:05:00Z', 'Added charge for second patch'),
 ];
-const cOutcome8 = makeOutcome(cRun8.id, { laborHours: 4.2, materialCost: 48, procurementHours: 0.5, revenue: Math.round(sysPrice8 + 80), returnTrips: 0 }, '2026-09-02T16:00:00Z');
+const cQuote8 = Math.round(sysPrice8 + 80);
+const cOutcome8 = makeOutcome(cRun8.id, { laborHours: 4.2, materialCost: 48, procurementHours: 0.5, revenue: cQuote8, returnTrips: 0, quotedPrice: cQuote8 }, '2026-09-02T16:00:00Z');
 
 // I. Accurate — TV mount standard
 const cExtract9: ExtractionResult = {
@@ -736,7 +792,8 @@ const cExtract9: ExtractionResult = {
 };
 const cPipe9 = runPipeline(cExtract9, 8);
 const cRun9 = buildRun(cPipe9, { createdAt: '2026-09-02T10:00:00Z', workId: 2009, projectFamily: 'tv_wall_mounting' });
-const cOutcome9 = makeOutcome(cRun9.id, { laborHours: 1.4, materialCost: 38, procurementHours: 0.25, revenue: Math.round(cPipe9.economicJob.evaluatedPrice), returnTrips: 0 }, '2026-09-02T12:00:00Z');
+const cQuote9 = Math.round(cPipe9.economicJob.evaluatedPrice);
+const cOutcome9 = makeOutcome(cRun9.id, { laborHours: 1.4, materialCost: 38, procurementHours: 0.25, revenue: cQuote9, returnTrips: 0, quotedPrice: cQuote9 }, '2026-09-02T12:00:00Z');
 
 // J. Human adjusted labor + material — fence panel replacement
 const cExtract10: ExtractionResult = {
@@ -759,7 +816,7 @@ const cAdj10: AdjustmentEntry[] = [
   makeAdj(cRun10.id, 'laborHours', sysLabor10, sysLabor10, sysLabor10 + 1.5, 'SITE_CONDITION_DIFFERENT', '2026-09-03T08:30:00Z', 'Steep slope, hard access with materials'),
   makeAdj(cRun10.id, 'materialCost', sysMat10, sysMat10, sysMat10 + 40, 'MATERIAL_COST_DIFFERENT', '2026-09-03T08:35:00Z', 'Cedar fence boards pricier than pine'),
 ];
-const cOutcome10 = makeOutcome(cRun10.id, { laborHours: 6.5, materialCost: 220, procurementHours: 0.75, revenue: 620, returnTrips: 0 }, '2026-09-04T15:00:00Z');
+const cOutcome10 = makeOutcome(cRun10.id, { laborHours: 6.5, materialCost: 220, procurementHours: 0.75, revenue: 620, returnTrips: 0, quotedPrice: 620 }, '2026-09-04T15:00:00Z');
 
 // K. Commercial — accurate drywall in apartment
 const cExtract11: ExtractionResult = {
@@ -776,7 +833,8 @@ const cExtract11: ExtractionResult = {
 };
 const cPipe11 = runPipeline(cExtract11, 18);
 const cRun11 = buildRun(cPipe11, { createdAt: '2026-09-04T10:00:00Z', workId: 2011, projectFamily: 'drywall_repair' });
-const cOutcome11 = makeOutcome(cRun11.id, { laborHours: 1.5, materialCost: 22, procurementHours: 0.5, revenue: Math.round(cPipe11.economicJob.evaluatedPrice), returnTrips: 0 }, '2026-09-04T13:00:00Z');
+const cQuote11 = Math.round(cPipe11.economicJob.evaluatedPrice);
+const cOutcome11 = makeOutcome(cRun11.id, { laborHours: 1.5, materialCost: 22, procurementHours: 0.5, revenue: cQuote11, returnTrips: 0, quotedPrice: cQuote11 }, '2026-09-04T13:00:00Z');
 
 // L. Accurate — shelving install
 const cExtract12: ExtractionResult = {
@@ -792,7 +850,58 @@ const cExtract12: ExtractionResult = {
 };
 const cPipe12 = runPipeline(cExtract12, 10);
 const cRun12 = buildRun(cPipe12, { createdAt: '2026-09-05T09:00:00Z', workId: 2012, projectFamily: 'general_handyman' });
-const cOutcome12 = makeOutcome(cRun12.id, { laborHours: 2.2, materialCost: 35, procurementHours: 0.25, revenue: Math.round(cPipe12.economicJob.evaluatedPrice), returnTrips: 0 }, '2026-09-05T12:00:00Z');
+const cQuote12 = Math.round(cPipe12.economicJob.evaluatedPrice);
+const cOutcome12 = makeOutcome(cRun12.id, { laborHours: 2.2, materialCost: 35, procurementHours: 0.25, revenue: cQuote12, returnTrips: 0, quotedPrice: cQuote12 }, '2026-09-05T12:00:00Z');
+
+// ─── Owner Decisions for completed jobs (varied situational contexts) ───
+
+// A. Easy take, Monday morning, plenty of capacity
+const cDec1 = makeOwnerDecision(cRun1, cPipe1, 'approved', cQuote1, cQuote1, '2026-08-15T10:15:00Z',
+  { dayOfWeek: 1, hourOfDay: 10, remainingHours: 32, earnedToDate: 200, jobsDone: 1, queueDepth: 5 });
+
+// B. Approved adjusted — owner raised price on difficult TV mount, Tuesday afternoon
+const cDec2 = makeOwnerDecision(cRun2, cPipe2, 'approved_adjusted', 380, 380, '2026-08-18T09:45:00Z',
+  { dayOfWeek: 1, hourOfDay: 9, remainingHours: 28, earnedToDate: 600, jobsDone: 3, queueDepth: 4 });
+
+// C. Approved adjusted — owner raised price on fence post, Wednesday
+const cDec3 = makeOwnerDecision(cRun3, cPipe3, 'approved_adjusted', 340, 340, '2026-08-20T11:30:00Z',
+  { dayOfWeek: 3, hourOfDay: 11, remainingHours: 20, earnedToDate: 1200, jobsDone: 5, queueDepth: 3 });
+
+// D. Approved adjusted — owner bumped slightly for old house trim, Thursday morning
+const cDec4 = makeOwnerDecision(cRun4, cPipe4, 'approved_adjusted', 520, 520, '2026-08-22T08:20:00Z',
+  { dayOfWeek: 4, hourOfDay: 8, remainingHours: 14, earnedToDate: 1700, jobsDone: 7, queueDepth: 2 });
+
+// E. Approved adjusted — owner raised for composite materials, Monday
+const cDec5 = makeOwnerDecision(cRun5, cPipe5, 'approved_adjusted', 680, 680, '2026-08-25T09:30:00Z',
+  { dayOfWeek: 1, hourOfDay: 9, remainingHours: 30, earnedToDate: 400, jobsDone: 2, queueDepth: 4 });
+
+// F. Approved at Rivet price — Wednesday, good capacity
+const cDec6 = makeOwnerDecision(cRun6, cPipe6, 'approved', cQuote6, cQuote6, '2026-08-27T10:15:00Z',
+  { dayOfWeek: 3, hourOfDay: 10, remainingHours: 22, earnedToDate: 1100, jobsDone: 4, queueDepth: 3 });
+
+// G. Approved at Rivet price — Saturday, wrapping up week
+const cDec7 = makeOwnerDecision(cRun7, cPipe7, 'approved', cQuote7, cQuote7, '2026-08-30T08:15:00Z',
+  { dayOfWeek: 6, hourOfDay: 8, remainingHours: 6, earnedToDate: 2200, jobsDone: 8, queueDepth: 1 });
+
+// H. Approved adjusted (scope change) — Monday, fresh week
+const cDec8 = makeOwnerDecision(cRun8, cPipe8, 'approved_adjusted', cQuote8, cQuote8, '2026-09-01T14:10:00Z',
+  { dayOfWeek: 1, hourOfDay: 14, remainingHours: 28, earnedToDate: 350, jobsDone: 1, queueDepth: 5 });
+
+// I. Easy take — Tuesday morning
+const cDec9 = makeOwnerDecision(cRun9, cPipe9, 'approved', cQuote9, cQuote9, '2026-09-02T10:10:00Z',
+  { dayOfWeek: 2, hourOfDay: 10, remainingHours: 26, earnedToDate: 800, jobsDone: 3, queueDepth: 4 });
+
+// J. Approved adjusted — Thursday, capacity getting tight
+const cDec10 = makeOwnerDecision(cRun10, cPipe10, 'approved_adjusted', 620, 620, '2026-09-03T08:40:00Z',
+  { dayOfWeek: 3, hourOfDay: 8, remainingHours: 15, earnedToDate: 1500, jobsDone: 6, queueDepth: 2 });
+
+// K. Commercial — approved at Rivet price, Thursday afternoon
+const cDec11 = makeOwnerDecision(cRun11, cPipe11, 'approved', cQuote11, cQuote11, '2026-09-04T10:10:00Z',
+  { dayOfWeek: 4, hourOfDay: 10, remainingHours: 10, earnedToDate: 2000, jobsDone: 8, queueDepth: 1 });
+
+// L. Easy take — Friday morning, almost hit goal
+const cDec12 = makeOwnerDecision(cRun12, cPipe12, 'approved', cQuote12, cQuote12, '2026-09-05T09:10:00Z',
+  { dayOfWeek: 5, hourOfDay: 9, remainingHours: 7, earnedToDate: 2300, jobsDone: 10, queueDepth: 1 });
 
 // Build completed WorkItems
 const completedWorkItems: WorkItem[] = [
@@ -899,3 +1008,9 @@ export const demoEstimationRuns: EstimationRun[] = [...pendingRuns, ...completed
 export const demoAdjustments: AdjustmentEntry[] = allAdjustments;
 
 export const demoOutcomes: ActualOutcome[] = allOutcomes;
+
+const allOwnerDecisions: OwnerDecision[] = [
+  cDec1, cDec2, cDec3, cDec4, cDec5, cDec6,
+  cDec7, cDec8, cDec9, cDec10, cDec11, cDec12,
+];
+export const demoOwnerDecisions: OwnerDecision[] = allOwnerDecisions;

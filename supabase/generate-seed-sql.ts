@@ -5,7 +5,7 @@
  * Output: supabase/seed-data.sql
  */
 
-import { demoEstimationRuns, demoAdjustments, demoOutcomes, demoWorkItems } from '../src/demo/seed';
+import { demoEstimationRuns, demoAdjustments, demoOutcomes, demoOwnerDecisions, demoWorkItems } from '../src/demo/seed';
 import { writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -46,7 +46,13 @@ for (const adj of demoAdjustments) {
 lines.push('', '-- ─── Actual Outcomes ───', '');
 
 for (const o of demoOutcomes) {
-  lines.push(`INSERT INTO actual_outcomes (id, estimation_run_id, actual_labor_hours, actual_material_cost, actual_procurement_hours, final_revenue, return_trips, recorded_at, notes) VALUES (${esc(o.id)}, ${esc(o.estimationRunId)}, ${o.actualLaborHours}, ${o.actualMaterialCost}, ${o.actualProcurementHours}, ${o.finalRevenue}, ${o.returnTrips}, ${esc(o.recordedAt)}, ${o.notes ? esc(o.notes) : 'NULL'});`);
+  lines.push(`INSERT INTO actual_outcomes (id, estimation_run_id, actual_labor_hours, actual_material_cost, actual_procurement_hours, final_revenue, return_trips, quoted_price, recorded_at, notes) VALUES (${esc(o.id)}, ${esc(o.estimationRunId)}, ${o.actualLaborHours}, ${o.actualMaterialCost}, ${o.actualProcurementHours}, ${o.finalRevenue}, ${o.returnTrips}, ${o.quotedPrice != null ? o.quotedPrice : 'NULL'}, ${esc(o.recordedAt)}, ${o.notes ? esc(o.notes) : 'NULL'});`);
+}
+
+lines.push('', '-- ─── Owner Decisions ───', '');
+
+for (const d of demoOwnerDecisions) {
+  lines.push(`INSERT INTO owner_decisions (id, estimation_run_id, business_id, user_id, rivet_recommendation, owner_action, rivet_price, owner_price, quoted_price, reason_code, reason_text, decision_snapshot, decided_at) VALUES (${esc(d.id)}, ${esc(d.estimationRunId)}, ${esc(d.businessId)}, ${esc(d.userId)}, ${esc(d.rivetRecommendation)}, ${esc(d.ownerAction)}, ${d.rivetPrice}, ${d.ownerPrice != null ? d.ownerPrice : 'NULL'}, ${d.quotedPrice != null ? d.quotedPrice : 'NULL'}, ${d.reasonCode ? esc(d.reasonCode) : 'NULL'}, ${d.reasonText ? esc(d.reasonText) : 'NULL'}, ${esc(d.decisionSnapshot)}, ${esc(d.decidedAt)});`);
 }
 
 lines.push('', '-- ─── Work Items ───', '');
@@ -58,4 +64,4 @@ for (const w of demoWorkItems) {
 const output = lines.join('\n') + '\n';
 const outPath = join(__dirname, 'seed-data.sql');
 writeFileSync(outPath, output);
-console.log(`Wrote ${demoEstimationRuns.length} runs, ${demoAdjustments.length} adjustments, ${demoOutcomes.length} outcomes, ${demoWorkItems.length} work items to ${outPath}`);
+console.log(`Wrote ${demoEstimationRuns.length} runs, ${demoAdjustments.length} adjustments, ${demoOutcomes.length} outcomes, ${demoOwnerDecisions.length} owner decisions, ${demoWorkItems.length} work items to ${outPath}`);
