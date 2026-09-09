@@ -27,7 +27,7 @@ import { PROMPT_VERSION, AI_MODEL } from '../estimator/extract';
 
 // ─── Business Config ───
 
-export const DEMO_BUSINESS_ID = 'mason-home-services';
+export const DEMO_BUSINESS_ID = 'a0000000-0000-0000-0000-000000000001';
 
 export const demoBusinessConfig: BusinessEconomicsConfig = {
   businessId: DEMO_BUSINESS_ID,

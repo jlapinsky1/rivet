@@ -51,11 +51,12 @@ export async function getRunsForWork(workId: number): Promise<EstimationRun[]> {
   return data.map(mapRunFromDb);
 }
 
-export async function getRunsForBusiness(businessId: string): Promise<EstimationRun[]> {
+export async function getRunsForBusiness(businessId: string, legacySlug?: string): Promise<EstimationRun[]> {
+  const ids = legacySlug ? [businessId, legacySlug] : [businessId];
   const { data, error } = await supabase
     .from('estimation_runs')
     .select('*')
-    .eq('business_id', businessId)
+    .in('business_id', ids)
     .order('created_at', { ascending: false });
   if (error || !data) return [];
   return data.map(mapRunFromDb);

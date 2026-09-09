@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import type { EstimationRun, AdjustmentEntry, ActualOutcome } from '../estimator/types';
 import { getRunsForBusiness, getAllOutcomes, getAllAdjustments } from '../estimator/persistence';
 import { useAuth } from '../lib/AuthProvider';
+import { supabase } from '../lib/supabase';
 import { ChevronLeft, ChevronDown, Download, FlaskConical, X } from 'lucide-react';
 
 // ─── Access Gate ───
@@ -551,7 +552,13 @@ export function DecisionLab() {
     setLoading(true);
     setError(null);
     try {
-      const runs = await getRunsForBusiness(business.businessId);
+      // Look up business slug for legacy seed data compatibility
+      const { data: biz } = await supabase
+        .from('businesses')
+        .select('slug')
+        .eq('id', business.businessId)
+        .single();
+      const runs = await getRunsForBusiness(business.businessId, biz?.slug ?? undefined);
       const runIds = runs.map(r => r.id);
       const [outcomeMap, adjustmentMap] = await Promise.all([
         getAllOutcomes(runIds),
