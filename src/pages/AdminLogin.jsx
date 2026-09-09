@@ -9,12 +9,16 @@ export default function AdminLogin({ onLogin }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    // Dismiss iOS keyboard before view transition to prevent viewport offset bug
+    document.activeElement?.blur?.();
     setError(null);
     setLoading(true);
 
     try {
       const repo = await getRepo();
       await repo.signIn(email, password);
+      // Brief delay lets iOS finish keyboard dismiss + viewport reset
+      await new Promise(r => setTimeout(r, 100));
       onLogin();
     } catch (err) {
       setError(err.message || 'Invalid email or password');

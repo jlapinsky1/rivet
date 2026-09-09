@@ -41,17 +41,36 @@ export default function DispatchPage() {
   const [isOffline, setIsOffline]   = useState(!navigator.onLine);
   const [view, setView]             = useState('jobs'); // 'jobs' | 'estimates'
 
-  // Lock document scroll so iOS can't scroll the page behind our fixed shell
+  // Lock document scroll so iOS can't scroll the page behind our fixed shell.
+  // Re-apply whenever `user` changes (login → authenticated transition) because
+  // the iOS keyboard shifts the viewport during login and position:fixed doesn't
+  // recover automatically.
   useEffect(() => {
     const { style: b } = document.body;
     const { style: h } = document.documentElement;
-    b.overflow = 'hidden'; b.position = 'fixed'; b.width = '100%';
-    h.overflow = 'hidden';
+
+    // Reset any scroll offset the keyboard left behind
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
+    // Force a layout recalc by briefly clearing then re-applying
+    b.overflow = ''; b.position = ''; b.width = '';
+    h.overflow = '';
+
+    // Re-apply on next frame so the browser processes the reset
+    const raf = requestAnimationFrame(() => {
+      b.overflow = 'hidden'; b.position = 'fixed'; b.width = '100%'; b.height = '100%';
+      h.overflow = 'hidden';
+      window.scrollTo(0, 0);
+    });
+
     return () => {
-      b.overflow = ''; b.position = ''; b.width = '';
+      cancelAnimationFrame(raf);
+      b.overflow = ''; b.position = ''; b.width = ''; b.height = '';
       h.overflow = '';
     };
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const goOffline = () => setIsOffline(true);
