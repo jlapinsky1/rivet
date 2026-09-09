@@ -35,6 +35,8 @@ export default defineConfig({
       workbox: {
         // Precache all build assets (app shell)
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
+        // Don't let the service worker intercept auth-sensitive routes
+        navigateFallbackDenylist: [/^\/login/, /^\/admin/],
         runtimeCaching: [
           {
             // NetworkFirst for Netlify Function API calls
@@ -50,6 +52,8 @@ export default defineConfig({
             },
           },
         ],
+        // Never cache Supabase auth requests
+        navigateFallback: null,
       },
     }),
   ],
