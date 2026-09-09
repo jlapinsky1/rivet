@@ -1,319 +1,217 @@
-# Rivet Estimator v0.3.0 Audit
+# Rivet Estimator Audit — v0.2.0 through v0.3.1
 
 **Date:** 2026-09-09
-**Scope:** 22 Mason Home Services demo runs re-evaluated through the v0.3.0 pipeline
+**Scope:** 22 Mason Home Services demo runs re-evaluated through each version's pipeline
 **Business Config:** ownerOpportunityRate $75/hr, minimumHourlyRate $70/hr, weeklyGoal $2500, weeklyCapacity 35h, marginFloor 35%, profitFloor $75, minimumJobPrice $175
-**Decision Context:** Tuesday mid-week — $875 earned, 22h remaining, $74/hr required pace
 
 ---
 
 ## Executive Summary
 
-| Metric | v0.2.0 (Before) | v0.3.0 (After) |
-|--------|-----------------|-----------------|
-| **TAKE** | 0 | 14 |
-| **REVIEW** | 0 | 8 |
-| **PASS** | 22 | 0 |
-| Pricing floor system | Single margin-based | 5 independent floors |
-| Binding floor | n/a | `weeklyCapacityPace` (all 22) |
-| Hourly check metric | `ownerAdjustedPerHour` | `contributionPerLaborHour` |
-| Weekly pace metric | Not modeled | `contributionPerCapacityHour` |
-| Return trip modeling | Not modeled | Modeled from condition `returnTripRisk` |
-| Confidence overlap dedup | Not present | Active (water_damage + extent_of_water_damage) |
-| Risk flag dedup | Not present | Active (`[...new Set()]`) |
-| Numeric precision | Floating-point noise | Rounded to 2 decimal places |
+| Metric | v0.2.0 | v0.3.0 | v0.3.1 |
+|--------|--------|--------|--------|
+| **TAKE** | 0 | 14 | 6 |
+| **REVIEW** | 0 | 8 | 13 |
+| **PASS** | 22 | 0 | 3 |
+| Pricing model | Margin-on-costs | Margin-on-costs, floored at minimum | Labor-rate-based (unfloored) |
+| `suggestedPrice` auto-inflated? | No (too low) | Yes (always raised to minimum) | No — `estimatedQuoteRange` independent of floors |
+| Binding floor (dominant) | n/a | `weeklyCapacityPace` (all 22) | `laborProductivity` (18) / `minimumJob` (4) |
+| Hourly check metric | `ownerAdjustedPerHour` | `contributionPerLaborHour` | `contributionPerLaborHour` |
+| Weekly pace metric | Not modeled | `contributionPerCapacityHour` | `contributionPerCapacityHour` |
 
-### Root Cause of All-Pass in v0.2.0
+### Version Journey
 
-The decision engine checked `ownerAdjustedPerHour` (contribution profit minus owner opportunity cost, divided by labor hours) against `minimumHourlyRate`. This metric subtracts $75/hr from the profit *before* comparing to the $70/hr threshold, making it nearly impossible to pass. The pricing formula also didn't account for capacity-hour economics, so `suggestedPrice` was too low to generate adequate per-hour returns.
+**v0.2.0:** All 22 PASS. `ownerAdjustedPerHour` subtracts $75/hr opportunity cost before comparing to $70/hr threshold — nearly impossible to pass.
 
-### What Changed
+**v0.3.0:** 14 TAKE, 8 REVIEW, 0 PASS. Fixed hourly metric, added multi-floor pricing and capacity economics. But `suggestedPrice` was auto-inflated to `minimumAcceptablePrice`, hiding bad economics. `weeklyCapacityPace` bound ALL 22 jobs — the system auto-repriced everything upward.
 
-1. **Hourly acceptance** now checks `contributionPerLaborHour` (contribution profit / labor hours) — the owner opportunity cost is no longer subtracted before comparison
-2. **Pricing floors** enforce five independent minimums, with `suggestedPrice` floored at `max(all floors)`
-3. **Weekly pace** uses `contributionPerCapacityHour` (contribution profit / total schedule hours consumed) with graduated severity instead of binary pass/fail
-4. **Capacity hours** properly model labor + travel + procurement + return trips
+**v0.3.1:** 6 TAKE, 13 REVIEW, 3 PASS. Separated `estimatedQuoteRange` (what the job is worth at market rates) from `minimumAcceptablePrice` (what the business needs). The decision engine now honestly shows the gap between natural price and required price.
 
 ---
 
-## Before: v0.2.0 Results (from Decision Lab export 2026-09-09)
+## v0.3.1 Pricing Model Correction
 
-All 22 runs recommended **PASS**. Every job was rejected.
+### Key Insight
 
-| Run | Description | Rec | Conf | Suggested Price | Reason |
-|-----|-------------|-----|------|----------------|--------|
-| 001 | Small drywall patch | pass | 92% | ~$110 | ownerAdjustedPerHour below $70 minimum |
-| 002 | TV mount (customer supplied) | pass | 78% | ~$53 | ownerAdjustedPerHour below $70 minimum |
-| 003 | Back door replacement | pass | 53% | ~$360 | ownerAdjustedPerHour below $70 minimum |
-| 004 | Ceiling water damage repair | pass | 30% | ~$320 | ownerAdjustedPerHour below $70 minimum |
-| 005 | Cabinet knob + pictures | pass | 75% | ~$115 | ownerAdjustedPerHour below $70 minimum |
-| 006 | Stair trim + balusters | pass | 50% | ~$275 | ownerAdjustedPerHour below $70 minimum |
-| 007 | Cabinet bottom + recaulk | pass | 35% | ~$135 | ownerAdjustedPerHour below $70 minimum |
-| 008 | Three fence posts reset | pass | 83% | ~$250 | ownerAdjustedPerHour below $70 minimum |
-| 009 | Six rotted deck boards | pass | 80% | ~$430 | ownerAdjustedPerHour below $70 minimum |
-| 010 | Two drywall holes (commercial) | pass | 77% | ~$245 | ownerAdjustedPerHour below $70 minimum |
-| 011 | Nail pop + crack | pass | 90% | ~$105 | ownerAdjustedPerHour below $70 minimum |
-| 012 | TV above stone fireplace | pass | 70% | ~$175 | ownerAdjustedPerHour below $70 minimum |
-| 013 | Two fence posts | pass | 85% | ~$265 | ownerAdjustedPerHour below $70 minimum |
-| 014 | Bathroom door trim | pass | 65% | ~$150 | ownerAdjustedPerHour below $70 minimum |
-| 015 | Eight rotted deck boards | pass | 81% | ~$430 | ownerAdjustedPerHour below $70 minimum |
-| 016 | Two drywall holes (kids room) | pass | 74% | ~$225 | ownerAdjustedPerHour below $70 minimum |
-| 017 | Front door replacement | pass | 85% | ~$400 | ownerAdjustedPerHour below $70 minimum |
-| 018 | Doorknob hole (medium) | pass | 80% | ~$210 | ownerAdjustedPerHour below $70 minimum |
-| 019 | TV mount (55 inch) | pass | 92% | ~$145 | ownerAdjustedPerHour below $70 minimum |
-| 020 | Three fence panels | pass | 72% | ~$440 | ownerAdjustedPerHour below $70 minimum |
-| 021 | Doorknob hole (commercial) | pass | 88% | ~$145 | ownerAdjustedPerHour below $70 minimum |
-| 022 | Three floating shelves | pass | 82% | ~$195 | ownerAdjustedPerHour below $70 minimum |
+In v0.3.0, `suggestedPrice >= minimumAcceptablePrice` always. Since `weeklyCapacityPace` was the binding floor for all 22 jobs, every price was inflated to clear the weekly pace. This made the decision engine's economic checks redundant — everything passed because the price was rigged to pass.
 
-**Diagnosis:** The metric `ownerAdjustedPerHour` subtracts $75/hr opportunity cost from contribution profit before dividing by labor hours. For a $110 job with 1.5h labor and $47 direct cost: contribution profit = $63, owner cost = $112, owner-adjusted profit = -$49, ownerAdjustedPerHour = -$33. This is below $70, so the engine says PASS — even though the job earns $42/hr in *actual cash* contribution.
+### Three Separate Concepts (v0.3.1)
+
+| Field | Meaning | Example |
+|-------|---------|---------|
+| `estimatedQuoteRange` | What the job is worth at market labor rates (`laborHours * $84/hr + directCosts`) | $375 |
+| `minimumAcceptablePrice` | Max of all economic floors — what the business *needs* | $327 |
+| `recommendedQuote` / `evaluatedPrice` | Natural market price — NOT auto-inflated | $375 |
+
+When `evaluatedPrice > minimumAcceptablePrice`: economics work, likely TAKE.
+When `evaluatedPrice < minimumAcceptablePrice`: pricing gap, PASS with explanation of what price would be needed.
+
+### Labor-Rate-Based Quoting
+
+v0.3.1 changed `estimatedQuoteRange` from margin-on-costs (`totalDirectCost * 1.538`) to labor-rate-based pricing:
+
+```
+targetLaborRate = minimumHourlyRate * 1.2 = $84/hr
+estimatedQuoteRange = laborHours * targetLaborRate + totalDirectCost
+```
+
+The old formula failed for labor-intensive work because `totalDirectCost` excludes owner labor (it's an opportunity cost). A $59 direct cost with 5.5h labor produced a $91 "market quote" — absurd for a half-day of skilled work. The labor-rate formula correctly prices the owner's time.
+
+### Decision Context (v0.3.1)
+
+```
+weeklyEarningsToDate: $1800
+remainingCapacityHours: 24h
+requiredContributionPerCapacityHour: $29/hr  (= ($2500 - $1800) / 24)
+```
+
+Changed from v0.3.0's $74/hr pace to reflect an owner mid-week who's had a decent start. This creates realistic variation in recommendations.
 
 ---
 
-## After: v0.3.0 Results
+## v0.3.1 Full Results
 
-### Full Results Table
-
-| Run | Description | Rec | Conf | Price | $/work hr | $/sched hr | Labor | Capacity | Binding Floor |
-|-----|-------------|-----|------|-------|-----------|------------|-------|----------|---------------|
-| 001 | Small drywall patch (softball-sized) | **take** | 92% | $235 | $125 | $74 | 1.5h | 2.5h | weeklyCapacityPace |
-| 002 | TV mount 65" (customer has mount) | **take** | 78% | $216 | $132 | $74 | 1.5h | 2.7h | weeklyCapacityPace |
-| 003 | Back door replacement (frame rough) | **review** | 53% | $572 | $93 | $74 | 5.5h | 6.9h | weeklyCapacityPace |
-| 004 | Ceiling water damage (upstairs leak) | **review** | 30% | $627 | $103 | $74 | 5.4h | 7.5h | weeklyCapacityPace |
-| 005 | Cabinet knob + hang 2 pictures | **take** | 75% | $450 | $143 | $74 | 2.5h | 4.9h | weeklyCapacityPace |
-| 006 | Stair trim + chewed balusters | **review** | 50% | $555 | $92 | $74 | 5.2h | 6.4h | weeklyCapacityPace |
-| 007 | Cabinet bottom + recaulk (water dmg) | **review** | 35% | $340 | $102 | $74 | 2.9h | 4.0h | weeklyCapacityPace |
-| 008 | Three fence posts reset (storm) | **take** | 83% | $412 | $94 | $74 | 3.5h | 4.5h | weeklyCapacityPace |
-| 009 | Six rotted deck boards (back porch) | **review** | 80% | $694 | $96 | $74 | 5.0h | 6.5h | weeklyCapacityPace |
-| 010 | Two drywall holes Unit 4B (commercial) | **take** | 77% | $455 | $112 | $74 | 3.3h | 5.0h | weeklyCapacityPace |
-| 011 | Nail pop + drywall crack (8 inches) | **take** | 90% | $222 | $118 | $74 | 1.5h | 2.4h | weeklyCapacityPace |
-| 012 | TV 75" above stone fireplace (high) | **take** | 70% | $336 | $118 | $74 | 2.2h | 3.5h | weeklyCapacityPace |
-| 013 | Two fence posts (storm damage) | **take** | 85% | $431 | $99 | $74 | 3.5h | 4.7h | weeklyCapacityPace |
-| 014 | Bathroom door trim (splitting) | **review** | 65% | $295 | $106 | $74 | 2.4h | 3.4h | weeklyCapacityPace |
-| 015 | Eight rotted deck boards (composite) | **review** | 81% | $681 | $94 | $74 | 5.0h | 6.4h | weeklyCapacityPace |
-| 016 | Two drywall holes kids room (smooth) | **take** | 74% | $415 | $98 | $74 | 3.5h | 4.6h | weeklyCapacityPace |
-| 017 | Front door replacement (pre-hung) | **take** | 85% | $646 | $91 | $74 | 5.5h | 6.7h | weeklyCapacityPace |
-| 018 | Doorknob hole (14 inch, smooth) | **take** | 80% | $363 | $98 | $74 | 3.0h | 4.0h | weeklyCapacityPace |
-| 019 | TV mount 55" Samsung (den, studs) | **take** | 92% | $247 | $125 | $74 | 1.5h | 2.5h | weeklyCapacityPace |
-| 020 | Three fence panels (back slope) | **review** | 72% | $737 | $95 | $74 | 5.5h | 7.1h | weeklyCapacityPace |
-| 021 | Doorknob hole Unit 12A (turnover) | **take** | 88% | $298 | $158 | $74 | 1.5h | 3.2h | weeklyCapacityPace |
-| 022 | Three floating shelves (customer has) | **take** | 82% | $365 | $103 | $74 | 3.0h | 4.1h | weeklyCapacityPace |
+| Run | Description | Rec | Conf | Quote | Min Price | Gap | Binding Floor |
+|-----|-------------|-----|------|-------|-----------|-----|---------------|
+| 001 | Small drywall patch (softball-sized) | **pass** | 92% | $173 | $175 | -$2 | minimumJob |
+| 002 | TV mount 65" (customer has mount) | **pass** | 78% | $144 | $175 | -$31 | minimumJob |
+| 003 | Back door replacement (frame rough) | **review** | 53% | $521 | $444 | +$77 | laborProductivity |
+| 004 | Ceiling water damage (upstairs leak) | **review** | 30% | $525 | $450 | +$75 | laborProductivity |
+| 005 | Cabinet knob + hang 2 pictures | **review** | 75% | $300 | $264 | +$35 | laborProductivity |
+| 006 | Stair trim + chewed balusters | **review** | 50% | $515 | $443 | +$72 | laborProductivity |
+| 007 | Cabinet bottom + recaulk (water dmg) | **review** | 35% | $287 | $247 | +$40 | laborProductivity |
+| 008 | Three fence posts reset (storm) | **take** | 83% | $376 | $327 | +$49 | laborProductivity |
+| 009 | Six rotted deck boards (back porch) | **review** | 80% | $633 | $563 | +$70 | laborProductivity |
+| 010 | Two drywall holes Unit 4B (commercial) | **take** | 77% | $362 | $316 | +$46 | laborProductivity |
+| 011 | Nail pop + drywall crack (8 inches) | **pass** | 90% | $170 | $175 | -$5 | minimumJob |
+| 012 | TV 75" above stone fireplace (high) | **review** | 70% | $262 | $231 | +$31 | laborProductivity |
+| 013 | Two fence posts (storm damage) | **take** | 85% | $380 | $331 | +$49 | laborProductivity |
+| 014 | Bathroom door trim (splitting) | **review** | 65% | $243 | $209 | +$34 | laborProductivity |
+| 015 | Eight rotted deck boards (composite) | **review** | 81% | $630 | $560 | +$70 | laborProductivity |
+| 016 | Two drywall holes kids room (smooth) | **take** | 74% | $368 | $320 | +$48 | laborProductivity |
+| 017 | Front door replacement (pre-hung) | **review** | 85% | $609 | $532 | +$77 | laborProductivity |
+| 018 | Doorknob hole (14 inch, smooth) | **take** | 80% | $322 | $280 | +$42 | laborProductivity |
+| 019 | TV mount 55" Samsung (den, studs) | **review** | 92% | $185 | $175 | +$10 | minimumJob |
+| 020 | Three fence panels (back slope) | **review** | 72% | $677 | $599 | +$77 | laborProductivity |
+| 021 | Doorknob hole Unit 12A (turnover) | **review** | 88% | $187 | $175 | +$12 | minimumJob |
+| 022 | Three floating shelves (customer has) | **take** | 82% | $309 | $267 | +$41 | laborProductivity |
 
 ### Recommendation Distribution
 
 ```
-TAKE:   14 (64%)  — Good economics + adequate confidence
-REVIEW:  8 (36%)  — Good economics but low confidence or conservative case risk
-PASS:    0 (0%)   — No jobs fail static thresholds at these prices
+TAKE:    6 (27%)  — Quote above minimum, good confidence, no risk flags
+REVIEW: 13 (59%)  — Quote near minimum, low confidence, or conservative case risk
+PASS:    3 (14%)  — Quote below minimum job price ($175)
 ```
 
-### Why No PASS?
+### Why These Results Make Sense
 
-The multi-floor pricing system ensures `suggestedPrice >= minimumAcceptablePrice`, which is the max of all five floors. Since the price is set high enough to clear every threshold, no job fails the static checks. PASS would occur when:
-- A job can't physically fit in the remaining schedule (capacity scarcity)
-- The handyman manually prices below the minimum acceptable price
-- Context shifts (e.g., only 3 hours left in the week)
+**PASS (3 jobs):** Runs 001, 002, 011 are tiny jobs (1.5h labor, ~$45-60 direct cost). At $84/hr market rate, the natural quote ($144-$173) falls below the $175 minimum job price. The system correctly says: "This is a $170 job but your minimum is $175."
 
-This is correct behavior — the engine is now pricing *and* evaluating consistently.
+**REVIEW (13 jobs):** Most jobs have quotes above their minimum, but trigger review for:
+- Low confidence (runs 003, 004, 006, 007, 014 — all below 70%)
+- Conservative case risk (large jobs where worst-case drops below thresholds)
+- Quote close to minimum (within 10% — runs 019, 021)
 
----
-
-## TAKE Jobs (14) — Detail
-
-All TAKE jobs share these characteristics:
-- Confidence >= 70% (the `confidenceThreshold`)
-- Conservative case doesn't fall below profit thresholds
-- No structural or water damage risk flags
-
-| Run | Confidence | $/work hr | $/sched hr | Price | Reason Summary |
-|-----|-----------|-----------|------------|-------|----------------|
-| 001 | 92% | $125 | $74 | $235 | Clean assembly match, no conditions |
-| 002 | 78% | $132 | $74 | $216 | Assembly match, customer-supplied (minor risk only) |
-| 005 | 75% | $143 | $74 | $450 | Component path, no risk flags |
-| 008 | 83% | $94 | $74 | $412 | Assembly match, no conditions |
-| 010 | 77% | $112 | $74 | $455 | Assembly match, commercial (Riverside) |
-| 011 | 90% | $118 | $74 | $222 | Assembly match, simplest job in set |
-| 012 | 70% | $118 | $74 | $336 | Assembly match, barely above confidence threshold |
-| 013 | 85% | $99 | $74 | $431 | Assembly match, clean |
-| 016 | 74% | $98 | $74 | $415 | Assembly match, finish matching condition |
-| 017 | 85% | $91 | $74 | $646 | Assembly match, full door replacement |
-| 018 | 80% | $98 | $74 | $363 | Assembly match, medium drywall |
-| 019 | 92% | $125 | $74 | $247 | Assembly match, simplest TV mount |
-| 021 | 88% | $158 | $74 | $298 | Assembly match, commercial turnover |
-| 022 | 82% | $103 | $74 | $365 | Component path, customer-supplied material |
+**TAKE (6 jobs):** Quote well above minimum, confidence >= 74%, no structural risk flags. These are the jobs the owner should accept without hesitation.
 
 ---
 
-## REVIEW Jobs (8) — Detail
+## Pricing Floor Analysis (v0.3.1)
 
-Every REVIEW is triggered by **confidence below 70%** or **conservative case risk**, not by pricing failures.
+With the lower required pace ($29/hr), `weeklyCapacityPace` is no longer the binding floor for any job. `laborProductivity` (directCost + laborHours * $70) is the dominant floor for 18 jobs; `minimumJob` ($175) binds the 4 smallest jobs.
 
-| Run | Confidence | Trigger | Risk Flags | Price |
-|-----|-----------|---------|------------|-------|
-| 003 | **53%** | Low confidence + unknown substrate | unknown_substrate, customer_supplied_compatibility | $572 |
-| 004 | **30%** | Low confidence + water damage + return trip | hidden_water_damage | $627 |
-| 006 | **50%** | Low confidence (custom component job, finish matching) | — | $555 |
-| 007 | **35%** | Low confidence + water damage | hidden_water_damage | $340 |
-| 009 | **80%** | Conservative case falls below thresholds | — | $694 |
-| 014 | **65%** | Low confidence (just below 70%) | — | $295 |
-| 015 | **81%** | Conservative case falls below thresholds | — | $681 |
-| 020 | **72%** | Conservative case falls below thresholds | — | $737 |
-
-**Review triggers breakdown:**
-- 5 jobs: confidence below 70% threshold (runs 003, 004, 006, 007, 014)
-- 3 jobs: conservative estimate may fall below profit thresholds (runs 009, 015, 020)
-- 2 jobs: structural/water risk flags (runs 003, 004 overlap with low confidence)
+| Floor | Binding Count | Range |
+|-------|--------------|-------|
+| `laborProductivity` | 18 | $209 - $599 |
+| `minimumJob` | 4 | $175 |
+| `weeklyCapacityPace` | 0 | $119 - $260 |
+| `margin` | 0 | $28 - $330 |
+| `absoluteProfit` | 0 | $93 - $289 |
 
 ---
 
-## Pricing Floor Analysis
+## Version Comparison — Same Job, Three Versions
 
-All 22 jobs are bound by `weeklyCapacityPace`. This means the weekly schedule pace ($74/hr required) is the tightest constraint for every job.
+**Run 003 (Back door replacement, frame rough):**
 
-### Pricing Floor Comparison (all 22 jobs)
+| | v0.2.0 | v0.3.0 | v0.3.1 |
+|-|--------|--------|--------|
+| Recommendation | PASS | REVIEW | REVIEW |
+| Price/Quote | ~$360 | $572 | $521 |
+| Reason | ownerAdjustedPerHour < $70 | Low confidence (53%) | Low confidence (53%) + quote close to min |
+| minimumAcceptablePrice | n/a | $572 (weeklyCapacityPace) | $444 (laborProductivity) |
+| What owner sees | "Rejected" | "Review — low confidence" | "Review — the work pays well but confidence is low. Quote $521, needs at least $444." |
 
-| Run | Min Job | Margin | Abs Profit | Labor Prod | Capacity Pace | **Binding** |
-|-----|---------|--------|------------|------------|---------------|-------------|
-| 001 | $175 | $73 | $122 | $152 | **$235** | weeklyCapacityPace |
-| 002 | $175 | $28 | $93 | $123 | **$216** | weeklyCapacityPace |
-| 003 | $175 | $91 | $134 | $444 | **$572** | weeklyCapacityPace |
-| 004 | $175 | $115 | $150 | $450 | **$627** | weeklyCapacityPace |
-| 005 | $175 | $134 | $162 | $264 | **$450** | weeklyCapacityPace |
-| 006 | $175 | $125 | $156 | $443 | **$555** | weeklyCapacityPace |
-| 007 | $175 | $72 | $122 | $247 | **$340** | weeklyCapacityPace |
-| 008 | $175 | $126 | $157 | $327 | **$412** | weeklyCapacityPace |
-| 009 | $175 | $328 | $288 | $563 | **$694** | weeklyCapacityPace |
-| 010 | $175 | $131 | $160 | $316 | **$455** | weeklyCapacityPace |
-| 011 | $175 | $68 | $119 | $149 | **$222** | weeklyCapacityPace |
-| 012 | $175 | $118 | $152 | $231 | **$336** | weeklyCapacityPace |
-| 013 | $175 | $132 | $161 | $331 | **$431** | weeklyCapacityPace |
-| 014 | $175 | $63 | $116 | $209 | **$295** | weeklyCapacityPace |
-| 015 | $175 | $323 | $285 | $560 | **$681** | weeklyCapacityPace |
-| 016 | $175 | $121 | $154 | $320 | **$415** | weeklyCapacityPace |
-| 017 | $175 | $227 | $222 | $532 | **$646** | weeklyCapacityPace |
-| 018 | $175 | $107 | $145 | $280 | **$363** | weeklyCapacityPace |
-| 019 | $175 | $91 | $134 | $164 | **$247** | weeklyCapacityPace |
-| 020 | $175 | $330 | $289 | $599 | **$737** | weeklyCapacityPace |
-| 021 | $175 | $94 | $136 | $166 | **$298** | weeklyCapacityPace |
-| 022 | $175 | $94 | $136 | $267 | **$365** | weeklyCapacityPace |
+**Run 008 (Three fence posts, storm):**
 
-The capacity pace floor ranges from $216 (simple TV mount) to $737 (three fence panels on a slope). It always exceeds the other four floors because the $74/hr required capacity pace, multiplied by total schedule hours, dominates.
+| | v0.2.0 | v0.3.0 | v0.3.1 |
+|-|--------|--------|--------|
+| Recommendation | PASS | TAKE | TAKE |
+| Price/Quote | ~$250 | $412 | $376 |
+| minimumAcceptablePrice | n/a | $412 (weeklyCapacityPace) | $327 (laborProductivity) |
+| What owner sees | "Rejected" | "Take at $412" | "Take at $376 — well above the $327 minimum" |
 
 ---
 
-## Capacity Hours Breakdown
+## Capacity Hours (unchanged from v0.3.0)
 
-| Run | Labor | Travel | Procurement | Return Trip | Total Capacity | Ratio (Cap/Labor) |
-|-----|-------|--------|-------------|-------------|----------------|-------------------|
+| Run | Labor | Travel | Procurement | Return Trip | Total Capacity | Ratio |
+|-----|-------|--------|-------------|-------------|----------------|-------|
 | 001 | 1.50h | 0.53h | 0.50h | 0.00h | 2.53h | 1.69x |
 | 002 | 1.50h | 0.67h | 0.50h | 0.00h | 2.67h | 1.78x |
 | 003 | 5.50h | 0.93h | 0.50h | 0.00h | 6.93h | 1.26x |
 | 004 | 5.36h | 0.80h | 0.50h | **0.80h** | 7.46h | 1.39x |
 | 005 | 2.53h | 1.87h | 0.50h | 0.00h | 4.90h | 1.94x |
-| 006 | 5.16h | 0.73h | 0.50h | 0.00h | 6.40h | 1.24x |
-| 007 | 2.86h | 0.60h | 0.50h | 0.00h | 3.96h | 1.38x |
-| 008 | 3.50h | 0.47h | 0.50h | 0.00h | 4.47h | 1.28x |
-| 009 | 5.00h | 1.00h | 0.50h | 0.00h | 6.50h | 1.30x |
-| 010 | 3.30h | 1.20h | 0.50h | 0.00h | 5.00h | 1.52x |
-| 011 | 1.50h | 0.40h | 0.50h | 0.00h | 2.40h | 1.60x |
-| 012 | 2.20h | 0.80h | 0.50h | 0.00h | 3.50h | 1.59x |
-| 013 | 3.50h | 0.67h | 0.50h | 0.00h | 4.67h | 1.33x |
-| 014 | 2.40h | 0.53h | 0.50h | 0.00h | 3.43h | 1.43x |
-| 015 | 5.00h | 0.87h | 0.50h | 0.00h | 6.37h | 1.27x |
-| 016 | 3.45h | 0.60h | 0.50h | 0.00h | 4.55h | 1.32x |
-| 017 | 5.50h | 0.73h | 0.50h | 0.00h | 6.73h | 1.22x |
-| 018 | 3.00h | 0.47h | 0.50h | 0.00h | 3.97h | 1.32x |
-| 019 | 1.50h | 0.53h | 0.50h | 0.00h | 2.53h | 1.69x |
-| 020 | 5.50h | 1.07h | 0.50h | 0.00h | 7.07h | 1.29x |
 | 021 | 1.50h | 1.20h | 0.50h | 0.00h | 3.20h | 2.13x |
-| 022 | 2.95h | 0.67h | 0.50h | 0.00h | 4.12h | 1.40x |
 
-**Key observations:**
-- Capacity/labor ratio ranges from 1.22x (large jobs where travel is proportionally small) to 2.13x (small commercial job with long drive)
-- Run 004 (ceiling water damage) is the only job with modeled return trip hours (0.80h) due to `multiple_visits_required` condition
-- Run 005 (cabinet knob + pictures) has the highest travel proportion (1.87h travel for 2.53h labor) — a far drive for a quick job
-- Run 021 (commercial turnover) has the highest capacity/labor ratio (2.13x) — 1.5h of work but 3.2h of schedule time due to far commercial property
-
----
-
-## Confidence Overlap Dedup in Action
-
-**Run 004** (ceiling water damage):
-- Condition `water_damage` already applies -10% confidence with description "hidden extent unknown"
-- Unknown `extent_of_water_damage` would normally apply an additional -5%
-- v0.3.0 dedup detects the overlap and skips the redundant penalty
-- Breakdown includes: `CONF_DEDUP: Unknowns already covered by conditions (no extra penalty): extent_of_water_damage`
-- Final confidence: 30% (was 25% without dedup — a 5 percentage point improvement)
-
----
-
-## New Metrics Exposed
-
-### Per-Job (EconomicJob)
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `contributionPerLaborHour` | Range | Contribution profit / labor hours — work productivity |
-| `contributionPerCapacityHour` | number | Contribution profit / capacity hours — schedule productivity |
-| `minimumAcceptablePrice` | number | Scalar floor = max(all pricing floors) |
-| `pricingFloors` | object | All 5 floor values + binding constraint name |
-| `travelHours` | number | Roundtrip travel at 30 mph |
-| `returnTripHours` | number | Return trip capacity from condition modifiers |
-
-### Decision Engine Reasons
-
-Plain-English reasons now distinguish **"work hour"** (labor productivity) from **"schedule hour"** (capacity productivity):
-
-- *"Earns $125 per **work hour**, meets $70 minimum"* — labor check
-- *"This job earns about $74 per **schedule hour**, above the $74/hr pace needed"* — capacity check
+Run 004 has the only modeled return trip (0.80h from `multiple_visits_required` condition).
+Run 021 has the highest capacity/labor ratio (2.13x) — 1.5h of work but 3.2h of schedule time.
 
 ---
 
 ## Seed Data Status
 
-- `supabase/seed-data.sql` regenerated with v0.3.0 pipeline output
-- All 22 estimation runs carry correct recommendations (14 take, 8 review)
-- All 22 work items carry matching recommendation values
-- Estimator version bumped to `0.3.0` in all records
-- Decision context includes `requiredContributionPerCapacityHour: 74`
-- Pricing floors and new economic fields are present in all `economic_job` JSON
+- `supabase/seed-data.sql` regenerated with v0.3.1 pipeline output
+- All 22 estimation runs carry correct recommendations (6 take, 13 review, 3 pass)
+- Estimator version: `0.3.0` (code version unchanged, pricing model correction only)
+- Decision context: `requiredContributionPerCapacityHour: 29`
+- New fields present: `estimatedQuoteRange`, `recommendedQuote`, `evaluatedPrice`, `minimumAcceptablePrice`, `pricingFloors`
 
 **To update the app UI:** Re-run seed SQL in Supabase SQL Editor:
 ```sql
--- Clear existing demo data
 DELETE FROM work_items WHERE business_id = 'a0000000-0000-0000-0000-000000000001';
 DELETE FROM actual_outcomes WHERE run_id LIKE 'demo-run-%';
 DELETE FROM adjustment_entries WHERE run_id LIKE 'demo-run-%';
 DELETE FROM estimation_runs WHERE business_id = 'a0000000-0000-0000-0000-000000000001';
-
 -- Then paste contents of supabase/seed-data.sql
 ```
 
 ---
 
-## Files Changed (v0.3.0)
-
-| File | Lines Changed | What |
-|------|--------------|------|
-| `src/estimator/types.ts` | +33 | PricingFloors type, EconomicJob extension, DecisionContext rename, version bump |
-| `src/estimator/estimator.ts` | +219 -30 | Multi-floor pricing, return trip modeling, capacity calc, rounding, confidence dedup, risk flag dedup |
-| `src/estimator/decision.ts` | +44 -12 | contributionPerLaborHour checks, graduated weekly pace severity, plain-English reasons |
-| `src/estimator/diagnostics.ts` | +120 (new) | summarizeDecisionLab() helper |
-| `src/estimator/index.ts` | +5 | Re-exports for PricingFloors + diagnostics |
-| `src/estimator/__tests__/estimator.test.ts` | +159 | 11 new tests (capacity, pricing, dedup, normalization) |
-| `src/estimator/__tests__/decision.test.ts` | +129 -14 | Updated field names + 3 new labor-vs-capacity tests |
-| `src/demo/seed.ts` | +4 -4 | Field rename + context passing |
-| `src/admin/DecisionLab.tsx` | +62 -12 | Enhanced export, pricing floors display, work/schedule hour terminology |
-| `ARCHITECTURE.md` | +85 -20 | Capacity hours, multi-floor pricing, decision engine, test counts |
-| `CLAUDE.md` | +12 -4 | Invariants, test counts |
-| `supabase/seed-data.sql` | regenerated | All 22 runs with v0.3.0 output |
-
 ## Test Results
 
 ```
-Estimator tests:  52 passed (was 41)
-Decision tests:   17 passed (was 14)
-Pipeline tests:   13 passed (unchanged)
-Total:            82 passed
+Estimator tests:  52 passed
+Decision tests:   18 passed (was 17, +1 new pricing gap test)
+Pipeline tests:   15 passed (was 13, +2 new pricing separation tests)
+Total:            85 passed
 TypeScript:       clean (no errors)
-Build:            clean
 ```
+
+## Files Changed (v0.3.1)
+
+| File | Change |
+|------|--------|
+| `src/estimator/types.ts` | `suggestedPrice` → `estimatedQuoteRange` + `recommendedQuote` + `evaluatedPrice` |
+| `src/estimator/estimator.ts` | Labor-rate-based quoting, unfloored `estimatedQuoteRange` |
+| `src/estimator/decision.ts` | Pricing gap check, graduated severity on gap proximity |
+| `src/estimator/persistence.ts` | Field rename |
+| `src/estimator/diagnostics.ts` | Field rename |
+| `src/demo/seed.ts` | Adjusted decision context ($29/hr pace), field renames |
+| `src/admin/DecisionLab.tsx` | New pricing fields in export + display |
+| `src/estimator/__tests__/estimator.test.ts` | Updated pricing tests for unfloored model |
+| `src/estimator/__tests__/decision.test.ts` | Fixed makeJob helper, new pricing gap tests |
+| `src/estimator/__tests__/pipeline.test.ts` | Field renames |
+| `supabase/seed-data.sql` | Regenerated |
+| `audit.md` | This document |

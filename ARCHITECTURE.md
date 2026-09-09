@@ -57,10 +57,19 @@ EconomicJob
 Universal decision engine
       ↓
 Take / Review / Pass
-      +
-immutable estimation run (persisted, dev-only until RLS)
-human edits (persisted, append-only)
-actual outcomes (persisted)
+      ↓
+┌─────────────────────────────────────────┐
+│         Feedback Loop (4-part)          │
+│                                         │
+│  1. estimation_runs   (immutable)       │
+│  2. adjustment_entries (append-only)    │
+│  3. owner_decisions   (with snapshot)   │
+│  4. actual_outcomes   (with quotedPrice)│
+└─────────────────────────────────────────┘
+      ↓
+buildFeedbackRecord → "Who was right?"
+      ↓
+Future: calibration tuning from actuals
 ```
 
 ---
@@ -70,7 +79,7 @@ actual outcomes (persisted)
 ```
 src/
   estimator/
-    types.ts          — All types (ExtractionResult, EconomicJob, TaskComponentCode, etc.)
+    types.ts          — All types (ExtractionResult, EconomicJob, OwnerDecision, FeedbackRecord, DecisionSnapshot, etc.)
     components.ts     — ~25 reusable task components with labor/material baselines
     assemblies.ts     — 15 validated assemblies (common known jobs)
     modifiers.ts      — 12 condition modifiers (confined_access, water_damage, etc.)
@@ -79,18 +88,19 @@ src/
     estimator.ts      — Dual-path estimator (assembly OR component) + calibration → EconomicJob
     decision.ts       — Universal decision engine (with DecisionContext)
     diagnostics.ts    — Decision Lab analysis helpers (summarizeDecisionLab)
-    persistence.ts    — Supabase persistence (dev-only until RLS)
+    persistence.ts    — Supabase persistence: estimation runs, adjustments, outcomes, owner decisions, feedback record builder
     index.ts          — Barrel export
   estimator/__tests__/
     estimator.test.ts — Assemblies, components, modifiers, calibration, EconomicJob, capacity-hour economics, multi-floor pricing, dedup, normalization (52 tests)
-    decision.test.ts  — Thresholds, review triggers, DecisionContext, labor-vs-capacity distinction (17 tests)
-    pipeline.test.ts  — E2E both paths, shared overhead, adjustment logging, junk regression (13 tests)
+    decision.test.ts  — Thresholds, review triggers, DecisionContext, labor-vs-capacity distinction, graduated pricing gaps (25 tests)
+    pipeline.test.ts  — E2E both paths, shared overhead, adjustment logging, junk regression (15 tests)
   lib/
     supabase.ts       — Supabase client singleton
   admin/
     types.ts          — WorkItem UI type + account data (imports from demo/seed)
+    useGoalData.ts    — Hook: weekly earnings, capacity, pace from work items context
     DecisionLab.tsx   — Internal evaluation page (access-gated, reads Supabase)
-    WorkDetailDrawer.tsx — Job detail panel with price editing + adjustment logging
+    WorkDetailDrawer.tsx — Job detail panel with price editing, adjustment logging, owner decision recording
     screens.tsx       — UI screens (Mason Home Services branding)
     RivetApp.tsx      — Admin app entry with Supabase auth
     RivetDashboard.tsx — Main dashboard shell with sidebar
@@ -103,6 +113,8 @@ netlify/
     extract.ts        — Server-side Claude API call (ANTHROPIC_API_KEY never in browser)
 supabase/
   schema.sql          — All table DDL (dev-only, no RLS)
+  migrations/
+    022_feedback_loop.sql — owner_decisions table + quoted_price on actual_outcomes
 ```
 
 ---
@@ -296,11 +308,16 @@ Universal — works for any vertical.
 - `contributionProfit.expected < profitFloorAbsolute` → forcePass
 - Conservative case (`contributionProfit.low`, `contributionPerLaborHour.low`) below thresholds → forceReview
 
+### Pricing Gap (graduated tolerance band)
+- `evaluatedPrice >= minimumAcceptablePrice` → positive or caution (within 10% → caution)
+- `gap <= 10%` of minimumAcceptablePrice → forceReview ("barely below target")
+- `gap 10–25%` → forceReview if capacity plentiful, forcePass if capacity < 30% of weekly total ("meaningfully below target")
+- `gap > 25%` → forcePass ("terrible use of remaining capacity")
+
 ### Weekly Capacity Pace (capacity-hour economics, graduated severity)
 - `contributionPerCapacityHour >= requiredRate` → positive reason ("earns ~$X per schedule hour, above $Y pace")
 - `contributionPerCapacityHour >= requiredRate × 0.85` → caution, forceReview if capacity < 50%
-- `contributionPerCapacityHour < requiredRate × 0.85` → forceReview, forcePass if capacity < 30%
-- Reason includes `minimumAcceptablePrice` when materially below pace
+- `contributionPerCapacityHour < requiredRate × 0.85` → forceReview (no hard PASS cliff — pricing gap handles scarcity escalation)
 
 ### Capacity Scarcity
 - `capacityHours > remainingCapacityHours` → forcePass
@@ -342,14 +359,79 @@ Component-level calibration is not implemented for MVP.
 
 ---
 
-## Persistence: `src/estimator/persistence.ts`
+## Persistence & Feedback Loop: `src/estimator/persistence.ts`
 
-**DEV-ONLY until RLS is implemented.** CRUD for estimation runs (immutable), adjustment entries (append-only), actual outcomes.
+**DEV-ONLY until RLS is implemented.**
 
-Batch query functions for Decision Lab:
+### 4 Tables (append-only / immutable)
+
+| Table | Purpose | Key Fields |
+|-------|---------|------------|
+| `estimation_runs` | Rivet's original estimate (immutable) | extraction, economic_job, recommendation, confidence, decision_context, reasons |
+| `adjustment_entries` | What the handyman changed (append-only) | field, systemValue → newValue, reasonCode |
+| `owner_decisions` | What the owner decided + situational context | ownerAction, rivetPrice, ownerPrice, quotedPrice, **decision_snapshot** (JSONB) |
+| `actual_outcomes` | What actually happened | actualLaborHours, actualMaterialCost, finalRevenue, **quotedPrice**, returnTrips |
+
+### DecisionSnapshot (JSONB on owner_decisions)
+
+Captures the full situational context at the moment the owner acts — not at estimation time. This is the "it was Thursday, 15 hours left, only needed $1k" data for future tuning.
+
+```ts
+{
+  // Time
+  dayOfWeek: 4,           // Thursday
+  weekNumber: 36,
+  hourOfDay: 14,          // 2pm
+
+  // Capacity
+  remainingCapacityHours: 15,
+  hoursWorkedThisWeek: 20,
+  jobsCompletedThisWeek: 8,
+
+  // Financial
+  weeklyEarningsToDate: 1500,
+  weeklyEarningsGoal: 2500,
+  gapToWeeklyGoal: 1000,
+  requiredContributionPerCapacityHour: 67,
+
+  // Queue
+  queueDepth: 3,
+  queueTotalValue: 1200,
+  queueTotalHours: 12,
+}
+```
+
+### FeedbackRecord (assembled, not stored)
+
+`buildFeedbackRecord(runId)` and `buildFeedbackRecords(businessId)` assemble the complete 4-part record from all tables:
+
+```
+Part 1: Rivet's estimate    → recommendation, confidence, evaluatedPrice, laborHours, materialCost, reasons
+Part 2: Human adjustments   → price/hours/material changes with reason codes
+Part 3: Owner decision      → action taken, price set, quoted price, situational snapshot
+Part 4: Actual outcome      → real labor, real materials, real revenue, return trips
+
+Derived: accuracy metrics   → rivet vs human error on labor and price, who was closer
+```
+
+### Batch Query Functions
+
 - `getRunsForBusiness(businessId)` — all estimation runs for a business
 - `getAllOutcomes(runIds)` — Map of runId → ActualOutcome
 - `getAllAdjustments(runIds)` — Map of runId → AdjustmentEntry[]
+- `getAllOwnerDecisions(runIds)` — Map of runId → OwnerDecision
+- `buildFeedbackRecords(businessId)` — full 4-part records with accuracy metrics
+
+### Recording Points in the UI
+
+| User Action | Where | What's Recorded |
+|-------------|-------|-----------------|
+| Owner clicks "Create Quote" (take) | `WorkDetailDrawer.handleApprove` | `approved` or `approved_adjusted` + snapshot |
+| Owner clicks "Keep reviewing" (review/pass) | `WorkDetailDrawer.handleApprove` | `reviewed_later` + snapshot |
+| Owner clicks "Decline" | `WorkDetailDrawer.handleDecline` | `declined` + snapshot |
+| Owner changes price < 5% | `WorkDetailDrawer` price input | Auto-logged adjustment (OWNER_EXPERIENCE) |
+| Owner changes price >= 5% | `WorkDetailDrawer` reason picker | Adjustment with explicit reason code |
+| Job completed | `complete-job.js` / `dispatch-complete.js` | actual_outcomes with quotedPrice |
 
 ---
 
@@ -388,9 +470,11 @@ Business config: ownerOpportunityRate $75, helperRate $30, mileage $0.70, materi
 
 Price changes > 5% require a reason code. Small changes auto-log as `OWNER_EXPERIENCE`.
 
+Every owner action (approve, decline, review/pass) records an `OwnerDecision` with a full `DecisionSnapshot` capturing time, capacity, financial context, and queue state at decision time. This is fire-and-forget — failures don't block the user's action.
+
 ---
 
-## Tests (82 estimator tests)
+## Tests (92 estimator tests)
 
 ### `src/estimator/__tests__/estimator.test.ts` (52 tests)
 
@@ -408,13 +492,15 @@ Price changes > 5% require a reason code. Small changes auto-log as `OWNER_EXPER
 - **Risk flag & confidence dedup**: flags deduplicated, water_damage + extent_of_water_damage no double-penalty
 - **Numeric normalization**: money ≤2 decimals, hours ≤2 decimals
 
-### `src/estimator/__tests__/decision.test.ts` (17 tests)
+### `src/estimator/__tests__/decision.test.ts` (25 tests)
 
 - Static thresholds: good job → Take, low contributionPerLaborHour → Pass, low margin → Pass, low profit → Pass
 - Review triggers: low confidence, conservative case bad, unsupported components, structural risks, no tasks
 - DecisionContext: scarce capacity → Pass, requiredContributionPerCapacityHour above job rate → Review, goal nearly met → positive reason, zero context degrades gracefully
 - Reasons: populated and match recommendation
 - **Labor-hour vs capacity-hour**: same profit different capacity → different assessment, suggestedPrice sanity (no hourly-rate PASS for high-confidence assembly), metric consistency (never compare capacity against labor threshold)
+- **Graduated pricing gap**: 2% gap → Review, 8% gap → Review, 18% gap + plenty capacity → Review, 18% gap + scarce capacity → Pass, 35% gap → Pass, low confidence reason visible on economic PASS
+- **No hard PASS cliff**: below-pace job at 25% remaining capacity → Review (not Pass)
 
 ### `src/estimator/__tests__/pipeline.test.ts` (13 tests)
 
@@ -436,3 +522,5 @@ Price changes > 5% require a reason code. Small changes auto-log as `OWNER_EXPER
 - Helper labor cost is 0 for MVP (owner-only assumption)
 - DecisionContext defaults to zero when unavailable
 - Netlify Function required for AI extraction (`netlify dev` for local)
+- `complete-job` flow does not yet auto-populate `quotedPrice` on `actual_outcomes` from `bookings.approved_quote` — requires wiring in `completeJobCore.js`
+- `buildFeedbackRecords` loads all runs for a business — may need pagination for high-volume accounts

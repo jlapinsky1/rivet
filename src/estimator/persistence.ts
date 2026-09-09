@@ -4,7 +4,7 @@
  */
 
 import { supabase } from '../lib/supabase';
-import type { EstimationRun, AdjustmentEntry, ActualOutcome, ReasonCode } from './types';
+import type { EstimationRun, AdjustmentEntry, ActualOutcome, OwnerDecision, FeedbackRecord, ReasonCode } from './types';
 
 // ─── Estimation Runs (immutable, insert-only) ───
 
@@ -79,6 +79,7 @@ export async function getAllOutcomes(runIds: string[]): Promise<Map<string, Actu
       actualProcurementHours: row.actual_procurement_hours,
       finalRevenue: row.final_revenue,
       returnTrips: row.return_trips,
+      quotedPrice: row.quoted_price ?? undefined,
       recordedAt: row.recorded_at,
       notes: row.notes ?? undefined,
     });
@@ -190,6 +191,7 @@ export async function saveOutcome(outcome: ActualOutcome): Promise<void> {
     actual_procurement_hours: outcome.actualProcurementHours,
     final_revenue: outcome.finalRevenue,
     return_trips: outcome.returnTrips,
+    quoted_price: outcome.quotedPrice ?? null,
     recorded_at: outcome.recordedAt,
     notes: outcome.notes ?? null,
   });
@@ -211,6 +213,7 @@ export async function getOutcome(runId: string): Promise<ActualOutcome | null> {
     actualProcurementHours: data.actual_procurement_hours,
     finalRevenue: data.final_revenue,
     returnTrips: data.return_trips,
+    quotedPrice: data.quoted_price ?? undefined,
     recordedAt: data.recorded_at,
     notes: data.notes ?? undefined,
   };
@@ -227,7 +230,7 @@ export async function compareEstimates(runId: string): Promise<{
   if (!run) throw new Error(`Estimation run ${runId} not found`);
 
   const system = {
-    price: run.economicJob.suggestedPrice.expected,
+    price: run.economicJob.evaluatedPrice,
     laborHours: run.economicJob.laborHours.expected,
     materialCost: run.economicJob.materialCost.expected,
     contributionProfit: run.economicJob.contributionProfit.expected,
@@ -263,6 +266,245 @@ export async function compareEstimates(runId: string): Promise<{
   } : null;
 
   return { system, humanAdjusted, actual };
+}
+
+// ─── Owner Decisions ───
+
+export async function saveOwnerDecision(decision: OwnerDecision): Promise<void> {
+  const { error } = await supabase.from('owner_decisions').insert({
+    id: decision.id,
+    estimation_run_id: decision.estimationRunId,
+    business_id: decision.businessId,
+    user_id: decision.userId,
+    rivet_recommendation: decision.rivetRecommendation,
+    owner_action: decision.ownerAction,
+    rivet_price: decision.rivetPrice,
+    owner_price: decision.ownerPrice,
+    quoted_price: decision.quotedPrice,
+    reason_code: decision.reasonCode ?? null,
+    reason_text: decision.reasonText ?? null,
+    decision_snapshot: decision.decisionSnapshot,
+    decided_at: decision.decidedAt,
+  });
+  if (error) throw new Error(`Failed to save owner decision: ${error.message}`);
+}
+
+export async function getOwnerDecision(runId: string): Promise<OwnerDecision | null> {
+  const { data, error } = await supabase
+    .from('owner_decisions')
+    .select('*')
+    .eq('estimation_run_id', runId)
+    .order('decided_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return null;
+  return mapOwnerDecisionFromDb(data);
+}
+
+function mapOwnerDecisionFromDb(row: Record<string, unknown>): OwnerDecision {
+  return {
+    id: row.id as string,
+    estimationRunId: row.estimation_run_id as string,
+    businessId: row.business_id as string,
+    userId: row.user_id as string,
+    rivetRecommendation: row.rivet_recommendation as OwnerDecision['rivetRecommendation'],
+    ownerAction: row.owner_action as OwnerDecision['ownerAction'],
+    rivetPrice: row.rivet_price as number,
+    ownerPrice: row.owner_price as number | null,
+    quotedPrice: row.quoted_price as number | null,
+    reasonCode: (row.reason_code as ReasonCode) ?? undefined,
+    reasonText: (row.reason_text as string) ?? undefined,
+    decisionSnapshot: row.decision_snapshot as OwnerDecision['decisionSnapshot'],
+    decidedAt: row.decided_at as string,
+  };
+}
+
+export async function getAllOwnerDecisions(runIds: string[]): Promise<Map<string, OwnerDecision>> {
+  if (runIds.length === 0) return new Map();
+  const { data, error } = await supabase
+    .from('owner_decisions')
+    .select('*')
+    .in('estimation_run_id', runIds)
+    .order('decided_at', { ascending: false });
+  if (error || !data) return new Map();
+  const map = new Map<string, OwnerDecision>();
+  for (const row of data) {
+    // Keep latest decision per run (ordered desc, first wins)
+    if (map.has(row.estimation_run_id)) continue;
+    map.set(row.estimation_run_id, mapOwnerDecisionFromDb(row));
+  }
+  return map;
+}
+
+// ─── Feedback Record Builder ───
+
+export async function buildFeedbackRecord(runId: string): Promise<FeedbackRecord> {
+  const run = await getEstimationRun(runId);
+  if (!run) throw new Error(`Estimation run ${runId} not found`);
+
+  const [adjustments, outcome, decision] = await Promise.all([
+    getAdjustments(runId),
+    getOutcome(runId),
+    getOwnerDecision(runId),
+  ]);
+
+  // Derive adjusted price from latest price adjustment
+  let adjustedPrice: number | null = null;
+  for (const adj of adjustments) {
+    if (adj.field === 'price') adjustedPrice = adj.newValue;
+  }
+
+  // Quoted price: owner decision > outcome > null
+  const quotedPrice = decision?.quotedPrice ?? outcome?.quotedPrice ?? null;
+
+  // Build actual
+  const actual = outcome ? {
+    laborHours: outcome.actualLaborHours,
+    materialCost: outcome.actualMaterialCost,
+    revenue: outcome.finalRevenue,
+    returnTrips: outcome.returnTrips,
+  } : null;
+
+  // Build accuracy metrics
+  let accuracy: FeedbackRecord['accuracy'] = null;
+  if (actual) {
+    const rivetLabor = run.economicJob.laborHours.expected;
+    const rivetPrice = run.economicJob.evaluatedPrice;
+    const actualLabor = actual.laborHours;
+    const actualRevenue = actual.revenue;
+
+    const rivetLaborError = actualLabor > 0 ? (rivetLabor - actualLabor) / actualLabor : null;
+    const adjustedLaborEntry = adjustments.filter(a => a.field === 'laborHours').pop();
+    const adjustedLabor = adjustedLaborEntry?.newValue ?? null;
+    const adjustedLaborError = adjustedLabor !== null && actualLabor > 0
+      ? (adjustedLabor - actualLabor) / actualLabor : null;
+
+    const rivetPriceError = actualRevenue > 0 ? (rivetPrice - actualRevenue) / actualRevenue : null;
+    const quotedPriceError = quotedPrice !== null && actualRevenue > 0
+      ? (quotedPrice - actualRevenue) / actualRevenue : null;
+
+    const rivetWasCloserOnLabor = rivetLaborError !== null && adjustedLaborError !== null
+      ? Math.abs(rivetLaborError) <= Math.abs(adjustedLaborError) : null;
+    const rivetWasCloserOnPrice = rivetPriceError !== null && quotedPriceError !== null
+      ? Math.abs(rivetPriceError) <= Math.abs(quotedPriceError) : null;
+
+    accuracy = {
+      rivetLaborError,
+      adjustedLaborError,
+      rivetPriceError,
+      quotedPriceError,
+      rivetWasCloserOnLabor,
+      rivetWasCloserOnPrice,
+    };
+  }
+
+  return {
+    estimationRunId: runId,
+    createdAt: run.createdAt,
+    projectFamily: run.projectFamily,
+    rivet: {
+      recommendation: run.recommendation,
+      confidence: run.confidence,
+      evaluatedPrice: run.economicJob.evaluatedPrice,
+      minimumAcceptablePrice: run.economicJob.minimumAcceptablePrice,
+      laborHours: run.economicJob.laborHours,
+      materialCost: run.economicJob.materialCost,
+      contributionProfit: run.economicJob.contributionProfit,
+      reasons: run.reasons,
+    },
+    adjustments,
+    adjustedPrice,
+    ownerDecision: decision,
+    quotedPrice,
+    actual,
+    accuracy,
+  };
+}
+
+export async function buildFeedbackRecords(businessId: string): Promise<FeedbackRecord[]> {
+  const runs = await getRunsForBusiness(businessId);
+  if (runs.length === 0) return [];
+
+  const runIds = runs.map(r => r.id);
+  const [allAdjustments, allOutcomes, allDecisions] = await Promise.all([
+    getAllAdjustments(runIds),
+    getAllOutcomes(runIds),
+    getAllOwnerDecisions(runIds),
+  ]);
+
+  return runs.map(run => {
+    const adjustments = allAdjustments.get(run.id) ?? [];
+    const outcome = allOutcomes.get(run.id);
+    const decision = allDecisions.get(run.id);
+
+    let adjustedPrice: number | null = null;
+    for (const adj of adjustments) {
+      if (adj.field === 'price') adjustedPrice = adj.newValue;
+    }
+
+    const quotedPrice = decision?.quotedPrice ?? outcome?.quotedPrice ?? null;
+
+    const actual = outcome ? {
+      laborHours: outcome.actualLaborHours,
+      materialCost: outcome.actualMaterialCost,
+      revenue: outcome.finalRevenue,
+      returnTrips: outcome.returnTrips,
+    } : null;
+
+    let accuracy: FeedbackRecord['accuracy'] = null;
+    if (actual) {
+      const rivetLabor = run.economicJob.laborHours.expected;
+      const rivetPrice = run.economicJob.evaluatedPrice;
+      const actualLabor = actual.laborHours;
+      const actualRevenue = actual.revenue;
+
+      const rivetLaborError = actualLabor > 0 ? (rivetLabor - actualLabor) / actualLabor : null;
+      const adjustedLaborEntry = adjustments.filter(a => a.field === 'laborHours').pop();
+      const adjustedLabor = adjustedLaborEntry?.newValue ?? null;
+      const adjustedLaborError = adjustedLabor !== null && actualLabor > 0
+        ? (adjustedLabor - actualLabor) / actualLabor : null;
+
+      const rivetPriceError = actualRevenue > 0 ? (rivetPrice - actualRevenue) / actualRevenue : null;
+      const quotedPriceError = quotedPrice !== null && actualRevenue > 0
+        ? (quotedPrice - actualRevenue) / actualRevenue : null;
+
+      const rivetWasCloserOnLabor = rivetLaborError !== null && adjustedLaborError !== null
+        ? Math.abs(rivetLaborError) <= Math.abs(adjustedLaborError) : null;
+      const rivetWasCloserOnPrice = rivetPriceError !== null && quotedPriceError !== null
+        ? Math.abs(rivetPriceError) <= Math.abs(quotedPriceError) : null;
+
+      accuracy = {
+        rivetLaborError,
+        adjustedLaborError,
+        rivetPriceError,
+        quotedPriceError,
+        rivetWasCloserOnLabor,
+        rivetWasCloserOnPrice,
+      };
+    }
+
+    return {
+      estimationRunId: run.id,
+      createdAt: run.createdAt,
+      projectFamily: run.projectFamily,
+      rivet: {
+        recommendation: run.recommendation,
+        confidence: run.confidence,
+        evaluatedPrice: run.economicJob.evaluatedPrice,
+        minimumAcceptablePrice: run.economicJob.minimumAcceptablePrice,
+        laborHours: run.economicJob.laborHours,
+        materialCost: run.economicJob.materialCost,
+        contributionProfit: run.economicJob.contributionProfit,
+        reasons: run.reasons,
+      },
+      adjustments,
+      adjustedPrice,
+      ownerDecision: decision ?? null,
+      quotedPrice,
+      actual,
+      accuracy,
+    };
+  });
 }
 
 // ─── Helper: Create adjustment entry ───

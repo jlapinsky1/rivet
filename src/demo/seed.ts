@@ -47,11 +47,11 @@ export const demoBusinessConfig: BusinessEconomicsConfig = {
 // ─── Decision Context — a realistic Tuesday mid-week snapshot ───
 
 const demoDecisionContext: DecisionContext = {
-  weeklyEarningsToDate: 875,
-  remainingCapacityHours: 22,
-  pipelineValue: 3200,
-  pipelineHours: 28,
-  requiredContributionPerCapacityHour: 74,
+  weeklyEarningsToDate: 1800,
+  remainingCapacityHours: 24,
+  pipelineValue: 1200,
+  pipelineHours: 12,
+  requiredContributionPerCapacityHour: 29, // (2500 - 1800) / 24 ≈ 29
 };
 
 // ─── Stock Photos ───
@@ -189,7 +189,7 @@ function buildWorkItem(
     recommendation: pipeline.decision.recommendation,
     confidence: Math.round(econ.confidence * 100),
     description: opts.description,
-    price: Math.round(econ.suggestedPrice.expected),
+    price: Math.round(econ.evaluatedPrice),
     costs: Math.round(econ.totalDirectCost.expected),
     costBreakdown: [
       { label: 'Materials', value: `$${Math.round(econ.materialCost.expected)}` },
@@ -572,7 +572,7 @@ const cExtract1: ExtractionResult = {
 };
 const cPipe1 = runPipeline(cExtract1, 6);
 const cRun1 = buildRun(cPipe1, { createdAt: '2026-08-15T10:00:00Z', workId: 2001, projectFamily: 'drywall_repair' });
-const cOutcome1 = makeOutcome(cRun1.id, { laborHours: 1.6, materialCost: 28, procurementHours: 0.5, revenue: Math.round(cPipe1.economicJob.suggestedPrice.expected), returnTrips: 0 }, '2026-08-16T17:00:00Z');
+const cOutcome1 = makeOutcome(cRun1.id, { laborHours: 1.6, materialCost: 28, procurementHours: 0.5, revenue: Math.round(cPipe1.economicJob.evaluatedPrice), returnTrips: 0 }, '2026-08-16T17:00:00Z');
 
 // B. Human correction was better — TV mount above fireplace
 const cExtract2: ExtractionResult = {
@@ -693,7 +693,7 @@ const cExtract7: ExtractionResult = {
 };
 const cPipe7 = runPipeline(cExtract7, 11);
 const cRun7 = buildRun(cPipe7, { createdAt: '2026-08-30T08:00:00Z', workId: 2007, projectFamily: 'exterior_door_replacement' });
-const cOutcome7 = makeOutcome(cRun7.id, { laborHours: 5.8, materialCost: 118, procurementHours: 0.75, revenue: Math.round(cPipe7.economicJob.suggestedPrice.expected), returnTrips: 0 }, '2026-08-30T17:00:00Z');
+const cOutcome7 = makeOutcome(cRun7.id, { laborHours: 5.8, materialCost: 118, procurementHours: 0.75, revenue: Math.round(cPipe7.economicJob.evaluatedPrice), returnTrips: 0 }, '2026-08-30T17:00:00Z');
 
 // H. Multiple adjustments — medium drywall with scope change
 const cExtract8: ExtractionResult = {
@@ -714,7 +714,7 @@ const cPipe8 = runPipeline(cExtract8, 7);
 const cRun8 = buildRun(cPipe8, { createdAt: '2026-09-01T09:00:00Z', workId: 2008, projectFamily: 'drywall_repair' });
 // Multiple adjustments — owner adjusted labor, then price, then again after site visit
 const sysLabor8 = cPipe8.economicJob.laborHours.expected;
-const sysPrice8 = cPipe8.economicJob.suggestedPrice.expected;
+const sysPrice8 = cPipe8.economicJob.evaluatedPrice;
 const cAdj8: AdjustmentEntry[] = [
   makeAdj(cRun8.id, 'laborHours', sysLabor8, sysLabor8, sysLabor8 + 1.0, 'OWNER_EXPERIENCE', '2026-09-01T09:15:00Z', 'Door stopper also needs installing'),
   makeAdj(cRun8.id, 'laborHours', sysLabor8, sysLabor8 + 1.0, sysLabor8 + 1.5, 'NEW_CUSTOMER_INFO', '2026-09-01T14:00:00Z', 'Customer mentioned a second smaller hole in closet'),
@@ -736,7 +736,7 @@ const cExtract9: ExtractionResult = {
 };
 const cPipe9 = runPipeline(cExtract9, 8);
 const cRun9 = buildRun(cPipe9, { createdAt: '2026-09-02T10:00:00Z', workId: 2009, projectFamily: 'tv_wall_mounting' });
-const cOutcome9 = makeOutcome(cRun9.id, { laborHours: 1.4, materialCost: 38, procurementHours: 0.25, revenue: Math.round(cPipe9.economicJob.suggestedPrice.expected), returnTrips: 0 }, '2026-09-02T12:00:00Z');
+const cOutcome9 = makeOutcome(cRun9.id, { laborHours: 1.4, materialCost: 38, procurementHours: 0.25, revenue: Math.round(cPipe9.economicJob.evaluatedPrice), returnTrips: 0 }, '2026-09-02T12:00:00Z');
 
 // J. Human adjusted labor + material — fence panel replacement
 const cExtract10: ExtractionResult = {
@@ -776,7 +776,7 @@ const cExtract11: ExtractionResult = {
 };
 const cPipe11 = runPipeline(cExtract11, 18);
 const cRun11 = buildRun(cPipe11, { createdAt: '2026-09-04T10:00:00Z', workId: 2011, projectFamily: 'drywall_repair' });
-const cOutcome11 = makeOutcome(cRun11.id, { laborHours: 1.5, materialCost: 22, procurementHours: 0.5, revenue: Math.round(cPipe11.economicJob.suggestedPrice.expected), returnTrips: 0 }, '2026-09-04T13:00:00Z');
+const cOutcome11 = makeOutcome(cRun11.id, { laborHours: 1.5, materialCost: 22, procurementHours: 0.5, revenue: Math.round(cPipe11.economicJob.evaluatedPrice), returnTrips: 0 }, '2026-09-04T13:00:00Z');
 
 // L. Accurate — shelving install
 const cExtract12: ExtractionResult = {
@@ -792,7 +792,7 @@ const cExtract12: ExtractionResult = {
 };
 const cPipe12 = runPipeline(cExtract12, 10);
 const cRun12 = buildRun(cPipe12, { createdAt: '2026-09-05T09:00:00Z', workId: 2012, projectFamily: 'general_handyman' });
-const cOutcome12 = makeOutcome(cRun12.id, { laborHours: 2.2, materialCost: 35, procurementHours: 0.25, revenue: Math.round(cPipe12.economicJob.suggestedPrice.expected), returnTrips: 0 }, '2026-09-05T12:00:00Z');
+const cOutcome12 = makeOutcome(cRun12.id, { laborHours: 2.2, materialCost: 35, procurementHours: 0.25, revenue: Math.round(cPipe12.economicJob.evaluatedPrice), returnTrips: 0 }, '2026-09-05T12:00:00Z');
 
 // Build completed WorkItems
 const completedWorkItems: WorkItem[] = [

@@ -5,7 +5,7 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full system design.
 ## Quick Reference
 
 - **Stack**: React 18, TypeScript, Vite 5, Tailwind CSS, Supabase, Netlify Functions
-- **Test**: `npm test` (vitest, 82 estimator tests + others across 3 estimator test files)
+- **Test**: `npm test` (vitest, 92 estimator tests + others across 3 estimator test files)
 - **Typecheck**: `npm run typecheck`
 - **Build**: `npm run build`
 - **Dev**: `npm run dev` (Vite) / `netlify dev` (with Functions)
@@ -26,7 +26,13 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full system design.
 - Labor hours vs capacity hours are distinct: `contributionPerLaborHour` measures work productivity, `contributionPerCapacityHour` measures schedule productivity
 - `minimumHourlyRate` = minimum contribution profit per labor hour (not stacked on ownerOpportunityRate)
 - `weeklyEarningsGoal` and `requiredContributionPerCapacityHour` are contribution-profit metrics
+- `estimatedQuoteRange` is market-rate pricing (laborHours * targetRate + directCosts) — NOT floored at minimumAcceptablePrice
 - `minimumAcceptablePrice` is a scalar floor = max of all pricing floors (minimumJob, margin, absoluteProfit, laborProductivity, weeklyCapacityPace)
+- `recommendedQuote` = `estimatedQuoteRange.expected` — can be below `minimumAcceptablePrice`
+- When `evaluatedPrice < minimumAcceptablePrice`, the pricing gap is graduated: tiny (<=10%) → Review, moderate (10-25%) → Review or Pass depending on capacity scarcity, large (>25%) → Pass
+- Confidence and risk reasons are always preserved on PASS recommendations (economics don't hide estimation uncertainty)
+- Feedback loop captures 4 parts every time: Rivet's estimate → human adjustments → owner decision (with situational snapshot) → actual outcome
+- `OwnerDecision.decisionSnapshot` captures time/capacity/financial/queue context at decision time (not estimation time)
 - Calibration only from completed-job actuals, never from human estimate edits
 - Unknown `jobFamily` → always Review, never auto-Pass
 - Estimation runs are immutable, adjustments are append-only
@@ -45,9 +51,9 @@ src/hooks/useCustomers.ts   — Tenant-scoped customers/companies from Supabase
 src/admin/RivetApp.tsx      — Login + dashboard entry (mounted at /login route)
 src/admin/useWorkItems.ts   — Work items hook used by admin dashboard (also Supabase-backed)
 src/estimator/              — Full pipeline (types, baselines, extract, estimator, decision, diagnostics, persistence)
-src/estimator/__tests__     — 82 tests (estimator: 52, decision: 17, pipeline: 13)
+src/estimator/__tests__     — 92 tests (estimator: 52, decision: 25, pipeline: 15)
 src/admin/DecisionLab.tsx   — Internal evaluation page (Settings > Decision Lab, access-gated)
-src/admin/WorkDetailDrawer.tsx — Price editing + adjustment logging (>5% requires reason code)
+src/admin/WorkDetailDrawer.tsx — Price editing + adjustment logging + owner decision recording (>5% requires reason code)
 src/demo/seed.ts            — Mason Home Services seed data (runs real pipeline, used by tests)
 src/demo/customers.ts       — 13 residential + 2 commercial customers (test reference data)
 netlify/functions/extract.ts — Server-side Claude API
@@ -55,6 +61,7 @@ supabase/migrations/020_multi_tenant.sql — Multi-tenant foundation (businesses
 supabase/migrations/021_handyman_tenant_tables.sql — work_items, customers, companies, properties
 supabase/seed-mason-data.sql — Business + membership + customers + companies for demo account
 supabase/seed-data.sql       — Auto-generated estimation runs + work items
+supabase/migrations/022_feedback_loop.sql — owner_decisions table + quoted_price on actual_outcomes
 ```
 
 ## Decision Lab

@@ -263,11 +263,13 @@ export type EconomicJob = {
   totalDirectCost: Range;
 
   // Pricing
+  estimatedQuoteRange: Range;
   minimumAcceptablePrice: number;
+  recommendedQuote: number;
+  evaluatedPrice: number;
   pricingFloors: PricingFloors;
-  suggestedPrice: Range;
 
-  // Contribution profit (price minus direct cash costs)
+  // Contribution profit (at evaluatedPrice minus direct cash costs)
   contributionProfit: Range;
   contributionMargin: Range;
   contributionPerLaborHour: Range;
@@ -331,6 +333,58 @@ export type AdjustmentEntry = {
   createdAt: string;
 };
 
+// ─── Owner Decision (what the owner did with Rivet's recommendation) ───
+
+export type OwnerAction = 'approved' | 'approved_adjusted' | 'declined' | 'reviewed_later';
+
+/**
+ * Situational snapshot at the moment the owner makes a decision.
+ * Captures the "why did they decide this way?" context for future tuning.
+ *
+ * Example: Rivet said Pass on a $180 job. Owner took it anyway because it was
+ * Thursday, he only needed $400 to hit his weekly goal, and he had 6 hours left.
+ * Without this context, the feedback record just says "owner overrode Rivet" —
+ * with it, we can learn "owners rationally override Pass when goal is nearly met."
+ */
+export type DecisionSnapshot = {
+  // Time context
+  dayOfWeek: number;             // 0=Sun … 6=Sat
+  weekNumber: number;            // ISO week of year
+  hourOfDay: number;             // 0-23 local time
+
+  // Capacity context (at decision time, may differ from estimation time)
+  remainingCapacityHours: number;
+  hoursWorkedThisWeek: number;
+  jobsCompletedThisWeek: number;
+
+  // Financial context
+  weeklyEarningsToDate: number;
+  weeklyEarningsGoal: number;
+  gapToWeeklyGoal: number;       // goal - earned (negative = already exceeded)
+  requiredContributionPerCapacityHour: number;
+
+  // Queue context
+  queueDepth: number;            // how many other pending jobs
+  queueTotalValue: number;       // sum of evaluated prices in queue
+  queueTotalHours: number;       // sum of capacity hours in queue
+};
+
+export type OwnerDecision = {
+  id: string;
+  estimationRunId: string;
+  businessId: string;
+  userId: string;
+  rivetRecommendation: Recommendation;
+  ownerAction: OwnerAction;
+  rivetPrice: number;          // Rivet's evaluatedPrice at decision time
+  ownerPrice: number | null;   // price the owner set (null if declined)
+  quotedPrice: number | null;  // price actually sent to customer (null if declined)
+  reasonCode?: ReasonCode;
+  reasonText?: string;
+  decisionSnapshot: DecisionSnapshot;  // situational context at decision time
+  decidedAt: string;
+};
+
 // ─── Actual Outcome ───
 
 export type ActualOutcome = {
@@ -341,8 +395,50 @@ export type ActualOutcome = {
   actualProcurementHours: number;
   finalRevenue: number;
   returnTrips: number;
+  quotedPrice?: number;        // what the customer was quoted
   recordedAt: string;
   notes?: string;
+};
+
+// ─── Feedback Record (complete 4-part loop) ───
+
+export type FeedbackRecord = {
+  estimationRunId: string;
+  createdAt: string;
+  projectFamily: string;
+  // Part 1: Rivet's original estimate/recommendation
+  rivet: {
+    recommendation: Recommendation;
+    confidence: number;
+    evaluatedPrice: number;
+    minimumAcceptablePrice: number;
+    laborHours: Range;
+    materialCost: Range;
+    contributionProfit: Range;
+    reasons: ReasonItem[];
+  };
+  // Part 2: What the handyman changed
+  adjustments: AdjustmentEntry[];
+  adjustedPrice: number | null;    // final price after all adjustments (null if none)
+  // Part 3: Owner's decision and quoted price
+  ownerDecision: OwnerDecision | null;
+  quotedPrice: number | null;
+  // Part 4: Actual outcome
+  actual: {
+    laborHours: number;
+    materialCost: number;
+    revenue: number;
+    returnTrips: number;
+  } | null;
+  // Derived: who was closer?
+  accuracy: {
+    rivetLaborError: number | null;      // (rivet - actual) / actual
+    adjustedLaborError: number | null;   // (adjusted - actual) / actual
+    rivetPriceError: number | null;      // (rivetPrice - revenue) / revenue
+    quotedPriceError: number | null;     // (quoted - revenue) / revenue
+    rivetWasCloserOnLabor: boolean | null;
+    rivetWasCloserOnPrice: boolean | null;
+  } | null;
 };
 
 // ─── Helpers ───

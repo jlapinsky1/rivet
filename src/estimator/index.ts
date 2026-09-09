@@ -27,9 +27,13 @@ export type {
   EconomicJob,
   PricingFloors,
   DecisionContext,
+  DecisionSnapshot,
   EstimationRun,
   AdjustmentEntry,
   ActualOutcome,
+  OwnerAction,
+  OwnerDecision,
+  FeedbackRecord,
 } from './types';
 
 export {
@@ -77,4 +81,8 @@ export {
   getOutcome,
   compareEstimates,
   createAdjustmentEntry,
+  saveOwnerDecision,
+  getOwnerDecision,
+  buildFeedbackRecord,
+  buildFeedbackRecords,
 } from './persistence';

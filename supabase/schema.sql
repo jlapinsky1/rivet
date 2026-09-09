@@ -54,8 +54,30 @@ create table if not exists actual_outcomes (
   actual_procurement_hours double precision not null default 0,
   final_revenue         double precision not null,
   return_trips          integer not null default 0,
+  quoted_price          double precision,
   recorded_at           timestamptz not null default now(),
   notes                 text
 );
 
 create index if not exists idx_outcomes_run on actual_outcomes (estimation_run_id);
+
+-- ─── Owner Decisions ───
+
+create table if not exists owner_decisions (
+  id                   text primary key,
+  estimation_run_id    text not null references estimation_runs(id),
+  business_id          text not null,
+  user_id              text not null,
+  rivet_recommendation text not null,
+  owner_action         text not null,
+  rivet_price          double precision not null,
+  owner_price          double precision,
+  quoted_price         double precision,
+  reason_code          text,
+  reason_text          text,
+  decision_snapshot    jsonb not null,
+  decided_at           timestamptz not null default now()
+);
+
+create index if not exists idx_owner_decisions_run on owner_decisions (estimation_run_id);
+create index if not exists idx_owner_decisions_business on owner_decisions (business_id);

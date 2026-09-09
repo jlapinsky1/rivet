@@ -129,7 +129,9 @@ function buildExportRecord(item: LabRun) {
     calibrationApplied: run.calibrationApplied,
     businessEconomicsSnapshot: {
       // Captured from the economicJob outputs
-      suggestedPrice: run.economicJob.suggestedPrice,
+      estimatedQuoteRange: run.economicJob.estimatedQuoteRange,
+      recommendedQuote: run.economicJob.recommendedQuote,
+      evaluatedPrice: run.economicJob.evaluatedPrice,
       contributionMargin: run.economicJob.contributionMargin,
       travelCost: run.economicJob.travelCost,
       procurementHours: run.economicJob.procurementHours,
@@ -140,7 +142,9 @@ function buildExportRecord(item: LabRun) {
       laborHours: run.economicJob.laborHours,
       materialCost: run.economicJob.materialCost,
       totalDirectCost: run.economicJob.totalDirectCost,
-      suggestedPrice: run.economicJob.suggestedPrice,
+      estimatedQuoteRange: run.economicJob.estimatedQuoteRange,
+      recommendedQuote: run.economicJob.recommendedQuote,
+      evaluatedPrice: run.economicJob.evaluatedPrice,
       minimumAcceptablePrice: run.economicJob.minimumAcceptablePrice,
       pricingFloors: run.economicJob.pricingFloors,
       contributionProfit: run.economicJob.contributionProfit,
@@ -185,7 +189,7 @@ function buildExportRecord(item: LabRun) {
           laborErrorPct: pctError(systemLabor, outcome.actualLaborHours),
           materialErrorAbs: sysMatErr,
           materialErrorPct: pctError(systemMaterial, outcome.actualMaterialCost),
-          revenueVsPrice: outcome.finalRevenue - run.economicJob.suggestedPrice.expected,
+          revenueVsPrice: outcome.finalRevenue - run.economicJob.evaluatedPrice,
         },
         humanVsActual: humanValues ? {
           laborErrorAbs: humLaborErr,
@@ -214,7 +218,7 @@ function downloadJSON(data: unknown, filename: string) {
 function downloadCSV(items: LabRun[], filename: string) {
   const headers = [
     'runId', 'createdAt', 'tradeContexts', 'estimationPath', 'recommendation', 'confidence',
-    'systemLaborHours', 'systemMaterialCost', 'systemPrice',
+    'systemLaborHours', 'systemMaterialCost', 'evaluatedPrice', 'minimumAcceptablePrice',
     'humanLaborHours', 'humanMaterialCost', 'humanPrice',
     'actualLaborHours', 'actualMaterialCost', 'actualRevenue',
     'laborErrorPct', 'materialErrorPct', 'humanAdjusted', 'estimatorVersion',
@@ -231,7 +235,8 @@ function downloadCSV(items: LabRun[], filename: string) {
       run.confidence,
       sysLabor,
       sysMat,
-      run.economicJob.suggestedPrice.expected,
+      run.economicJob.evaluatedPrice,
+      run.economicJob.minimumAcceptablePrice,
       humanValues?.laborHours ?? '',
       humanValues?.materialCost ?? '',
       humanValues?.price ?? '',
@@ -451,7 +456,9 @@ function RunDetail({ item, onBack }: { item: LabRun; onBack: () => void }) {
       <section className="lab-section">
         <h4>Economics</h4>
         <div className="lab-kv-grid">
-          <div className="lab-kv"><span className="lab-k">Suggested price (L/E/H)</span><span className="lab-v">{fmtRange(econ.suggestedPrice)}</span></div>
+          <div className="lab-kv"><span className="lab-k">Estimated quote (L/E/H)</span><span className="lab-v">{fmtRange(econ.estimatedQuoteRange)}</span></div>
+          <div className="lab-kv"><span className="lab-k">Recommended quote</span><span className="lab-v">{fmtDollars(econ.recommendedQuote)}</span></div>
+          <div className="lab-kv"><span className="lab-k">Evaluated price</span><span className="lab-v">{fmtDollars(econ.evaluatedPrice)}</span></div>
           <div className="lab-kv"><span className="lab-k">Minimum acceptable price</span><span className="lab-v">{fmtDollars(econ.minimumAcceptablePrice)} ({econ.pricingFloors.binding})</span></div>
           <div className="lab-kv"><span className="lab-k">Contribution profit</span><span className="lab-v">{fmtRange(econ.contributionProfit)}</span></div>
           <div className="lab-kv"><span className="lab-k">$/work hour</span><span className="lab-v">{fmtRange(econ.contributionPerLaborHour)}</span></div>
@@ -752,7 +759,7 @@ export function DecisionLab() {
                 <th>Sys Mat</th>
                 <th>Human Mat</th>
                 <th>Actual Mat</th>
-                <th>Sys Price</th>
+                <th>Quote</th>
                 <th>Revenue</th>
                 <th>Conf</th>
                 <th>Ver</th>
@@ -773,7 +780,7 @@ export function DecisionLab() {
                     <td>{fmtDollars(run.economicJob.materialCost.expected)}</td>
                     <td>{humanValues?.materialCost != null ? fmtDollars(humanValues.materialCost) : '-'}</td>
                     <td>{outcome ? fmtDollars(outcome.actualMaterialCost) : '-'}</td>
-                    <td>{fmtDollars(run.economicJob.suggestedPrice.expected)}</td>
+                    <td>{fmtDollars(run.economicJob.evaluatedPrice)}</td>
                     <td>{outcome ? fmtDollars(outcome.finalRevenue) : '-'}</td>
                     <td>{fmtPct(run.confidence)}</td>
                     <td className="lab-mono">{run.estimatorVersion}</td>

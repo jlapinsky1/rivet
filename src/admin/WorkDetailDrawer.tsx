@@ -1,7 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import type { WorkItem } from './types';
 import type { ReasonCode } from '../estimator/types';
-import { createAdjustmentEntry, saveAdjustment } from '../estimator/persistence';
+import type { OwnerAction, DecisionSnapshot } from '../estimator/types';
+import { createAdjustmentEntry, saveAdjustment, saveOwnerDecision } from '../estimator/persistence';
+import { useWorkItemsContext } from './WorkItemsContext';
+import { useGoalData } from './useGoalData';
+import { useSettings } from './useSettings';
 import { recCopy, recIcon, reasonGlyph, sourceLabel, StatusBadge, BillingBadge } from './components';
 import { ArrowRight, ChevronDown, CircleHelp, Clock3, Loader2, MapPin, Phone, Mail, FileText, Building2, User, X } from 'lucide-react';
 import { getRepo } from '../utils/repository';
@@ -36,6 +40,63 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
+  // Context for decision snapshot (captures "it was Thursday, 15h left, needed $1k")
+  const { workItems } = useWorkItemsContext();
+  const { settings: businessSettings } = useSettings();
+  const goal = useGoalData(businessSettings);
+
+  const buildDecisionSnapshot = useCallback((): DecisionSnapshot => {
+    const now = new Date();
+    const weeklyGoal = goal.weeklyTarget || 2500;
+    const weeklyHours = (businessSettings?.weeklyHours as number) || 35;
+
+    // Queue = pending items excluding this one
+    const pending = workItems.filter(w => w.opStatus === 'needs_review' && w.id !== item.id);
+    const completed = workItems.filter(w => w.opStatus === 'completed');
+
+    return {
+      dayOfWeek: now.getDay(),
+      weekNumber: Math.ceil((now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000)),
+      hourOfDay: now.getHours(),
+      remainingCapacityHours: goal.availableHours,
+      hoursWorkedThisWeek: weeklyHours - goal.availableHours,
+      jobsCompletedThisWeek: completed.length,
+      weeklyEarningsToDate: goal.earnedThisWeek,
+      weeklyEarningsGoal: weeklyGoal,
+      gapToWeeklyGoal: weeklyGoal - goal.earnedThisWeek,
+      requiredContributionPerCapacityHour: goal.neededPerHour,
+      queueDepth: pending.length,
+      queueTotalValue: pending.reduce((s, w) => s + w.price, 0),
+      queueTotalHours: pending.reduce((s, w) => s + w.hoursNum, 0),
+    };
+  }, [workItems, goal, businessSettings, item.id]);
+
+  const recordOwnerDecision = useCallback(async (
+    action: OwnerAction,
+    ownerPrice: number | null,
+    quotedPrice: number | null,
+  ) => {
+    if (!item.estimationRunId) return; // no estimation run to link to
+    try {
+      await saveOwnerDecision({
+        id: crypto.randomUUID(),
+        estimationRunId: item.estimationRunId,
+        businessId: 'default', // will be overridden by RLS context in production
+        userId: 'owner',
+        rivetRecommendation: item.recommendation,
+        ownerAction: action,
+        rivetPrice: item.price,
+        ownerPrice,
+        quotedPrice,
+        decisionSnapshot: buildDecisionSnapshot(),
+        decidedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error('Failed to record owner decision:', err);
+      // Non-fatal — don't block the user's action
+    }
+  }, [item, buildDecisionSnapshot]);
+
   const estimatedProfit = price - item.costs;
   const hourlyRate = item.hoursNum > 0 ? Math.round(estimatedProfit / item.hoursNum) : 0;
   const priceStatus = price >= item.price ? 'take' : price >= item.price * 0.82 ? 'review' : 'pass';
@@ -49,7 +110,8 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
 
   async function handleApprove() {
     if (item.recommendation === 'pass' || item.recommendation === 'review') {
-      // For review/pass, just close — no API call yet
+      // Record that the owner acknowledged the review/pass recommendation
+      await recordOwnerDecision('reviewed_later', null, null);
       onClose();
       return;
     }
@@ -93,6 +155,10 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
         },
       });
 
+      // Record the owner's decision with full situational context
+      const action: OwnerAction = price !== item.price ? 'approved_adjusted' : 'approved';
+      await recordOwnerDecision(action, price, price);
+
       setActionSuccess(isCommercial ? 'Work order accepted' : 'Quote created and sent');
       setTimeout(() => {
         onClose();
@@ -111,6 +177,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
     try {
       const repo = await getRepo();
       await repo.updateBooking(item.id, { status: 'declined' });
+      await recordOwnerDecision('declined', null, null);
       setActionSuccess('Job declined');
       setTimeout(() => {
         onClose();

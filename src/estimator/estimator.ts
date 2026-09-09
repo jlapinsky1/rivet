@@ -503,21 +503,26 @@ export function applyCalibration(
   floors.laborProductivity = roundMoney(floors.laborProductivity);
   floors.weeklyCapacityPace = roundMoney(floors.weeklyCapacityPace);
 
-  // suggestedPrice Range: margin-factor range floored at minimumAcceptablePrice
-  let suggestedPrice = scaleRange(totalDirectCost, marginFactor);
-  suggestedPrice = {
-    low: Math.max(suggestedPrice.low, minimumAcceptablePrice),
-    expected: Math.max(suggestedPrice.expected, minimumAcceptablePrice),
-    high: Math.max(suggestedPrice.high, minimumAcceptablePrice),
+  // ─── Estimated Quote (NOT floored at minimumAcceptablePrice) ───
+  // Labor-based pricing: what the job is worth at market rates.
+  // targetLaborRate = minimumHourlyRate × 1.2 — what an owner would typically charge.
+  const targetLaborRate = config.minimumHourlyRate * 1.2;
+  const laborRevenue = scaleRange(laborHours, targetLaborRate);
+  const estimatedQuoteRange: Range = {
+    low: laborRevenue.low + totalDirectCost.low,
+    expected: laborRevenue.expected + totalDirectCost.expected,
+    high: laborRevenue.high + totalDirectCost.high,
   };
+  const recommendedQuote = estimatedQuoteRange.expected;
+  const evaluatedPrice = recommendedQuote;
 
-  // ─── Profit Metrics ───
-  const contributionProfit = clampRange(subtractRange(suggestedPrice, totalDirectCost));
+  // ─── Profit Metrics (at evaluatedPrice) ───
+  const contributionProfit = clampRange(subtractRange(constantRange(evaluatedPrice), totalDirectCost));
 
   const contributionMargin: Range = {
-    low: suggestedPrice.low > 0 ? contributionProfit.low / suggestedPrice.low : 0,
-    expected: suggestedPrice.expected > 0 ? contributionProfit.expected / suggestedPrice.expected : 0,
-    high: suggestedPrice.high > 0 ? contributionProfit.high / suggestedPrice.high : 0,
+    low: evaluatedPrice > 0 ? contributionProfit.low / evaluatedPrice : 0,
+    expected: evaluatedPrice > 0 ? contributionProfit.expected / evaluatedPrice : 0,
+    high: evaluatedPrice > 0 ? contributionProfit.high / evaluatedPrice : 0,
   };
 
   const contributionPerLaborHour = divRange(contributionProfit, laborHours.expected);
@@ -541,7 +546,9 @@ export function applyCalibration(
     totalDirectCost: roundMoneyRange(totalDirectCost),
     minimumAcceptablePrice: roundMoney(minimumAcceptablePrice),
     pricingFloors: floors,
-    suggestedPrice: roundMoneyRange(suggestedPrice),
+    estimatedQuoteRange: roundMoneyRange(estimatedQuoteRange),
+    recommendedQuote: roundMoney(recommendedQuote),
+    evaluatedPrice: roundMoney(evaluatedPrice),
     contributionProfit: roundMoneyRange(contributionProfit),
     contributionMargin: roundMoneyRange(contributionMargin),
     contributionPerLaborHour: roundMoneyRange(contributionPerLaborHour),

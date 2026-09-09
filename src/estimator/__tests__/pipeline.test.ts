@@ -28,7 +28,7 @@ describe('Assembly path E2E', () => {
     expect(estimate.laborHours.expected).toBeLessThan(4);
 
     const job = applyCalibration(estimate, config, null, 15);
-    expect(job.suggestedPrice.expected).toBeGreaterThan(0);
+    expect(job.evaluatedPrice).toBeGreaterThan(0);
 
     const decision = deriveRecommendation(job, config, context);
     expect(['take', 'review', 'pass']).toContain(decision.recommendation);

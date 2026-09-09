@@ -4,7 +4,7 @@ export type DecisionLabRecord = {
   id: string;
   recommendation: Recommendation;
   confidence: number;
-  suggestedPrice: { expected: number };
+  evaluatedPrice: number;
   contributionProfit: { expected: number };
   contributionPerLaborHour: { expected: number };
   contributionPerCapacityHour: number;

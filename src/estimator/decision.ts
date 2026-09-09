@@ -11,6 +11,16 @@ export type DecisionResult = {
   reasons: ReasonItem[];
 };
 
+// ─── Pricing Gap Bands ───
+// Expressed as fraction of minimumAcceptablePrice.
+// tiny:     gap <= 10% of min price → Review
+// moderate: gap 10–25%              → Review (plenty of capacity) or Pass (scarce)
+// large:    gap > 25%               → Pass
+const GAP_BAND_TINY = 0.10;
+const GAP_BAND_MODERATE = 0.25;
+// Capacity scarcity threshold for moderate-gap escalation
+const MODERATE_GAP_SCARCITY_RATIO = 0.30; // remaining / weekly total
+
 export function deriveRecommendation(
   job: EconomicJob,
   config: BusinessEconomicsConfig,
@@ -20,14 +30,59 @@ export function deriveRecommendation(
   let forceReview = false;
   let forcePass = false;
 
+  // ─── Pricing Gap Check (graduated) ───
+  // Compare evaluatedPrice against minimumAcceptablePrice
+
+  const pricingGap = job.minimumAcceptablePrice - job.evaluatedPrice;
+  if (pricingGap > 0) {
+    const gapPercent = job.minimumAcceptablePrice > 0
+      ? pricingGap / job.minimumAcceptablePrice
+      : 1;
+    const capacityRatio = context.remainingCapacityHours > 0
+      ? context.remainingCapacityHours / config.weeklyCapacityHours
+      : 1; // no context → treat as plenty of capacity
+
+    if (gapPercent <= GAP_BAND_TINY) {
+      // Tiny gap — barely below minimum
+      reasons.push({ icon: 'caution',
+        text: `This looks like roughly a $${Math.round(job.evaluatedPrice)} job, just below the $${Math.round(job.minimumAcceptablePrice)} minimum — ${Math.round(gapPercent * 100)}% gap` });
+      forceReview = true;
+    } else if (gapPercent <= GAP_BAND_MODERATE) {
+      // Moderate gap — depends on remaining capacity
+      if (capacityRatio < MODERATE_GAP_SCARCITY_RATIO) {
+        reasons.push({ icon: 'x',
+          text: `This looks like roughly a $${Math.round(job.evaluatedPrice)} job, but it would need to be about $${Math.round(job.minimumAcceptablePrice)} to justify the schedule time — ${Math.round(gapPercent * 100)}% gap with scarce capacity` });
+        forcePass = true;
+      } else {
+        reasons.push({ icon: 'caution',
+          text: `This looks like roughly a $${Math.round(job.evaluatedPrice)} job, but it would need to be about $${Math.round(job.minimumAcceptablePrice)} to stay on pace — ${Math.round(gapPercent * 100)}% gap` });
+        forceReview = true;
+      }
+    } else {
+      // Large gap — unambiguous pass
+      reasons.push({ icon: 'x',
+        text: `This looks like roughly a $${Math.round(job.evaluatedPrice)} job, but it would need to be about $${Math.round(job.minimumAcceptablePrice)} to justify the schedule time this week — ${Math.round(gapPercent * 100)}% gap` });
+      forcePass = true;
+    }
+  } else {
+    const quoteStr = Math.round(job.evaluatedPrice);
+    const minStr = Math.round(job.minimumAcceptablePrice);
+    if (quoteStr <= minStr * 1.1) {
+      reasons.push({ icon: 'caution',
+        text: `This job is expected to quote around $${quoteStr}, which is close to the $${minStr} minimum needed for the schedule time it consumes` });
+      if (!forcePass) forceReview = true;
+    } else {
+      reasons.push({ icon: 'check',
+        text: `This job is expected to quote around $${quoteStr} and only needs about $${minStr} to stay on pace` });
+    }
+  }
+
   // ─── Static Threshold Checks ───
 
   // Contribution profit vs absolute floor
   if (job.contributionProfit.expected < config.profitFloorAbsolute) {
     reasons.push({ icon: 'x', text: `Estimated profit $${Math.round(job.contributionProfit.expected)} is below minimum $${config.profitFloorAbsolute}` });
     forcePass = true;
-  } else {
-    reasons.push({ icon: 'check', text: `Estimated profit $${Math.round(job.contributionProfit.expected)} meets minimum` });
   }
 
   // Contribution profit per labor hour vs minimum hourly rate
@@ -42,11 +97,10 @@ export function deriveRecommendation(
   if (job.contributionMargin.expected < config.marginFloorPercent / 100) {
     reasons.push({ icon: 'x', text: `Margin ${Math.round(job.contributionMargin.expected * 100)}% is below ${config.marginFloorPercent}% floor` });
     forcePass = true;
-  } else {
-    reasons.push({ icon: 'check', text: `Margin ${Math.round(job.contributionMargin.expected * 100)}% meets target` });
   }
 
   // ─── Confidence Check ───
+  // Always evaluated — reasons are preserved even when economics produce PASS
 
   if (job.confidence < config.confidenceThreshold) {
     reasons.push({ icon: 'caution', text: `Estimate confidence ${Math.round(job.confidence * 100)}% is below ${Math.round(config.confidenceThreshold * 100)}% threshold — needs review` });
@@ -66,6 +120,7 @@ export function deriveRecommendation(
   }
 
   // ─── Risk Flags ───
+  // Always evaluated — risk reasons are visible even on PASS recommendations
 
   if (job.riskFlags.includes('no_tasks_extracted')) {
     reasons.push({ icon: 'caution', text: 'Could not identify specific work tasks — requires manual review' });
@@ -116,27 +171,23 @@ export function deriveRecommendation(
       reasons.push({ icon: 'caution', text: `Job uses ${Math.round(job.capacityHours / context.remainingCapacityHours * 100)}% of remaining weekly capacity` });
     }
 
-    // Weekly capacity pace check (graduated severity)
+    // Weekly capacity pace — schedule-hour productivity (graduated, no hard PASS cliff)
     const required = context.requiredContributionPerCapacityHour;
     if (required > 0) {
       const rate = job.contributionPerCapacityHour;
-      const capacityRatio = context.remainingCapacityHours / config.weeklyCapacityHours;
 
       if (rate >= required) {
         reasons.push({ icon: 'check',
-          text: `This job earns about $${Math.round(rate)} per schedule hour, above the $${Math.round(required)}/hr pace needed for your weekly goal` });
+          text: `The hands-on work earns $${Math.round(job.contributionPerLaborHour.expected)} per work hour; including schedule time, it earns $${Math.round(rate)} per schedule hour (above $${Math.round(required)}/hr pace)` });
       } else if (rate >= required * 0.85) {
-        // Slightly below — caution, review if capacity tight
-        const laborRate = Math.round(job.contributionPerLaborHour.expected);
         reasons.push({ icon: 'caution',
-          text: `The work itself pays $${laborRate}/hr, but total schedule cost brings it to $${Math.round(rate)} per schedule hour. You need about $${Math.round(required)}/hr to stay on pace` });
+          text: `The hands-on work pays $${Math.round(job.contributionPerLaborHour.expected)}/hr, but the job earns only $${Math.round(rate)} per schedule hour — close to the $${Math.round(required)}/hr pace needed` });
+        const capacityRatio = context.remainingCapacityHours / config.weeklyCapacityHours;
         if (capacityRatio < 0.5 && !forcePass) forceReview = true;
       } else {
-        // Materially below
         reasons.push({ icon: 'x',
-          text: `At $${Math.round(rate)} per schedule hour, this job is below the $${Math.round(required)}/hr pace needed. Rivet estimates it needs to be priced at least ~$${Math.round(job.minimumAcceptablePrice)} to fit your target` });
+          text: `The hands-on work pays $${Math.round(job.contributionPerLaborHour.expected)}/hr, but the job consumes too much schedule capacity — only $${Math.round(rate)} per schedule hour vs $${Math.round(required)}/hr needed` });
         if (!forcePass) forceReview = true;
-        if (capacityRatio < 0.3 && !forcePass) forcePass = true;
       }
     }
 

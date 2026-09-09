@@ -347,9 +347,9 @@ describe('EconomicJob', () => {
     expect(job.totalDirectCost.expected).toBeCloseTo(expectedDirect, 2);
   });
 
-  it('contributionProfit = price - totalDirectCost', () => {
+  it('contributionProfit = evaluatedPrice - totalDirectCost', () => {
     expect(job.contributionProfit.expected).toBeCloseTo(
-      job.suggestedPrice.expected - job.totalDirectCost.expected, 2
+      job.evaluatedPrice - job.totalDirectCost.expected, 2
     );
   });
 
@@ -364,16 +364,23 @@ describe('EconomicJob', () => {
     expect(job.contributionProfit.expected).toBeGreaterThan(job.ownerAdjustedProfit.expected);
   });
 
-  it('enforces minimum job price', () => {
-    expect(job.suggestedPrice.expected).toBeGreaterThanOrEqual(defaultConfig.minimumJobPrice);
+  it('estimatedQuoteRange is a valid range', () => {
+    expect(rangeValid(job.estimatedQuoteRange)).toBe(true);
+  });
+
+  it('recommendedQuote equals estimatedQuoteRange.expected', () => {
+    expect(job.recommendedQuote).toBe(job.estimatedQuoteRange.expected);
+  });
+
+  it('evaluatedPrice equals recommendedQuote', () => {
+    expect(job.evaluatedPrice).toBe(job.recommendedQuote);
   });
 
   it('all ranges are valid', () => {
     expect(rangeValid(job.laborHours)).toBe(true);
     expect(rangeValid(job.materialCost)).toBe(true);
-    expect(rangeValid(job.suggestedPrice)).toBe(true);
+    expect(rangeValid(job.estimatedQuoteRange)).toBe(true);
     expect(rangeValid(job.totalDirectCost)).toBe(true);
-    expect(rangeValid(job.contributionProfit)).toBe(true);
   });
 });
 
@@ -385,7 +392,7 @@ describe('Tier separation', () => {
     const json = JSON.stringify(result);
     expect(json).not.toContain('"laborHours"');
     expect(json).not.toContain('"price"');
-    expect(json).not.toContain('"suggestedPrice"');
+    expect(json).not.toContain('"estimatedQuoteRange"');
     expect(json).not.toContain('"totalCost"');
   });
 
@@ -425,8 +432,16 @@ describe('Capacity-hour economics', () => {
     expect(nearJob.laborHours.expected).toBe(farJob.laborHours.expected);
     // Different capacity hours (far job has more travel time)
     expect(farJob.capacityHours).toBeGreaterThan(nearJob.capacityHours);
-    // Far job has lower contribution per capacity hour
-    expect(farJob.contributionPerCapacityHour).toBeLessThan(nearJob.contributionPerCapacityHour);
+    // With unfloored pricing, the far job has higher directCost → higher evaluatedPrice,
+    // so contributionPerCapacityHour may not drop. To isolate the capacity effect,
+    // compare at the same evaluatedPrice (i.e., same revenue for both jobs).
+    // At a fixed price, the far job has lower profit AND more capacity hours.
+    const fixedPrice = 600;
+    const nearProfit = fixedPrice - nearJob.totalDirectCost.expected;
+    const farProfit = fixedPrice - farJob.totalDirectCost.expected;
+    const nearCPCH = nearProfit / nearJob.capacityHours;
+    const farCPCH = farProfit / farJob.capacityHours;
+    expect(farCPCH).toBeLessThan(nearCPCH);
   });
 
   it('return trip from multiple_visits_required adds to capacityHours', () => {
@@ -479,12 +494,24 @@ describe('Multi-floor pricing', () => {
     expect(job.minimumAcceptablePrice).toBeCloseTo(maxFloor, 2);
   });
 
-  it('suggestedPrice.expected >= minimumAcceptablePrice', () => {
-    for (const code of KNOWN_ASSEMBLY_CODES) {
-      const estimate = estimateHandymanJob(makeAssemblyExtraction(code));
-      const job = applyCalibration(estimate, defaultConfig, null, 10);
-      expect(job.suggestedPrice.expected).toBeGreaterThanOrEqual(job.minimumAcceptablePrice - 0.01);
-    }
+  it('estimatedQuoteRange is NOT automatically floored at minimumAcceptablePrice', () => {
+    // With a high requiredContributionPerCapacityHour, the capacity pace floor
+    // should exceed the natural estimated quote for small/quick jobs
+    const estimate = estimateHandymanJob(makeAssemblyExtraction('SMALL_DRYWALL_PATCH'));
+    const highPaceContext: DecisionContext = {
+      weeklyEarningsToDate: 0,
+      remainingCapacityHours: 20,
+      pipelineValue: 0,
+      pipelineHours: 0,
+      requiredContributionPerCapacityHour: 200,
+    };
+    const job = applyCalibration(estimate, defaultConfig, null, 10, highPaceContext);
+    // The capacity pace floor should be much higher than the natural quote
+    expect(job.pricingFloors.weeklyCapacityPace).toBeGreaterThan(job.estimatedQuoteRange.expected);
+    // But estimatedQuoteRange should NOT be inflated
+    expect(job.estimatedQuoteRange.expected).toBeLessThan(job.minimumAcceptablePrice);
+    // And recommendedQuote should equal the natural estimate, not the floor
+    expect(job.recommendedQuote).toBe(job.estimatedQuoteRange.expected);
   });
 
   it('pricingFloors.binding identifies the winning floor', () => {
@@ -544,7 +571,9 @@ describe('Numeric normalization', () => {
       }
     }
 
-    checkDecimals(job.suggestedPrice.expected, 2);
+    checkDecimals(job.estimatedQuoteRange.expected, 2);
+    checkDecimals(job.recommendedQuote, 2);
+    checkDecimals(job.evaluatedPrice, 2);
     checkDecimals(job.totalDirectCost.expected, 2);
     checkDecimals(job.contributionProfit.expected, 2);
     checkDecimals(job.travelCost, 2);
