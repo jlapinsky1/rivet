@@ -220,7 +220,7 @@ export default function DispatchPage() {
         <div className="max-w-lg mx-auto flex items-center justify-between px-4 h-14">
           <div className="w-10" />
           <div className="text-center">
-            <h1 className="text-base font-bold tracking-tight">Squatterz Dispatch</h1>
+            <h1 className="text-base font-bold tracking-tight">Rivet</h1>
             {todayDate && (
               <p className="text-[11px] text-gray-400 leading-none mt-0.5">
                 {new Date(todayDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}

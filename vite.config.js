@@ -10,11 +10,11 @@ export default defineConfig({
       // Don't inject manifest into every HTML page — only /dispatch needs PWA
       // but vite-plugin-pwa injects globally; that's fine, non-dispatch pages ignore it
       manifest: {
-        name: 'Squatterz Dispatch',
-        short_name: 'Dispatch',
-        description: 'Squatterz field crew dispatch',
-        theme_color: '#111827',
-        background_color: '#111827',
+        name: 'Rivet',
+        short_name: 'Rivet',
+        description: 'Better jobs. Better margins.',
+        theme_color: '#142a20',
+        background_color: '#142a20',
         display: 'standalone',
         start_url: '/dispatch',
         scope: '/',
