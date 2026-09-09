@@ -25,6 +25,7 @@ export type {
   BusinessEconomicsConfig,
   BusinessCalibration,
   EconomicJob,
+  PricingFloors,
   DecisionContext,
   EstimationRun,
   AdjustmentEntry,
@@ -60,6 +61,10 @@ export { estimateHandymanJob, applyCalibration } from './estimator';
 // ─── Decision Engine ───
 export { deriveRecommendation } from './decision';
 export type { DecisionResult } from './decision';
+
+// ─── Diagnostics ───
+export { summarizeDecisionLab } from './diagnostics';
+export type { DecisionLabRecord, DecisionLabSummary } from './diagnostics';
 
 // ─── Persistence ───
 export {

@@ -78,11 +78,12 @@ src/
     extract.ts        — AI extraction client + keyword stub for tests
     estimator.ts      — Dual-path estimator (assembly OR component) + calibration → EconomicJob
     decision.ts       — Universal decision engine (with DecisionContext)
+    diagnostics.ts    — Decision Lab analysis helpers (summarizeDecisionLab)
     persistence.ts    — Supabase persistence (dev-only until RLS)
     index.ts          — Barrel export
   estimator/__tests__/
-    estimator.test.ts — Assemblies, components, modifiers, calibration, EconomicJob, tier separation (41 tests)
-    decision.test.ts  — Thresholds, review triggers, DecisionContext (14 tests)
+    estimator.test.ts — Assemblies, components, modifiers, calibration, EconomicJob, capacity-hour economics, multi-floor pricing, dedup, normalization (52 tests)
+    decision.test.ts  — Thresholds, review triggers, DecisionContext, labor-vs-capacity distinction (17 tests)
     pipeline.test.ts  — E2E both paths, shared overhead, adjustment logging, junk regression (13 tests)
   lib/
     supabase.ts       — Supabase client singleton
@@ -249,17 +250,63 @@ Dual-path:
 8. Apply material supply adjustments
 9. Reduce confidence per unknown
 
-### `applyCalibration(estimate, config, calibration, travelDistanceMiles): EconomicJob`
+### `applyCalibration(estimate, config, calibration, travelDistanceMiles, context?): EconomicJob`
 
-Same as before — calibration bounded 0.7–1.5, min 3 samples. Owner labor is opportunity cost, NOT in `totalDirectCost`.
+Calibration bounded 0.7–1.5, min 3 samples. Owner labor is opportunity cost, NOT in `totalDirectCost`.
+
+**Capacity Hours** (v0.3.0):
+```
+capacityHours = laborHours.expected + travelHours + procurementHours + returnTripHours
+```
+- `travelHours` = roundtrip at 30 mph
+- `returnTripHours` = modeled from condition `returnTripRisk` (high = full roundtrip, medium = one-way)
+- Does NOT include passive elapsed time
+
+**Two Productivity Metrics**:
+- `contributionPerLaborHour` = contributionProfit / laborHours (Range) — how productive is the hands-on work
+- `contributionPerCapacityHour` = contributionProfit.expected / capacityHours (scalar) — profit per schedule hour consumed
+
+**Multi-Floor Pricing** (v0.3.0):
+```
+minimumAcceptablePrice = max(
+  minimumJobPrice,
+  directCost × marginFactor,
+  directCost + profitFloorAbsolute,
+  directCost + laborHours × minimumHourlyRate,
+  directCost + capacityHours × requiredContributionPerCapacityHour  [if context provided]
+)
+```
+`suggestedPrice` range is floored at `minimumAcceptablePrice`. The `pricingFloors` object exposes all floor values and identifies the binding constraint.
+
+**Confidence Overlap Dedup** (v0.3.0): When an unknown (e.g., `extent_of_water_damage`) is already covered by an active condition's confidence penalty (e.g., `water_damage`), the redundant -0.05 deduction is skipped. Tracked in `CONDITION_RELATED_UNKNOWNS` map.
+
+**Risk Flag Dedup**: `[...new Set(riskFlags)]` applied at output boundary.
+
+**Numeric Normalization**: All money and hour outputs rounded to ≤2 decimal places at output boundary.
 
 ---
 
 ## Decision Engine: `src/estimator/decision.ts`
 
-Universal — works for any vertical. Same thresholds as before.
+Universal — works for any vertical.
 
-New risk flag handling:
+### Static Threshold Checks (labor-hour economics)
+- `contributionPerLaborHour.expected < minimumHourlyRate` → forcePass ("At $X per work hour, below $Y minimum")
+- `contributionMargin.expected < marginFloorPercent` → forcePass
+- `contributionProfit.expected < profitFloorAbsolute` → forcePass
+- Conservative case (`contributionProfit.low`, `contributionPerLaborHour.low`) below thresholds → forceReview
+
+### Weekly Capacity Pace (capacity-hour economics, graduated severity)
+- `contributionPerCapacityHour >= requiredRate` → positive reason ("earns ~$X per schedule hour, above $Y pace")
+- `contributionPerCapacityHour >= requiredRate × 0.85` → caution, forceReview if capacity < 50%
+- `contributionPerCapacityHour < requiredRate × 0.85` → forceReview, forcePass if capacity < 30%
+- Reason includes `minimumAcceptablePrice` when materially below pace
+
+### Capacity Scarcity
+- `capacityHours > remainingCapacityHours` → forcePass
+- `capacityHours > remainingCapacityHours × 0.5` → caution
+
+### Risk Flag Handling
 - `no_tasks_extracted` → forced Review (never auto-Pass)
 - `poor_component_coverage` → forced Review
 - `unsupported_task_component` → noted in reasons (confidence drop handles severity)
@@ -312,13 +359,15 @@ Internal-only evaluation page under Settings. Access-gated via `localStorage.riv
 
 **Table view**: Date, Customer, Trade, Recommendation, System/Human/Actual labor & materials, System price, Revenue, Confidence, Estimator version.
 
-**Detail view** (click a row): Full pipeline walkthrough — Input, AI Extraction, Estimator breakdown, Calibration, Economics, Decision (reasons + context), Human Adjustments timeline, Actual Outcome with error calculations.
+**Detail view** (click a row): Full pipeline walkthrough — Input, AI Extraction, Estimator breakdown, Calibration, Economics (including pricing floors, $/work hour, $/schedule hour), Decision (reasons + context), Human Adjustments timeline, Actual Outcome with error calculations.
 
 **Filters**: Customer, trade context, recommendation (Take/Review/Pass), completed vs pending, human-adjusted yes/no, confidence level.
 
-**Export**: JSON and CSV formats, structured for handing to Claude/ChatGPT/domain experts to diagnose systematic errors.
+**Export**: JSON and CSV formats, structured for handing to Claude/ChatGPT/domain experts to diagnose systematic errors. Includes absolute/percent errors for labor and material, winner tracking (human vs rivet), pricing floor traces.
 
 **Summary metrics** (completed jobs only): Median labor/material error, human-adjusted ratio, Rivet-closer-than-human ratio, error breakdown by trade context.
+
+**Programmatic diagnostics**: `summarizeDecisionLab(records)` in `src/estimator/diagnostics.ts` produces recommendation distribution, median errors, risk flag frequency, pricing floor distribution, and human-vs-rivet accuracy stats.
 
 ---
 
@@ -341,9 +390,9 @@ Price changes > 5% require a reason code. Small changes auto-log as `OWNER_EXPER
 
 ---
 
-## Tests (68 total)
+## Tests (82 estimator tests)
 
-### `src/estimator/__tests__/estimator.test.ts` (41 tests)
+### `src/estimator/__tests__/estimator.test.ts` (52 tests)
 
 - Assembly invariants (15+ assemblies, valid ranges, trade contexts, validation status)
 - Component invariants (20+ components, valid baselines, carpentry components present)
@@ -354,10 +403,18 @@ Price changes > 5% require a reason code. Small changes auto-log as `OWNER_EXPER
 - Calibration: multiplier with samples, skip when < 3, bounded, no overwrite
 - EconomicJob: totalDirectCost, contributionProfit, ownerAdjustedProfit, minimum price, valid ranges
 - Tier separation: AI no hours/prices, calibration no overwrite, economics no trade change
+- **Capacity-hour economics**: same profit different capacity → different rates, return trip adds capacity, weekly pace floor uses capacityHours
+- **Multi-floor pricing**: minimumAcceptablePrice = max of all floors, suggestedPrice >= floor, binding floor identified, owner labor excluded from floors
+- **Risk flag & confidence dedup**: flags deduplicated, water_damage + extent_of_water_damage no double-penalty
+- **Numeric normalization**: money ≤2 decimals, hours ≤2 decimals
 
-### `src/estimator/__tests__/decision.test.ts` (14 tests)
+### `src/estimator/__tests__/decision.test.ts` (17 tests)
 
-Same as before — static thresholds, review triggers, DecisionContext, reasons.
+- Static thresholds: good job → Take, low contributionPerLaborHour → Pass, low margin → Pass, low profit → Pass
+- Review triggers: low confidence, conservative case bad, unsupported components, structural risks, no tasks
+- DecisionContext: scarce capacity → Pass, requiredContributionPerCapacityHour above job rate → Review, goal nearly met → positive reason, zero context degrades gracefully
+- Reasons: populated and match recommendation
+- **Labor-hour vs capacity-hour**: same profit different capacity → different assessment, suggestedPrice sanity (no hourly-rate PASS for high-confidence assembly), metric consistency (never compare capacity against labor threshold)
 
 ### `src/estimator/__tests__/pipeline.test.ts` (13 tests)
 

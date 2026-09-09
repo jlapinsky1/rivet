@@ -30,12 +30,12 @@ export function deriveRecommendation(
     reasons.push({ icon: 'check', text: `Estimated profit $${Math.round(job.contributionProfit.expected)} meets minimum` });
   }
 
-  // Owner-adjusted rate vs minimum hourly rate
-  if (job.ownerAdjustedPerHour.expected < config.minimumHourlyRate) {
-    reasons.push({ icon: 'x', text: `Effective rate $${Math.round(job.ownerAdjustedPerHour.expected)}/hr is below minimum $${config.minimumHourlyRate}/hr` });
+  // Contribution profit per labor hour vs minimum hourly rate
+  if (job.contributionPerLaborHour.expected < config.minimumHourlyRate) {
+    reasons.push({ icon: 'x', text: `At $${Math.round(job.contributionPerLaborHour.expected)} per work hour, this is below the $${config.minimumHourlyRate} minimum` });
     forcePass = true;
   } else {
-    reasons.push({ icon: 'check', text: `Effective rate $${Math.round(job.ownerAdjustedPerHour.expected)}/hr meets target` });
+    reasons.push({ icon: 'check', text: `Earns $${Math.round(job.contributionPerLaborHour.expected)} per work hour, meets $${config.minimumHourlyRate} minimum` });
   }
 
   // Contribution margin vs floor
@@ -56,9 +56,8 @@ export function deriveRecommendation(
   // ─── High/Conservative Case Check ───
 
   if (!forcePass) {
-    // Check if the high (worst) case breaks thresholds
-    const highCaseProfit = job.contributionProfit.low; // low profit = worst case
-    const highCaseRate = job.ownerAdjustedPerHour.low;
+    const highCaseProfit = job.contributionProfit.low;
+    const highCaseRate = job.contributionPerLaborHour.low;
 
     if (highCaseProfit < config.profitFloorAbsolute || highCaseRate < config.minimumHourlyRate) {
       reasons.push({ icon: 'caution', text: 'Conservative estimate may fall below profit thresholds' });
@@ -81,7 +80,6 @@ export function deriveRecommendation(
 
   if (job.riskFlags.includes('unsupported_task_component')) {
     reasons.push({ icon: 'caution', text: 'Some work tasks not in Rivet\'s component library' });
-    // Doesn't force review by itself — confidence drop in estimator handles it
   }
 
   // Legacy flags (backward compat)
@@ -112,19 +110,37 @@ export function deriveRecommendation(
   if (hasContext) {
     // Capacity check
     if (job.capacityHours > context.remainingCapacityHours) {
-      reasons.push({ icon: 'x', text: `Job needs ~${job.capacityHours.toFixed(1)}h but only ${context.remainingCapacityHours.toFixed(1)}h available this week` });
+      reasons.push({ icon: 'x', text: `Job needs ~${job.capacityHours.toFixed(1)}h of schedule time but only ${context.remainingCapacityHours.toFixed(1)}h available this week` });
       forcePass = true;
     } else if (job.capacityHours > context.remainingCapacityHours * 0.5) {
       reasons.push({ icon: 'caution', text: `Job uses ${Math.round(job.capacityHours / context.remainingCapacityHours * 100)}% of remaining weekly capacity` });
     }
 
-    // Required profit per hour check (goal pace)
-    if (context.requiredProfitPerHour > 0 && job.ownerAdjustedPerHour.expected < context.requiredProfitPerHour) {
-      reasons.push({ icon: 'caution', text: `At $${Math.round(job.ownerAdjustedPerHour.expected)}/hr, this is below the $${Math.round(context.requiredProfitPerHour)}/hr pace needed to hit your weekly goal` });
-      if (!forcePass) forceReview = true;
+    // Weekly capacity pace check (graduated severity)
+    const required = context.requiredContributionPerCapacityHour;
+    if (required > 0) {
+      const rate = job.contributionPerCapacityHour;
+      const capacityRatio = context.remainingCapacityHours / config.weeklyCapacityHours;
+
+      if (rate >= required) {
+        reasons.push({ icon: 'check',
+          text: `This job earns about $${Math.round(rate)} per schedule hour, above the $${Math.round(required)}/hr pace needed for your weekly goal` });
+      } else if (rate >= required * 0.85) {
+        // Slightly below — caution, review if capacity tight
+        const laborRate = Math.round(job.contributionPerLaborHour.expected);
+        reasons.push({ icon: 'caution',
+          text: `The work itself pays $${laborRate}/hr, but total schedule cost brings it to $${Math.round(rate)} per schedule hour. You need about $${Math.round(required)}/hr to stay on pace` });
+        if (capacityRatio < 0.5 && !forcePass) forceReview = true;
+      } else {
+        // Materially below
+        reasons.push({ icon: 'x',
+          text: `At $${Math.round(rate)} per schedule hour, this job is below the $${Math.round(required)}/hr pace needed. Rivet estimates it needs to be priced at least ~$${Math.round(job.minimumAcceptablePrice)} to fit your target` });
+        if (!forcePass) forceReview = true;
+        if (capacityRatio < 0.3 && !forcePass) forcePass = true;
+      }
     }
 
-    // Goal pace — positive signal
+    // Goal completion positive signal
     const projectedWeekly = context.weeklyEarningsToDate + job.contributionProfit.expected;
     if (projectedWeekly >= config.weeklyEarningsGoal && !forcePass) {
       reasons.push({ icon: 'check', text: 'This job puts you ahead of your weekly earnings goal' });

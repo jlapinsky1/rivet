@@ -235,26 +235,49 @@ export type BusinessCalibration = {
   sampleSize: number;
 };
 
+// ─── Pricing Floors ───
+
+export type PricingFloors = {
+  minimumJob: number;
+  margin: number;
+  absoluteProfit: number;
+  laborProductivity: number;
+  weeklyCapacityPace: number;
+  binding: string;
+};
+
 // ─── EconomicJob (universal intermediate) ───
 
 export type EconomicJob = {
+  // Labor and capacity
   laborHours: Range;
   capacityHours: number;
   procurementHours: number;
+  travelHours: number;
+  returnTripHours: number;
 
+  // Direct costs (cash out)
   materialCost: Range;
   travelCost: number;
   helperLaborCost: Range;
   totalDirectCost: Range;
 
+  // Pricing
+  minimumAcceptablePrice: number;
+  pricingFloors: PricingFloors;
   suggestedPrice: Range;
 
+  // Contribution profit (price minus direct cash costs)
   contributionProfit: Range;
+  contributionMargin: Range;
+  contributionPerLaborHour: Range;
+  contributionPerCapacityHour: number;
+
+  // Owner-adjusted (analytical only — not used in acceptance thresholds)
   ownerAdjustedProfit: Range;
   ownerAdjustedPerHour: Range;
 
-  contributionMargin: Range;
-
+  // Quality indicators
   confidence: number;
   riskFlags: string[];
   breakdown: BreakdownEntry[];
@@ -267,7 +290,7 @@ export type DecisionContext = {
   remainingCapacityHours: number;
   pipelineValue: number;
   pipelineHours: number;
-  requiredProfitPerHour: number;
+  requiredContributionPerCapacityHour: number;
 };
 
 // ─── Estimation Run (immutable snapshot) ───
@@ -324,7 +347,7 @@ export type ActualOutcome = {
 
 // ─── Helpers ───
 
-export const ESTIMATOR_VERSION = '0.2.0';
+export const ESTIMATOR_VERSION = '0.3.0';
 
 export function defaultDecisionContext(): DecisionContext {
   return {
@@ -332,7 +355,7 @@ export function defaultDecisionContext(): DecisionContext {
     remainingCapacityHours: 0,
     pipelineValue: 0,
     pipelineHours: 0,
-    requiredProfitPerHour: 0,
+    requiredContributionPerCapacityHour: 0,
   };
 }
 

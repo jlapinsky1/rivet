@@ -41,7 +41,7 @@ function range(v: number): Range {
 describe('deriveRecommendation — static thresholds', () => {
   it('good job → Take', () => {
     const job = makeJob({
-      ownerAdjustedPerHour: range(100),
+      contributionPerLaborHour: range(100),
       contributionMargin: range(0.45),
       contributionProfit: range(300),
       confidence: 0.85,
@@ -51,9 +51,9 @@ describe('deriveRecommendation — static thresholds', () => {
     expect(recommendation).toBe('take');
   });
 
-  it('low ownerAdjustedPerHour → Pass', () => {
+  it('low contributionPerLaborHour → Pass', () => {
     const job = makeJob({
-      ownerAdjustedPerHour: { low: 10, expected: 20, high: 30 },
+      contributionPerLaborHour: { low: 10, expected: 20, high: 30 },
       contributionMargin: range(0.45),
       contributionProfit: range(300),
       confidence: 0.85,
@@ -61,12 +61,12 @@ describe('deriveRecommendation — static thresholds', () => {
     });
     const { recommendation, reasons } = deriveRecommendation(job, config, emptyContext);
     expect(recommendation).toBe('pass');
-    expect(reasons.some(r => r.icon === 'x' && r.text.includes('/hr'))).toBe(true);
+    expect(reasons.some(r => r.icon === 'x' && r.text.includes('work hour'))).toBe(true);
   });
 
   it('low contributionMargin → Pass', () => {
     const job = makeJob({
-      ownerAdjustedPerHour: range(100),
+      contributionPerLaborHour: range(100),
       contributionMargin: { low: 0.10, expected: 0.20, high: 0.25 },
       contributionProfit: range(300),
       confidence: 0.85,
@@ -78,7 +78,7 @@ describe('deriveRecommendation — static thresholds', () => {
 
   it('contributionProfit < profitFloorAbsolute → Pass', () => {
     const job = makeJob({
-      ownerAdjustedPerHour: range(100),
+      contributionPerLaborHour: range(100),
       contributionMargin: range(0.45),
       contributionProfit: { low: 10, expected: 30, high: 45 },
       confidence: 0.85,
@@ -94,7 +94,7 @@ describe('deriveRecommendation — static thresholds', () => {
 describe('deriveRecommendation — review triggers', () => {
   it('low confidence → Review regardless of economics', () => {
     const job = makeJob({
-      ownerAdjustedPerHour: range(200),
+      contributionPerLaborHour: range(200),
       contributionMargin: range(0.60),
       contributionProfit: range(500),
       confidence: 0.50,
@@ -106,7 +106,7 @@ describe('deriveRecommendation — review triggers', () => {
 
   it('expected good but high/conservative case bad → Review', () => {
     const job = makeJob({
-      ownerAdjustedPerHour: range(100),
+      contributionPerLaborHour: { low: 30, expected: 100, high: 150 },
       contributionMargin: range(0.45),
       contributionProfit: { low: 20, expected: 300, high: 500 },
       confidence: 0.85,
@@ -118,21 +118,19 @@ describe('deriveRecommendation — review triggers', () => {
 
   it('unsupported_task_component risk flag → Review', () => {
     const job = makeJob({
-      ownerAdjustedPerHour: range(100),
+      contributionPerLaborHour: range(100),
       contributionMargin: range(0.45),
       contributionProfit: range(300),
       confidence: 0.85,
       riskFlags: ['unsupported_task_component'],
     });
     const { recommendation } = deriveRecommendation(job, config, emptyContext);
-    // unsupported_task_component isn't a special flag in decision.ts — it just lowers confidence in estimator
-    // but structural flags and unknown_job_family do force review
     expect(['take', 'review']).toContain(recommendation);
   });
 
   it('structural risk flag → Review', () => {
     const job = makeJob({
-      ownerAdjustedPerHour: range(100),
+      contributionPerLaborHour: range(100),
       contributionMargin: range(0.45),
       contributionProfit: range(300),
       confidence: 0.85,
@@ -143,9 +141,8 @@ describe('deriveRecommendation — review triggers', () => {
   });
 
   it('no_tasks_extracted risk flag → Review (via low confidence)', () => {
-    // no_tasks_extracted sets confidence <= 0.20 in estimator → triggers review
     const job = makeJob({
-      ownerAdjustedPerHour: range(100),
+      contributionPerLaborHour: range(100),
       contributionMargin: range(0.45),
       contributionProfit: range(300),
       confidence: 0.15,
@@ -161,7 +158,7 @@ describe('deriveRecommendation — review triggers', () => {
 describe('deriveRecommendation — DecisionContext', () => {
   it('scarce capacity → affects recommendation', () => {
     const job = makeJob({
-      ownerAdjustedPerHour: range(100),
+      contributionPerLaborHour: range(100),
       contributionMargin: range(0.45),
       contributionProfit: range(300),
       confidence: 0.85,
@@ -173,15 +170,16 @@ describe('deriveRecommendation — DecisionContext', () => {
       remainingCapacityHours: 5,
       pipelineValue: 0,
       pipelineHours: 0,
-      requiredProfitPerHour: 50,
+      requiredContributionPerCapacityHour: 50,
     };
     const { recommendation } = deriveRecommendation(job, config, scarceContext);
     expect(recommendation).toBe('pass');
   });
 
-  it('requiredProfitPerHour above job rate → Review', () => {
+  it('requiredContributionPerCapacityHour above job capacity rate → Review', () => {
     const job = makeJob({
-      ownerAdjustedPerHour: { low: 76, expected: 80, high: 90 },
+      contributionPerLaborHour: range(100),
+      contributionPerCapacityHour: 60,
       contributionMargin: range(0.45),
       contributionProfit: range(300),
       confidence: 0.85,
@@ -192,16 +190,16 @@ describe('deriveRecommendation — DecisionContext', () => {
       remainingCapacityHours: 20,
       pipelineValue: 0,
       pipelineHours: 0,
-      requiredProfitPerHour: 120,
+      requiredContributionPerCapacityHour: 120,
     };
     const { recommendation, reasons } = deriveRecommendation(job, config, paceContext);
     expect(recommendation).toBe('review');
-    expect(reasons.some(r => r.text.includes('pace'))).toBe(true);
+    expect(reasons.some(r => r.text.includes('pace') || r.text.includes('schedule hour'))).toBe(true);
   });
 
   it('goal nearly met → positive reason', () => {
     const job = makeJob({
-      ownerAdjustedPerHour: range(100),
+      contributionPerLaborHour: range(100),
       contributionMargin: range(0.45),
       contributionProfit: { low: 2200, expected: 2400, high: 2600 },
       confidence: 0.85,
@@ -212,7 +210,7 @@ describe('deriveRecommendation — DecisionContext', () => {
       remainingCapacityHours: 20,
       pipelineValue: 0,
       pipelineHours: 0,
-      requiredProfitPerHour: 5,
+      requiredContributionPerCapacityHour: 5,
     };
     const { reasons } = deriveRecommendation(job, config, nearGoalContext);
     expect(reasons.some(r => r.icon === 'check' && r.text.includes('goal'))).toBe(true);
@@ -220,7 +218,7 @@ describe('deriveRecommendation — DecisionContext', () => {
 
   it('zero/default context degrades gracefully to static thresholds', () => {
     const job = makeJob({
-      ownerAdjustedPerHour: range(100),
+      contributionPerLaborHour: range(100),
       contributionMargin: range(0.45),
       contributionProfit: range(300),
       confidence: 0.85,
@@ -236,7 +234,7 @@ describe('deriveRecommendation — DecisionContext', () => {
 describe('reasons', () => {
   it('reasons are populated and match recommendation', () => {
     const job = makeJob({
-      ownerAdjustedPerHour: range(100),
+      contributionPerLaborHour: range(100),
       contributionMargin: range(0.45),
       contributionProfit: range(300),
       confidence: 0.85,
@@ -251,5 +249,88 @@ describe('reasons', () => {
     if (recommendation === 'pass') {
       expect(reasons.some(r => r.icon === 'x')).toBe(true);
     }
+  });
+});
+
+// ─── Labor-Hour vs Capacity-Hour Distinction ───
+
+describe('labor-hour vs capacity-hour economics', () => {
+  it('same profit, different capacity → different capacity rate and assessment', () => {
+    const jobLowCapacity = makeJob({
+      contributionPerLaborHour: range(100),
+      contributionPerCapacityHour: 89,
+      contributionProfit: range(400),
+      contributionMargin: range(0.45),
+      capacityHours: 4.5,
+      confidence: 0.85,
+      riskFlags: [],
+    });
+    const jobHighCapacity = makeJob({
+      contributionPerLaborHour: range(100),
+      contributionPerCapacityHour: 57,
+      contributionProfit: range(400),
+      contributionMargin: range(0.45),
+      capacityHours: 7,
+      confidence: 0.85,
+      riskFlags: [],
+    });
+
+    const paceContext: DecisionContext = {
+      weeklyEarningsToDate: 500,
+      remainingCapacityHours: 20,
+      pipelineValue: 0,
+      pipelineHours: 0,
+      requiredContributionPerCapacityHour: 74,
+    };
+
+    const resultA = deriveRecommendation(jobLowCapacity, config, paceContext);
+    const resultB = deriveRecommendation(jobHighCapacity, config, paceContext);
+
+    // Low capacity job should be above pace, high capacity below
+    expect(resultA.reasons.some(r => r.icon === 'check' && r.text.includes('schedule hour'))).toBe(true);
+    expect(resultB.reasons.some(r => r.icon !== 'check' && r.text.includes('schedule hour'))).toBe(true);
+  });
+
+  it('suggestedPrice sanity — high-confidence assembly should not PASS from hourly-rate failure', () => {
+    const est = estimateHandymanJob(makeAssemblyExtraction('SMALL_DRYWALL_PATCH'));
+    const job = applyCalibration(est, config, null, 10);
+    const { recommendation, reasons } = deriveRecommendation(job, config, emptyContext);
+
+    // The pricing floors should ensure the suggested price produces adequate contributionPerLaborHour
+    if (job.confidence >= config.confidenceThreshold) {
+      const hasHourlyRatePass = reasons.some(r => r.icon === 'x' && r.text.includes('work hour'));
+      expect(hasHourlyRatePass).toBe(false);
+    }
+  });
+
+  it('metric consistency — never compares capacity-hour metric against labor-hour threshold', () => {
+    // The decision engine checks contributionPerLaborHour against minimumHourlyRate
+    // and contributionPerCapacityHour against requiredContributionPerCapacityHour
+    // This test verifies by constructing a job where the two rates differ significantly
+
+    const job = makeJob({
+      contributionPerLaborHour: range(100), // well above $75 minimum
+      contributionPerCapacityHour: 40,       // well below any capacity pace
+      contributionMargin: range(0.45),
+      contributionProfit: range(300),
+      capacityHours: 7.5,
+      confidence: 0.85,
+      riskFlags: [],
+    });
+
+    const paceContext: DecisionContext = {
+      weeklyEarningsToDate: 500,
+      remainingCapacityHours: 20,
+      pipelineValue: 0,
+      pipelineHours: 0,
+      requiredContributionPerCapacityHour: 74,
+    };
+
+    const { reasons } = deriveRecommendation(job, config, paceContext);
+
+    // Labor hour check should pass (100 > 75)
+    expect(reasons.some(r => r.icon === 'x' && r.text.includes('work hour'))).toBe(false);
+    // Capacity hour check should flag (40 < 74)
+    expect(reasons.some(r => r.text.includes('schedule hour'))).toBe(true);
   });
 });

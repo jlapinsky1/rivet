@@ -8,6 +8,7 @@ import type {
   ExtractionResult,
   ExtractedTask,
   BusinessCalibration,
+  DecisionContext,
   Range,
 } from '../types';
 import { defaultBusinessEconomicsConfig } from '../types';
@@ -408,5 +409,163 @@ describe('Tier separation', () => {
     const expensive = applyCalibration(estimate, expensiveConfig, null, 10);
     expect(cheap.laborHours.expected).toBe(expensive.laborHours.expected);
     expect(expensive.materialCost.expected).toBeGreaterThan(cheap.materialCost.expected);
+  });
+});
+
+// ─── Capacity-Hour Economics ───
+
+describe('Capacity-hour economics', () => {
+  it('same profit, different capacity → different contributionPerCapacityHour', () => {
+    // Two jobs with same labor hours but different travel distances
+    const estimate = estimateHandymanJob(makeAssemblyExtraction('DRYWALL_SECTION_REPLACEMENT'));
+    const nearJob = applyCalibration(estimate, defaultConfig, null, 5);
+    const farJob = applyCalibration(estimate, defaultConfig, null, 30);
+
+    // Same labor hours
+    expect(nearJob.laborHours.expected).toBe(farJob.laborHours.expected);
+    // Different capacity hours (far job has more travel time)
+    expect(farJob.capacityHours).toBeGreaterThan(nearJob.capacityHours);
+    // Far job has lower contribution per capacity hour
+    expect(farJob.contributionPerCapacityHour).toBeLessThan(nearJob.contributionPerCapacityHour);
+  });
+
+  it('return trip from multiple_visits_required adds to capacityHours', () => {
+    const baseEstimate = estimateHandymanJob(makeAssemblyExtraction('DRYWALL_SECTION_REPLACEMENT', {
+      conditions: [],
+    }));
+    const returnEstimate = estimateHandymanJob(makeAssemblyExtraction('DRYWALL_SECTION_REPLACEMENT', {
+      conditions: ['multiple_visits_required'],
+    }));
+
+    const baseJob = applyCalibration(baseEstimate, defaultConfig, null, 15);
+    const returnJob = applyCalibration(returnEstimate, defaultConfig, null, 15);
+
+    expect(returnJob.returnTripHours).toBeGreaterThan(0);
+    expect(baseJob.returnTripHours).toBe(0);
+    expect(returnJob.capacityHours).toBeGreaterThan(baseJob.capacityHours);
+  });
+
+  it('weekly capacity pace floor uses capacityHours not laborHours', () => {
+    const estimate = estimateHandymanJob(makeAssemblyExtraction('DRYWALL_SECTION_REPLACEMENT'));
+    const context: DecisionContext = {
+      weeklyEarningsToDate: 500,
+      remainingCapacityHours: 20,
+      pipelineValue: 0,
+      pipelineHours: 0,
+      requiredContributionPerCapacityHour: 74,
+    };
+    const job = applyCalibration(estimate, defaultConfig, null, 15, context);
+
+    // weeklyCapacityPace should use capacityHours, not laborHours
+    const expectedFloor = job.totalDirectCost.expected + (job.capacityHours * 74);
+    expect(job.pricingFloors.weeklyCapacityPace).toBeCloseTo(expectedFloor, 0);
+  });
+});
+
+// ─── Multi-Floor Pricing ───
+
+describe('Multi-floor pricing', () => {
+  it('minimumAcceptablePrice is max of all floors', () => {
+    const estimate = estimateHandymanJob(makeAssemblyExtraction('DRYWALL_SECTION_REPLACEMENT'));
+    const job = applyCalibration(estimate, defaultConfig, null, 10);
+
+    const maxFloor = Math.max(
+      job.pricingFloors.minimumJob,
+      job.pricingFloors.margin,
+      job.pricingFloors.absoluteProfit,
+      job.pricingFloors.laborProductivity,
+      job.pricingFloors.weeklyCapacityPace,
+    );
+    expect(job.minimumAcceptablePrice).toBeCloseTo(maxFloor, 2);
+  });
+
+  it('suggestedPrice.expected >= minimumAcceptablePrice', () => {
+    for (const code of KNOWN_ASSEMBLY_CODES) {
+      const estimate = estimateHandymanJob(makeAssemblyExtraction(code));
+      const job = applyCalibration(estimate, defaultConfig, null, 10);
+      expect(job.suggestedPrice.expected).toBeGreaterThanOrEqual(job.minimumAcceptablePrice - 0.01);
+    }
+  });
+
+  it('pricingFloors.binding identifies the winning floor', () => {
+    const estimate = estimateHandymanJob(makeAssemblyExtraction('DRYWALL_SECTION_REPLACEMENT'));
+    const job = applyCalibration(estimate, defaultConfig, null, 10);
+    const binding = job.pricingFloors.binding as keyof typeof job.pricingFloors;
+    expect(job.pricingFloors[binding]).toBe(job.minimumAcceptablePrice);
+  });
+
+  it('owner labor is NOT in totalDirectCost or pricing floors', () => {
+    const estimate = estimateHandymanJob(makeAssemblyExtraction('STANDARD_EXTERIOR_DOOR'));
+    const job = applyCalibration(estimate, defaultConfig, null, 15);
+    // totalDirectCost = materialCost + travelCost + helperLaborCost (no owner labor)
+    const expectedDirect = job.materialCost.expected + job.travelCost + job.helperLaborCost.expected;
+    expect(job.totalDirectCost.expected).toBeCloseTo(expectedDirect, 2);
+  });
+});
+
+// ─── Risk Flag & Confidence Dedup ───
+
+describe('Risk flag and confidence dedup', () => {
+  it('risk flags are deduplicated', () => {
+    // customer_supplied + conditions that also produce customer_supplied_compatibility
+    const estimate = estimateHandymanJob(makeAssemblyExtraction('STANDARD_TV_MOUNT', {
+      materialSupplyStatus: 'customer_supplied',
+    }));
+    const uniqueFlags = new Set(estimate.riskFlags);
+    expect(uniqueFlags.size).toBe(estimate.riskFlags.length);
+  });
+
+  it('water_damage + extent_of_water_damage does not double-penalize confidence', () => {
+    const withOverlap = estimateHandymanJob(makeAssemblyExtraction('MEDIUM_DRYWALL_PATCH', {
+      conditions: ['water_damage'],
+      unknowns: ['extent_of_water_damage'],
+    }));
+    const withoutOverlap = estimateHandymanJob(makeAssemblyExtraction('MEDIUM_DRYWALL_PATCH', {
+      conditions: ['water_damage'],
+      unknowns: ['some_other_unknown'],
+    }));
+    // The overlapping unknown should not reduce confidence further
+    expect(withOverlap.confidence).toBeGreaterThan(withoutOverlap.confidence);
+  });
+});
+
+// ─── Numeric Normalization ───
+
+describe('Numeric normalization', () => {
+  it('money values have at most 2 decimal places', () => {
+    const estimate = estimateHandymanJob(makeAssemblyExtraction('DRYWALL_SECTION_REPLACEMENT'));
+    const job = applyCalibration(estimate, defaultConfig, null, 10);
+
+    function checkDecimals(n: number, maxDecimals: number) {
+      const str = n.toString();
+      const parts = str.split('.');
+      if (parts.length > 1) {
+        expect(parts[1].length).toBeLessThanOrEqual(maxDecimals);
+      }
+    }
+
+    checkDecimals(job.suggestedPrice.expected, 2);
+    checkDecimals(job.totalDirectCost.expected, 2);
+    checkDecimals(job.contributionProfit.expected, 2);
+    checkDecimals(job.travelCost, 2);
+    checkDecimals(job.minimumAcceptablePrice, 2);
+  });
+
+  it('hours have at most 2 decimal places', () => {
+    const estimate = estimateHandymanJob(makeAssemblyExtraction('DRYWALL_SECTION_REPLACEMENT'));
+    const job = applyCalibration(estimate, defaultConfig, null, 10);
+
+    function checkDecimals(n: number, maxDecimals: number) {
+      const str = n.toString();
+      const parts = str.split('.');
+      if (parts.length > 1) {
+        expect(parts[1].length).toBeLessThanOrEqual(maxDecimals);
+      }
+    }
+
+    checkDecimals(job.laborHours.expected, 2);
+    checkDecimals(job.capacityHours, 2);
+    checkDecimals(job.travelHours, 2);
+    checkDecimals(job.returnTripHours, 2);
   });
 });

@@ -5,7 +5,7 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full system design.
 ## Quick Reference
 
 - **Stack**: React 18, TypeScript, Vite 5, Tailwind CSS, Supabase, Netlify Functions
-- **Test**: `npm test` (vitest, 68 tests across 3 files)
+- **Test**: `npm test` (vitest, 82 estimator tests + others across 3 estimator test files)
 - **Typecheck**: `npm run typecheck`
 - **Build**: `npm run build`
 - **Dev**: `npm run dev` (Vite) / `netlify dev` (with Functions)
@@ -22,7 +22,11 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full system design.
 - AI never returns hours/costs/prices
 - `ANTHROPIC_API_KEY` is server-side only (Netlify Function), never in browser
 - Owner labor is an opportunity cost, NOT in `totalDirectCost`
-- `EconomicJob` has dual profit views: `contributionProfit` (cash) and `ownerAdjustedProfit` (time-value)
+- `EconomicJob` has dual profit views: `contributionProfit` (cash) and `ownerAdjustedProfit` (time-value, analytical only)
+- Labor hours vs capacity hours are distinct: `contributionPerLaborHour` measures work productivity, `contributionPerCapacityHour` measures schedule productivity
+- `minimumHourlyRate` = minimum contribution profit per labor hour (not stacked on ownerOpportunityRate)
+- `weeklyEarningsGoal` and `requiredContributionPerCapacityHour` are contribution-profit metrics
+- `minimumAcceptablePrice` is a scalar floor = max of all pricing floors (minimumJob, margin, absoluteProfit, laborProductivity, weeklyCapacityPace)
 - Calibration only from completed-job actuals, never from human estimate edits
 - Unknown `jobFamily` → always Review, never auto-Pass
 - Estimation runs are immutable, adjustments are append-only
@@ -40,8 +44,8 @@ src/hooks/useWorkItems.ts   — Tenant-scoped work items from Supabase
 src/hooks/useCustomers.ts   — Tenant-scoped customers/companies from Supabase
 src/admin/RivetApp.tsx      — Login + dashboard entry (mounted at /login route)
 src/admin/useWorkItems.ts   — Work items hook used by admin dashboard (also Supabase-backed)
-src/estimator/              — Full pipeline (types, baselines, extract, estimator, decision, persistence)
-src/estimator/__tests__     — 68 tests (estimator: 41, decision: 14, pipeline: 13)
+src/estimator/              — Full pipeline (types, baselines, extract, estimator, decision, diagnostics, persistence)
+src/estimator/__tests__     — 82 tests (estimator: 52, decision: 17, pipeline: 13)
 src/admin/DecisionLab.tsx   — Internal evaluation page (Settings > Decision Lab, access-gated)
 src/admin/WorkDetailDrawer.tsx — Price editing + adjustment logging (>5% requires reason code)
 src/demo/seed.ts            — Mason Home Services seed data (runs real pipeline, used by tests)

@@ -51,7 +51,7 @@ const demoDecisionContext: DecisionContext = {
   remainingCapacityHours: 22,
   pipelineValue: 3200,
   pipelineHours: 28,
-  requiredProfitPerHour: 74,
+  requiredContributionPerCapacityHour: 74,
 };
 
 // ─── Stock Photos ───
@@ -93,7 +93,7 @@ type PipelineResult = {
 
 function runPipeline(extraction: ExtractionResult, travelMiles: number): PipelineResult {
   const estimate = estimateHandymanJob(extraction);
-  const economicJob = applyCalibration(estimate, demoBusinessConfig, null, travelMiles);
+  const economicJob = applyCalibration(estimate, demoBusinessConfig, null, travelMiles, demoDecisionContext);
   const decision = deriveRecommendation(economicJob, demoBusinessConfig, demoDecisionContext);
   return { extraction, estimate, economicJob, decision };
 }

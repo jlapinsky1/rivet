@@ -7,6 +7,8 @@ import type {
   EconomicJob,
   BusinessEconomicsConfig,
   BusinessCalibration,
+  DecisionContext,
+  PricingFloors,
   Range,
   BreakdownEntry,
   ConditionCode,
@@ -46,6 +48,63 @@ function orderRange(r: Range): Range {
     expected: r.expected,
     high: Math.max(r.high, r.expected),
   };
+}
+
+// ─── Rounding Helpers (applied at output boundaries only) ───
+
+function roundMoney(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+function roundHours(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+function roundConfidence(n: number): number {
+  return Math.round(n * 1000) / 1000;
+}
+
+function roundMoneyRange(r: Range): Range {
+  return { low: roundMoney(r.low), expected: roundMoney(r.expected), high: roundMoney(r.high) };
+}
+
+function roundHoursRange(r: Range): Range {
+  return { low: roundHours(r.low), expected: roundHours(r.expected), high: roundHours(r.high) };
+}
+
+// ─── Confidence Overlap Dedup ───
+// Conditions that already describe an uncertainty should not stack with
+// unknowns that name the same concern.
+
+const CONDITION_RELATED_UNKNOWNS: Record<string, string[]> = {
+  water_damage: ['extent_of_water_damage', 'water_damage_extent', 'hidden_water_damage_extent'],
+  unknown_substrate: ['substrate_type', 'substrate_material'],
+};
+
+function deduplicateUnknownConfidence(
+  unknowns: string[],
+  activeConditions: string[],
+): { penalty: number; deduped: string[]; missingInputs: string[] } {
+  const coveredUnknowns = new Set<string>();
+  for (const cond of activeConditions) {
+    const related = CONDITION_RELATED_UNKNOWNS[cond];
+    if (related) {
+      for (const u of related) coveredUnknowns.add(u);
+    }
+  }
+
+  let penalty = 0;
+  const deduped: string[] = [];
+  const missingInputs: string[] = [];
+  for (const u of unknowns) {
+    missingInputs.push(u);
+    if (coveredUnknowns.has(u)) {
+      deduped.push(u);
+    } else {
+      penalty -= 0.05;
+    }
+  }
+  return { penalty, deduped, missingInputs };
 }
 
 // ─── Project Overhead ───
@@ -89,11 +148,17 @@ function estimateViaAssembly(extraction: ExtractionResult): EstimatorOutput {
     confidence -= 0.05;
   }
 
-  // Unknowns
-  const missingInputs: string[] = [];
-  for (const u of extraction.unknowns) {
-    confidence -= 0.05;
-    missingInputs.push(u);
+  // Unknowns (with confidence overlap dedup)
+  const { penalty: unknownPenalty, deduped, missingInputs } =
+    deduplicateUnknownConfidence(extraction.unknowns, extraction.conditions);
+  confidence += unknownPenalty;
+  if (deduped.length > 0) {
+    breakdown.push({
+      code: 'CONF_DEDUP',
+      description: `Unknowns already covered by conditions (no extra penalty): ${deduped.join(', ')}`,
+      deltaHours: 0,
+      deltaMaterialCost: 0,
+    });
   }
 
   confidence = Math.max(0.05, Math.min(1.0, confidence));
@@ -105,7 +170,7 @@ function estimateViaAssembly(extraction: ExtractionResult): EstimatorOutput {
     laborHours: orderRange(clampRange(laborHours)),
     materialCost: orderRange(clampRange(materialCost)),
     breakdown,
-    riskFlags,
+    riskFlags: [...new Set(riskFlags)],
     confidence,
     missingInputs,
     estimatorVersion: ESTIMATOR_VERSION,
@@ -240,11 +305,17 @@ function estimateViaComponents(extraction: ExtractionResult): EstimatorOutput {
     confidence -= 0.05;
   }
 
-  // Unknowns
-  const missingInputs: string[] = [];
-  for (const u of extraction.unknowns) {
-    confidence -= 0.05;
-    missingInputs.push(u);
+  // Unknowns (with confidence overlap dedup)
+  const { penalty: unknownPenalty, deduped, missingInputs } =
+    deduplicateUnknownConfidence(extraction.unknowns, extraction.conditions);
+  confidence += unknownPenalty;
+  if (deduped.length > 0) {
+    breakdown.push({
+      code: 'CONF_DEDUP',
+      description: `Unknowns already covered by conditions (no extra penalty): ${deduped.join(', ')}`,
+      deltaHours: 0,
+      deltaMaterialCost: 0,
+    });
   }
 
   confidence = Math.max(0.05, Math.min(1.0, confidence));
@@ -255,7 +326,7 @@ function estimateViaComponents(extraction: ExtractionResult): EstimatorOutput {
     laborHours: orderRange(clampRange(totalLaborHours)),
     materialCost: orderRange(clampRange(totalMaterialCost)),
     breakdown,
-    riskFlags,
+    riskFlags: [...new Set(riskFlags)],
     confidence,
     missingInputs,
     estimatorVersion: ESTIMATOR_VERSION,
@@ -343,11 +414,29 @@ function clampMultiplier(m: number): number {
   return Math.max(CALIBRATION_MIN, Math.min(CALIBRATION_MAX, m));
 }
 
+// ─── Return Trip Capacity Modeling ───
+
+function getMaxReturnTripRisk(conditions: string[]): 'low' | 'medium' | 'high' | null {
+  let max: 'low' | 'medium' | 'high' | null = null;
+  const rank = { low: 1, medium: 2, high: 3 };
+  for (const cond of conditions) {
+    if (!KNOWN_CONDITION_CODES.has(cond)) continue;
+    const mod = CONDITION_MODIFIERS[cond as ConditionCode];
+    if (mod.returnTripRisk) {
+      if (!max || rank[mod.returnTripRisk] > rank[max]) {
+        max = mod.returnTripRisk;
+      }
+    }
+  }
+  return max;
+}
+
 export function applyCalibration(
   estimate: EstimatorOutput,
   config: BusinessEconomicsConfig,
   calibration: BusinessCalibration | null,
   travelDistanceMiles: number,
+  context?: DecisionContext,
 ): EconomicJob {
   let laborMult = 1.0;
   let materialMult = 1.0;
@@ -363,18 +452,67 @@ export function applyCalibration(
   const travelCost = travelDistanceMiles * config.mileageRate * 2;
   const totalDirectCost = addRange(addRange(materialCost, constantRange(travelCost)), helperLaborCost);
 
+  // ─── Capacity Hours ───
+  // Extract active conditions from breakdown (COND_ prefixed entries)
+  const activeConditions = estimate.breakdown
+    .filter(b => b.code.startsWith('COND_'))
+    .map(b => b.code.replace('COND_', '').toLowerCase());
+
+  const travelHours = (travelDistanceMiles * 2) / 30;
+  const procurementHours = PROCUREMENT_BASE_HOURS;
+
+  // Model return trip capacity from condition returnTripRisk
+  const returnTripRisk = getMaxReturnTripRisk(activeConditions);
+  const oneWayTravelHours = travelDistanceMiles / 30;
+  const returnTripHours =
+    returnTripRisk === 'high' ? oneWayTravelHours * 2 :
+    returnTripRisk === 'medium' ? oneWayTravelHours : 0;
+
+  const capacityHours = laborHours.expected + travelHours + procurementHours + returnTripHours;
+
+  // ─── Multi-Floor Pricing ───
+  const expectedDirectCost = totalDirectCost.expected;
   const marginFactor = 1 / (1 - config.marginFloorPercent / 100);
-  let suggestedPrice = scaleRange(totalDirectCost, marginFactor);
-  suggestedPrice = {
-    low: Math.max(suggestedPrice.low, config.minimumJobPrice),
-    expected: Math.max(suggestedPrice.expected, config.minimumJobPrice),
-    high: Math.max(suggestedPrice.high, config.minimumJobPrice),
+
+  const floors: PricingFloors = {
+    minimumJob: config.minimumJobPrice,
+    margin: expectedDirectCost * marginFactor,
+    absoluteProfit: expectedDirectCost + config.profitFloorAbsolute,
+    laborProductivity: expectedDirectCost + (laborHours.expected * config.minimumHourlyRate),
+    weeklyCapacityPace: (context && context.requiredContributionPerCapacityHour > 0)
+      ? expectedDirectCost + (capacityHours * context.requiredContributionPerCapacityHour)
+      : 0,
+    binding: 'minimumJob',
   };
 
+  // Find binding floor
+  let maxFloor = 0;
+  for (const [key, value] of Object.entries(floors)) {
+    if (key === 'binding') continue;
+    if ((value as number) > maxFloor) {
+      maxFloor = value as number;
+      floors.binding = key;
+    }
+  }
+  const minimumAcceptablePrice = maxFloor;
+
+  // Round floor values for display
+  floors.minimumJob = roundMoney(floors.minimumJob);
+  floors.margin = roundMoney(floors.margin);
+  floors.absoluteProfit = roundMoney(floors.absoluteProfit);
+  floors.laborProductivity = roundMoney(floors.laborProductivity);
+  floors.weeklyCapacityPace = roundMoney(floors.weeklyCapacityPace);
+
+  // suggestedPrice Range: margin-factor range floored at minimumAcceptablePrice
+  let suggestedPrice = scaleRange(totalDirectCost, marginFactor);
+  suggestedPrice = {
+    low: Math.max(suggestedPrice.low, minimumAcceptablePrice),
+    expected: Math.max(suggestedPrice.expected, minimumAcceptablePrice),
+    high: Math.max(suggestedPrice.high, minimumAcceptablePrice),
+  };
+
+  // ─── Profit Metrics ───
   const contributionProfit = clampRange(subtractRange(suggestedPrice, totalDirectCost));
-  const ownerTimeCost = scaleRange(laborHours, config.ownerOpportunityRatePerHour);
-  const ownerAdjustedProfit = subtractRange(contributionProfit, ownerTimeCost);
-  const ownerAdjustedPerHour = divRange(ownerAdjustedProfit, laborHours.expected);
 
   const contributionMargin: Range = {
     low: suggestedPrice.low > 0 ? contributionProfit.low / suggestedPrice.low : 0,
@@ -382,25 +520,36 @@ export function applyCalibration(
     high: suggestedPrice.high > 0 ? contributionProfit.high / suggestedPrice.high : 0,
   };
 
-  const travelTimeHours = (travelDistanceMiles * 2) / 30;
-  const procurementHours = PROCUREMENT_BASE_HOURS;
-  const capacityHours = laborHours.expected + travelTimeHours + procurementHours;
+  const contributionPerLaborHour = divRange(contributionProfit, laborHours.expected);
+  const contributionPerCapacityHour = capacityHours > 0
+    ? contributionProfit.expected / capacityHours : 0;
+
+  // ─── Owner-Adjusted (analytical only) ───
+  const ownerTimeCost = scaleRange(laborHours, config.ownerOpportunityRatePerHour);
+  const ownerAdjustedProfit = subtractRange(contributionProfit, ownerTimeCost);
+  const ownerAdjustedPerHour = divRange(ownerAdjustedProfit, laborHours.expected);
 
   return {
-    laborHours,
-    capacityHours,
-    procurementHours,
-    materialCost,
-    travelCost,
-    helperLaborCost,
-    totalDirectCost,
-    suggestedPrice,
-    contributionProfit,
-    ownerAdjustedProfit,
-    ownerAdjustedPerHour,
-    contributionMargin,
-    confidence: estimate.confidence,
-    riskFlags: [...estimate.riskFlags],
+    laborHours: roundHoursRange(laborHours),
+    capacityHours: roundHours(capacityHours),
+    procurementHours: roundHours(procurementHours),
+    travelHours: roundHours(travelHours),
+    returnTripHours: roundHours(returnTripHours),
+    materialCost: roundMoneyRange(materialCost),
+    travelCost: roundMoney(travelCost),
+    helperLaborCost: roundMoneyRange(helperLaborCost),
+    totalDirectCost: roundMoneyRange(totalDirectCost),
+    minimumAcceptablePrice: roundMoney(minimumAcceptablePrice),
+    pricingFloors: floors,
+    suggestedPrice: roundMoneyRange(suggestedPrice),
+    contributionProfit: roundMoneyRange(contributionProfit),
+    contributionMargin: roundMoneyRange(contributionMargin),
+    contributionPerLaborHour: roundMoneyRange(contributionPerLaborHour),
+    contributionPerCapacityHour: roundMoney(contributionPerCapacityHour),
+    ownerAdjustedProfit: roundMoneyRange(ownerAdjustedProfit),
+    ownerAdjustedPerHour: roundMoneyRange(ownerAdjustedPerHour),
+    confidence: roundConfidence(estimate.confidence),
+    riskFlags: [...new Set(estimate.riskFlags)],
     breakdown: [...estimate.breakdown],
   };
 }

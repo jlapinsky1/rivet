@@ -141,12 +141,18 @@ function buildExportRecord(item: LabRun) {
       materialCost: run.economicJob.materialCost,
       totalDirectCost: run.economicJob.totalDirectCost,
       suggestedPrice: run.economicJob.suggestedPrice,
+      minimumAcceptablePrice: run.economicJob.minimumAcceptablePrice,
+      pricingFloors: run.economicJob.pricingFloors,
       contributionProfit: run.economicJob.contributionProfit,
+      contributionPerLaborHour: run.economicJob.contributionPerLaborHour,
+      contributionPerCapacityHour: run.economicJob.contributionPerCapacityHour,
       ownerAdjustedProfit: run.economicJob.ownerAdjustedProfit,
       ownerAdjustedPerHour: run.economicJob.ownerAdjustedPerHour,
       contributionMargin: run.economicJob.contributionMargin,
       confidence: run.economicJob.confidence,
       riskFlags: run.economicJob.riskFlags,
+      travelHours: run.economicJob.travelHours,
+      returnTripHours: run.economicJob.returnTripHours,
     },
     recommendation: run.recommendation,
     reasons: run.reasons,
@@ -168,17 +174,29 @@ function buildExportRecord(item: LabRun) {
       returnTrips: outcome.returnTrips,
       notes: outcome.notes,
     } : null,
-    comparison: outcome ? {
-      systemVsActual: {
-        laborError: pctError(systemLabor, outcome.actualLaborHours),
-        materialError: pctError(systemMaterial, outcome.actualMaterialCost),
-        revenueVsPrice: outcome.finalRevenue - run.economicJob.suggestedPrice.expected,
-      },
-      humanVsActual: humanValues ? {
-        laborError: humanValues.laborHours != null ? pctError(humanValues.laborHours, outcome.actualLaborHours) : null,
-        materialError: humanValues.materialCost != null ? pctError(humanValues.materialCost, outcome.actualMaterialCost) : null,
-      } : null,
-    } : null,
+    comparison: outcome ? (() => {
+      const sysLaborErr = Math.abs(systemLabor - outcome.actualLaborHours);
+      const sysMatErr = Math.abs(systemMaterial - outcome.actualMaterialCost);
+      const humLaborErr = humanValues?.laborHours != null ? Math.abs(humanValues.laborHours - outcome.actualLaborHours) : null;
+      const humMatErr = humanValues?.materialCost != null ? Math.abs(humanValues.materialCost - outcome.actualMaterialCost) : null;
+      return {
+        systemVsActual: {
+          laborErrorAbs: sysLaborErr,
+          laborErrorPct: pctError(systemLabor, outcome.actualLaborHours),
+          materialErrorAbs: sysMatErr,
+          materialErrorPct: pctError(systemMaterial, outcome.actualMaterialCost),
+          revenueVsPrice: outcome.finalRevenue - run.economicJob.suggestedPrice.expected,
+        },
+        humanVsActual: humanValues ? {
+          laborErrorAbs: humLaborErr,
+          laborErrorPct: humanValues.laborHours != null ? pctError(humanValues.laborHours, outcome.actualLaborHours) : null,
+          materialErrorAbs: humMatErr,
+          materialErrorPct: humanValues.materialCost != null ? pctError(humanValues.materialCost, outcome.actualMaterialCost) : null,
+        } : null,
+        laborWinner: humLaborErr != null ? (humLaborErr < sysLaborErr ? 'human' : sysLaborErr < humLaborErr ? 'rivet' : 'tie') : null,
+        materialWinner: humMatErr != null ? (humMatErr < sysMatErr ? 'human' : sysMatErr < humMatErr ? 'rivet' : 'tie') : null,
+      };
+    })() : null,
   };
   return record;
 }
@@ -434,13 +452,29 @@ function RunDetail({ item, onBack }: { item: LabRun; onBack: () => void }) {
         <h4>Economics</h4>
         <div className="lab-kv-grid">
           <div className="lab-kv"><span className="lab-k">Suggested price (L/E/H)</span><span className="lab-v">{fmtRange(econ.suggestedPrice)}</span></div>
+          <div className="lab-kv"><span className="lab-k">Minimum acceptable price</span><span className="lab-v">{fmtDollars(econ.minimumAcceptablePrice)} ({econ.pricingFloors.binding})</span></div>
           <div className="lab-kv"><span className="lab-k">Contribution profit</span><span className="lab-v">{fmtRange(econ.contributionProfit)}</span></div>
-          <div className="lab-kv"><span className="lab-k">Owner-adjusted profit</span><span className="lab-v">{fmtRange(econ.ownerAdjustedProfit)}</span></div>
-          <div className="lab-kv"><span className="lab-k">$/hour (owner-adjusted)</span><span className="lab-v">{fmtRange(econ.ownerAdjustedPerHour)}</span></div>
+          <div className="lab-kv"><span className="lab-k">$/work hour</span><span className="lab-v">{fmtRange(econ.contributionPerLaborHour)}</span></div>
+          <div className="lab-kv"><span className="lab-k">$/schedule hour</span><span className="lab-v">{fmtDollars(econ.contributionPerCapacityHour)}</span></div>
           <div className="lab-kv"><span className="lab-k">Contribution margin</span><span className="lab-v">{fmtRange(econ.contributionMargin)}</span></div>
           <div className="lab-kv"><span className="lab-k">Total direct cost</span><span className="lab-v">{fmtRange(econ.totalDirectCost)}</span></div>
           <div className="lab-kv"><span className="lab-k">Travel cost</span><span className="lab-v">{fmtDollars(econ.travelCost)}</span></div>
+          <div className="lab-kv"><span className="lab-k">Travel hours</span><span className="lab-v">{econ.travelHours.toFixed(1)}</span></div>
+          <div className="lab-kv"><span className="lab-k">Return trip hours</span><span className="lab-v">{econ.returnTripHours.toFixed(1)}</span></div>
           <div className="lab-kv"><span className="lab-k">Capacity hours</span><span className="lab-v">{econ.capacityHours.toFixed(1)}</span></div>
+          <div className="lab-kv"><span className="lab-k">Owner-adjusted profit</span><span className="lab-v">{fmtRange(econ.ownerAdjustedProfit)}</span></div>
+          <div className="lab-kv"><span className="lab-k">$/hour (owner-adjusted)</span><span className="lab-v">{fmtRange(econ.ownerAdjustedPerHour)}</span></div>
+        </div>
+        <div className="lab-subtable">
+          <span className="lab-subtable-title">Pricing Floors</span>
+          <div className="lab-kv-grid">
+            <div className="lab-kv"><span className="lab-k">Minimum job</span><span className="lab-v">{fmtDollars(econ.pricingFloors.minimumJob)}</span></div>
+            <div className="lab-kv"><span className="lab-k">Margin floor</span><span className="lab-v">{fmtDollars(econ.pricingFloors.margin)}</span></div>
+            <div className="lab-kv"><span className="lab-k">Absolute profit</span><span className="lab-v">{fmtDollars(econ.pricingFloors.absoluteProfit)}</span></div>
+            <div className="lab-kv"><span className="lab-k">Labor productivity</span><span className="lab-v">{fmtDollars(econ.pricingFloors.laborProductivity)}</span></div>
+            <div className="lab-kv"><span className="lab-k">Weekly capacity pace</span><span className="lab-v">{econ.pricingFloors.weeklyCapacityPace > 0 ? fmtDollars(econ.pricingFloors.weeklyCapacityPace) : 'n/a'}</span></div>
+            <div className="lab-kv"><span className="lab-k">Binding</span><span className="lab-v lab-mono">{econ.pricingFloors.binding}</span></div>
+          </div>
         </div>
       </section>
 
@@ -468,7 +502,7 @@ function RunDetail({ item, onBack }: { item: LabRun; onBack: () => void }) {
             <div className="lab-kv"><span className="lab-k">Remaining capacity</span><span className="lab-v">{run.decisionContext.remainingCapacityHours.toFixed(1)} hrs</span></div>
             <div className="lab-kv"><span className="lab-k">Pipeline value</span><span className="lab-v">{fmtDollars(run.decisionContext.pipelineValue)}</span></div>
             <div className="lab-kv"><span className="lab-k">Pipeline hours</span><span className="lab-v">{run.decisionContext.pipelineHours.toFixed(1)}</span></div>
-            <div className="lab-kv"><span className="lab-k">Required $/hr</span><span className="lab-v">{fmtDollars(run.decisionContext.requiredProfitPerHour)}</span></div>
+            <div className="lab-kv"><span className="lab-k">Required $/schedule hr</span><span className="lab-v">{fmtDollars(run.decisionContext.requiredContributionPerCapacityHour)}</span></div>
           </div>
         </div>
       </section>
