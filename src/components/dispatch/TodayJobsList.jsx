@@ -28,6 +28,8 @@ export default function TodayJobsList({ jobs, nextJobId, onSelectJob }) {
         const isCurrent   = job.id === nextJobId && job.status !== 'completed';
         const isCompleted = job.status === 'completed';
         const shortAddress = job.fullAddress?.split(',').slice(0, 2).join(',') ?? '';
+        const displayName = job.title || job.customerName;
+        const subtitle = job.title ? job.customerName : shortAddress;
 
         return (
           <button
@@ -43,17 +45,24 @@ export default function TodayJobsList({ jobs, nextJobId, onSelectJob }) {
           >
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[11px] text-gray-400 mb-0.5 font-medium">{job.appointmentWindow ?? 'Time TBD'}</p>
+                <p className="text-[11px] text-gray-400 mb-0.5 font-medium">{job.appointmentWindow ?? (job.travel || 'Time TBD')}</p>
                 <p className={`font-bold truncate text-base ${isCompleted ? 'text-gray-400' : 'text-gray-900'}`}>
-                  {job.customerName}
+                  {displayName}
                 </p>
                 <p className={`text-sm truncate mt-0.5 ${isCompleted ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {shortAddress}
+                  {subtitle}
                 </p>
               </div>
-              <span className={`flex-shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_BADGE[job.status] ?? 'bg-gray-100 text-gray-600'}`}>
-                {STATUS_LABELS[job.status] ?? job.status}
-              </span>
+              <div className="flex-shrink-0 text-right">
+                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_BADGE[job.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                  {STATUS_LABELS[job.status] ?? job.status}
+                </span>
+                {job.price != null && (
+                  <p className={`text-sm font-bold mt-1 ${isCompleted ? 'text-gray-400' : 'text-gray-900'}`}>
+                    ${job.price.toLocaleString()}
+                  </p>
+                )}
+              </div>
             </div>
           </button>
         );

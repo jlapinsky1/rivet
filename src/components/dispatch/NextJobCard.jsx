@@ -41,12 +41,13 @@ export default function NextJobCard({ job, onStatusAction, onSelectJob, statusLo
 
   const {
     id, bookingRef, status, depositConfirmed, crewBeforePhotoCount,
-    appointmentWindow, customerName, fullAddress,
+    appointmentWindow, customerName, fullAddress, title, price, hours, travel,
   } = job;
 
   const shortAddress = fullAddress?.split(',').slice(0, 2).join(',') ?? '';
   const accent = STATUS_ACCENT[status] ?? 'bg-gray-400';
   const badge  = STATUS_BADGE[status]  ?? 'bg-gray-100 text-gray-600';
+  const isWorkItem = job.source === 'work_item';
 
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
@@ -58,28 +59,37 @@ export default function NextJobCard({ job, onStatusAction, onSelectJob, statusLo
         <div className="flex items-start justify-between">
           <div>
             <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-widest">Next Job</p>
-            <p className="text-sm text-gray-500 mt-0.5 font-medium">{appointmentWindow ?? 'Time TBD'}</p>
+            <p className="text-sm text-gray-500 mt-0.5 font-medium">{appointmentWindow ?? (isWorkItem && travel ? travel : 'Time TBD')}</p>
           </div>
           <span className={`text-xs font-semibold px-3 py-1 rounded-full ${badge}`}>
             {STATUS_LABELS[status] ?? status}
           </span>
         </div>
 
-        {/* Customer info */}
+        {/* Job info */}
         <div>
+          {title && <p className="text-sm text-gray-500 font-medium">{title}</p>}
           <h2 className="text-[26px] font-bold text-gray-900 leading-tight">{customerName}</h2>
           <p className="text-gray-500 mt-1">{shortAddress}</p>
-          <p className="text-xs text-gray-300 mt-1 font-mono">{bookingRef}</p>
+          {bookingRef && <p className="text-xs text-gray-300 mt-1 font-mono">{bookingRef}</p>}
+          {isWorkItem && price != null && (
+            <div className="flex items-center gap-3 mt-2 text-sm">
+              <span className="font-bold text-gray-900">${price.toLocaleString()}</span>
+              {hours && <span className="text-gray-400">{hours}</span>}
+            </div>
+          )}
         </div>
 
-        {/* Deposit indicator */}
-        <div className={`text-xs font-semibold px-3 py-1.5 rounded-full inline-block ${
-          depositConfirmed
-            ? 'bg-green-100 text-green-700'
-            : 'bg-red-100 text-red-700'
-        }`}>
-          {depositConfirmed ? '✓ Deposit confirmed' : '⚠ Deposit pending'}
-        </div>
+        {/* Deposit indicator — only for bookings */}
+        {!isWorkItem && (
+          <div className={`text-xs font-semibold px-3 py-1.5 rounded-full inline-block ${
+            depositConfirmed
+              ? 'bg-green-100 text-green-700'
+              : 'bg-red-100 text-red-700'
+          }`}>
+            {depositConfirmed ? '✓ Deposit confirmed' : '⚠ Deposit pending'}
+          </div>
+        )}
 
         {/* Primary action */}
         <StatusActionButton

@@ -81,10 +81,10 @@ export default function DispatchPage() {
     return () => unsub?.unsubscribe?.();
   }, []);
 
-  // Load today's jobs whenever user is authenticated
+  // Load today's jobs when user is authenticated and on Jobs tab
   useEffect(() => {
-    if (user) loadJobs();
-  }, [user]);
+    if (user && view === 'jobs') loadJobs();
+  }, [user, view]);
 
   async function loadJobs() {
     setJobsLoading(true);
