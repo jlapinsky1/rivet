@@ -32,20 +32,26 @@ export function useAuth() {
 }
 
 async function fetchBusinessContext(userId: string): Promise<BusinessContext | null> {
-  const { data, error } = await supabase
+  // Query membership and business separately to avoid cross-table RLS join issues
+  const { data: membership, error: memErr } = await supabase
     .from('business_memberships')
-    .select('business_id, role, businesses:business_id(id, name)')
+    .select('business_id, role')
     .eq('user_id', userId)
     .limit(1)
     .single();
 
-  if (error || !data) return null;
+  if (memErr || !membership) return null;
 
-  const biz = data.businesses as unknown as { id: string; name: string } | null;
+  const { data: biz } = await supabase
+    .from('businesses')
+    .select('id, name')
+    .eq('id', membership.business_id)
+    .single();
+
   return {
-    businessId: data.business_id,
-    businessName: biz?.name ?? data.business_id,
-    role: data.role,
+    businessId: membership.business_id,
+    businessName: biz?.name ?? membership.business_id,
+    role: membership.role,
   };
 }
 
