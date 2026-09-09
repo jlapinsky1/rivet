@@ -14,11 +14,14 @@ import EstimatesView from '../components/dispatch/EstimatesView';
 const appShell = {
   display: 'flex',
   flexDirection: 'column',
-  height: '100dvh',          // modern iOS/Android — adapts to keyboard & toolbar
-  maxHeight: '-webkit-fill-available', // Safari <15.4 fallback
+  width: '100vw',
+  maxWidth: '100%',
+  height: '100dvh',
+  maxHeight: '-webkit-fill-available',
   overflow: 'hidden',
   background: '#f3f4f6',
   position: 'relative',
+  boxSizing: 'border-box',
 };
 const safeTop    = { paddingTop:    'env(safe-area-inset-top)' };
 const safeBottom = { paddingBottom: 'env(safe-area-inset-bottom)' };

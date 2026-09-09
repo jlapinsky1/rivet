@@ -194,8 +194,8 @@ export default function EstimatesView({ user, safeTop }) {
   return (
     <>
       {/* ── Dark header ── */}
-      <div className="bg-slate-900 flex-shrink-0" style={safeTop}>
-        <div className="px-5 pt-3 pb-5">
+      <div className="bg-slate-900 flex-shrink-0 w-full" style={safeTop}>
+        <div className="px-4 pt-3 pb-5">
           <div className="flex items-start justify-between">
             <p className="text-blue-400 text-[11px] font-semibold tracking-widest">{dateStr}</p>
             <span className="text-gray-500 text-[11px] flex items-center gap-1">
@@ -209,14 +209,14 @@ export default function EstimatesView({ user, safeTop }) {
       </div>
 
       {/* ── Scrollable body ── */}
-      <div className="flex-1 overflow-y-auto bg-gray-50" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <div className="px-5 pt-4 pb-6">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden bg-gray-50" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="px-4 pt-4 pb-6 max-w-full">
 
           {/* Revenue target */}
-          <div className="bg-white rounded-2xl px-4 py-4 shadow-sm">
-            <div className="flex items-baseline justify-between mb-2.5">
-              <span className="text-gray-500 text-[13px] font-medium">Weekly revenue target</span>
-              <span className="text-sm font-bold text-slate-800">
+          <div className="bg-white rounded-2xl p-4 shadow-sm overflow-hidden">
+            <div className="flex items-baseline justify-between gap-2 mb-2.5">
+              <span className="text-gray-500 text-[13px] font-medium shrink-0">Weekly revenue target</span>
+              <span className="text-sm font-bold text-slate-800 text-right truncate">
                 ${earnedThisWeek.toLocaleString()} <span className="text-gray-400 font-normal">/ ${weeklyGoal.toLocaleString()}</span>
               </span>
             </div>
@@ -226,13 +226,13 @@ export default function EstimatesView({ user, safeTop }) {
                 style={{ width: `${progressPct}%` }}
               />
             </div>
-            <div className="flex items-center gap-5 mt-3">
+            <div className="flex items-center gap-4 mt-3">
               <span className="text-[13px] text-gray-500">
-                <span className="inline-block w-[6px] h-[6px] rounded-full bg-blue-500 mr-1.5 relative top-[-1px]" />
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 mr-1.5 align-middle" />
                 <strong className="text-slate-800">{queueItems.length}</strong> in queue
               </span>
-              <span className="text-[13px] text-gray-500">
-                <TrendingUp className="inline w-3.5 h-3.5 mr-1 text-emerald-500 relative top-[-1px]" />
+              <span className="text-[13px] text-gray-500 flex items-center gap-1">
+                <TrendingUp className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                 <strong className="text-slate-800">${pendingValue.toLocaleString()}</strong> pending
               </span>
             </div>
@@ -299,29 +299,31 @@ export default function EstimatesView({ user, safeTop }) {
                     onClick={() => setSelectedItem(item)}
                     className="w-full text-left bg-white rounded-2xl shadow-sm overflow-hidden active:scale-[0.98] transition-transform duration-100"
                   >
-                    <div className="h-[3px] bg-blue-500 rounded-t-2xl" />
-                    <div className="px-4 py-3.5">
+                    <div className="h-[3px] bg-blue-500" />
+                    <div className="p-4">
                       {/* Row 1: title + price */}
-                      <div className="flex items-start justify-between gap-3">
-                        <h3 className="text-[15px] font-semibold text-slate-900 leading-snug">{item.title}</h3>
-                        <span className="text-[17px] font-bold text-slate-900 flex-shrink-0">
+                      <div className="flex items-start justify-between gap-2 min-w-0">
+                        <h3 className="text-[15px] font-semibold text-slate-900 leading-snug truncate min-w-0">{item.title}</h3>
+                        <span className="text-base font-bold text-slate-900 shrink-0">
                           ${item.price.toLocaleString()}
                         </span>
                       </div>
 
                       {/* Row 2: customer + time */}
-                      <div className="flex items-center justify-between mt-0.5">
-                        <span className="text-[13px] text-gray-400">{item.customerName}</span>
-                        <span className="text-[12px] text-gray-400">{timeAgo(item.createdAt)}</span>
+                      <div className="flex items-center justify-between gap-2 mt-0.5 min-w-0">
+                        <span className="text-[13px] text-gray-400 truncate">{item.customerName}</span>
+                        <span className="text-[12px] text-gray-400 shrink-0">{timeAgo(item.createdAt)}</span>
                       </div>
 
-                      {/* Row 3: metrics — compact single line */}
-                      <div className="flex items-center gap-3 mt-2.5 text-[12px]">
+                      {/* Row 3: metrics */}
+                      <div className="flex items-center gap-3 mt-2 text-[12px]">
                         <span className="text-emerald-600 font-semibold">{margin}% margin</span>
                         {item.travel && (
                           <span className="text-gray-400">{item.travel}</span>
                         )}
-                        <span className="text-gray-400">{item.hours}</span>
+                        {item.hours && (
+                          <span className="text-gray-400">{item.hours}</span>
+                        )}
                       </div>
                     </div>
                   </button>
