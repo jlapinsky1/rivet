@@ -50,6 +50,20 @@
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
 
+# Embed script — allow cross-origin loading from any client site
+[[headers]]
+  for = "/embed.js"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Cache-Control = "public, max-age=3600"
+
+# Quote request form — allow iframe embedding from any origin (client websites)
+[[headers]]
+  for = "/request/*"
+  [headers.values]
+    X-Frame-Options = "ALLOWALL"
+    Content-Security-Policy = "frame-ancestors *"
+
 # Security headers for all routes
 [[headers]]
   for = "/*"

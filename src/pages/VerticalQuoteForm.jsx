@@ -14,6 +14,7 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
   const photosEnabled = config.steps.photos.enabled;
   const minPhotos = config.steps.photos.minPhotos;
   const accentColor = config.branding.accentColor || '#22c55e';
+  const isEmbed = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('embed');
 
   const STEPS = useMemo(() => {
     const steps = [
@@ -74,6 +75,23 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
     }
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // Embed mode: post height changes to parent window for auto-resize
+  useEffect(() => {
+    if (!isEmbed || typeof window === 'undefined') return;
+    let lastHeight = 0;
+    const sendHeight = () => {
+      const h = document.documentElement.scrollHeight;
+      if (h !== lastHeight) {
+        lastHeight = h;
+        window.parent.postMessage({ type: 'rivet-resize', height: h }, '*');
+      }
+    };
+    const observer = new ResizeObserver(sendHeight);
+    observer.observe(document.body);
+    sendHeight();
+    return () => observer.disconnect();
+  }, [isEmbed]);
 
   const ensureSession = useCallback(async () => {
     if (sessionId) return sessionId;
@@ -246,6 +264,9 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
       });
       setBookingId(result.bookingId || result.id);
       setSubmitted(true);
+      if (isEmbed) {
+        window.parent.postMessage({ type: 'rivet-submitted', bookingId: result.bookingId || result.id }, '*');
+      }
     } catch (err) {
       setSubmitError(err.message || 'Submission failed. Please try again.');
     } finally {
