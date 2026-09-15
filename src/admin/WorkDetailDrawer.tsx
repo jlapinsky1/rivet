@@ -193,13 +193,13 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   return (
     <div className="drawer-backdrop" onMouseDown={onClose}>
       <aside className="job-drawer" onMouseDown={(e) => e.stopPropagation()}>
+        <button className="drawer-close" onClick={onClose} aria-label="Close details"><X size={20} /></button>
         <div className="drawer-photo">
           {item.photos[0] ? (
             <img src={item.photos[0]} alt={item.title} />
           ) : (
             <div className="drawer-photo-placeholder" />
           )}
-          <button className="drawer-close" onClick={onClose} aria-label="Close details"><X size={20} /></button>
           <div className="drawer-photo-tags">
             <span className={`source-tag ${isCommercial ? 'commercial' : 'residential'}`}>{sourceLabel(item.source)}</span>
             {item.workOrderNumber && <span className="wo-number">{item.workOrderNumber}</span>}
