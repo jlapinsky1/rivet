@@ -1,5 +1,5 @@
 import { ArrowUpRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 type FooterLink = { label: string; href: string; to?: string };
 
@@ -12,6 +12,16 @@ const FOOTER_LINKS: FooterLink[] = [
 ];
 
 export function Footer() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleHashClick = (e: React.MouseEvent, hash: string) => {
+    if (location.pathname !== '/') {
+      e.preventDefault();
+      navigate('/' + hash);
+    }
+  };
+
   return (
     <footer className="bg-forest-975 text-forest-300">
       <div className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16">
@@ -34,7 +44,7 @@ export function Footer() {
                   <ArrowUpRight size={12} className="opacity-0 transition-opacity group-hover:opacity-100" />
                 </Link>
               ) : (
-                <a key={link.href} href={link.href} className="group inline-flex items-center gap-1 text-sm text-forest-300 transition-colors hover:text-emerald-400">
+                <a key={link.href} href={link.href} className="group inline-flex items-center gap-1 text-sm text-forest-300 transition-colors hover:text-emerald-400" onClick={(e) => handleHashClick(e, link.href)}>
                   {link.label}
                   <ArrowUpRight size={12} className="opacity-0 transition-opacity group-hover:opacity-100" />
                 </a>

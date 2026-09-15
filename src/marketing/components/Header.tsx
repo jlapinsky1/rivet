@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 type NavLink = { label: string; href: string; to?: string };
 
@@ -17,6 +17,14 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleHashClick = (e: React.MouseEvent, hash: string) => {
+    if (location.pathname !== '/') {
+      e.preventDefault();
+      navigate('/' + hash);
+    }
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -65,6 +73,7 @@ export function Header() {
                 key={link.href}
                 href={link.href}
                 className="text-sm font-medium text-forest-600 transition-colors hover:text-forest-950"
+                onClick={(e) => handleHashClick(e, link.href)}
               >
                 {link.label}
               </a>
@@ -136,7 +145,13 @@ export function Header() {
                     key={link.href}
                     href={link.href}
                     className="rounded-lg px-3 py-2.5 text-base font-medium text-forest-700 transition-colors hover:bg-cream-100"
-                    onClick={() => setMenuOpen(false)}
+                    onClick={(e) => {
+                      setMenuOpen(false);
+                      if (location.pathname !== '/') {
+                        e.preventDefault();
+                        navigate('/' + link.href);
+                      }
+                    }}
                   >
                     {link.label}
                   </a>
