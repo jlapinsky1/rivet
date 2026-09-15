@@ -105,12 +105,11 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   const copy = recCopy(item.recommendation, item.rate);
 
   const ctaLabel = isCommercial
-    ? item.recommendation === 'take' ? `Accept Work Order - $${price.toLocaleString()}` : item.recommendation === 'review' ? 'Review Work Order' : 'Decline Work Order'
-    : item.recommendation === 'take' ? `Create Quote - $${price.toLocaleString()}` : item.recommendation === 'review' ? 'Keep reviewing' : 'Pass on job';
+    ? item.recommendation === 'pass' ? 'Decline Work Order' : `Accept Work Order - $${price.toLocaleString()}`
+    : item.recommendation === 'pass' ? 'Pass on job' : `Create Quote - $${price.toLocaleString()}`;
 
   async function handleApprove() {
-    if (item.recommendation === 'pass' || item.recommendation === 'review') {
-      // Record that the owner acknowledged the review/pass recommendation
+    if (item.recommendation === 'pass') {
       await recordOwnerDecision('reviewed_later', null, null);
       onClose();
       return;
