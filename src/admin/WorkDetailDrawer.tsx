@@ -271,46 +271,6 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
             <p className="confidence-note"><CircleHelp size={16} /> {item.recommendation === 'take' ? 'Labor time is reasonably certain, but material quantities may vary.' : 'Some assumptions need verification before committing.'}</p>
           </div>
 
-          {/* Context section: residential vs commercial */}
-          {isCommercial ? (
-            <div className="detail-section">
-              <div className="section-heading"><h3>Work order details</h3></div>
-              <div className="context-grid">
-                <div className="context-item"><span className="context-label"><Building2 size={14} /> Client</span><strong>{item.companyName}</strong></div>
-                <div className="context-item"><span className="context-label"><Building2 size={14} /> Property</span><strong>{item.propertyName}</strong></div>
-                <div className="context-item"><span className="context-label"><MapPin size={14} /> Unit</span><strong>{item.unitLabel}</strong></div>
-                <div className="context-item"><span className="context-label"><FileText size={14} /> Work order</span><strong>{item.workOrderNumber}</strong></div>
-                <div className="context-item"><span className="context-label"><User size={14} /> Requested by</span><strong>{item.requestedBy}<small>{item.requestedByRole}</small></strong></div>
-                <div className="context-item"><span className="context-label"><Clock3 size={14} /> Requested date</span><strong>{item.requestedDate}</strong></div>
-              </div>
-              {item.scope && <div className="context-scope"><span className="context-label">Scope</span><p>{item.scope}</p></div>}
-            </div>
-          ) : (
-            <div className="detail-section">
-              <div className="section-heading"><h3>Customer details</h3></div>
-              <div className="context-grid">
-                <div className="context-item"><span className="context-label"><User size={14} /> Customer</span><strong>{item.customerName}</strong></div>
-                {item.phone && <div className="context-item"><span className="context-label"><Phone size={14} /> Phone</span><strong>{item.phone}</strong></div>}
-                {item.email && <div className="context-item"><span className="context-label"><Mail size={14} /> Email</span><strong>{item.email}</strong></div>}
-                {item.address && <div className="context-item"><span className="context-label"><MapPin size={14} /> Service address</span><strong>{item.address}</strong></div>}
-                {item.preferredDate && <div className="context-item"><span className="context-label"><Clock3 size={14} /> Preferred date</span><strong>{item.preferredDate}</strong></div>}
-              </div>
-              {item.customerNotes && <div className="context-scope"><span className="context-label">Customer notes</span><p>{item.customerNotes}</p></div>}
-            </div>
-          )}
-
-          {/* Photo gallery */}
-          {item.photos.length > 1 && (
-            <div className="detail-section">
-              <div className="section-heading"><h3>Photos</h3><span>{item.photos.length} photos</span></div>
-              <div className="photo-gallery">
-                {item.photos.map((src, i) => (
-                  <img key={i} src={src} alt={`${item.title} photo ${i + 1}`} loading="lazy" />
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Price editor */}
           <div className="detail-section quote-editor">
             <div className="section-heading"><h3>Set your price</h3><span>Change it if needed</span></div>
@@ -380,6 +340,46 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
               </div>
             </div>
           </div>
+
+          {/* Context section: residential vs commercial */}
+          {isCommercial ? (
+            <div className="detail-section">
+              <div className="section-heading"><h3>Work order details</h3></div>
+              <div className="context-grid">
+                <div className="context-item"><span className="context-label"><Building2 size={14} /> Client</span><strong>{item.companyName}</strong></div>
+                <div className="context-item"><span className="context-label"><Building2 size={14} /> Property</span><strong>{item.propertyName}</strong></div>
+                <div className="context-item"><span className="context-label"><MapPin size={14} /> Unit</span><strong>{item.unitLabel}</strong></div>
+                <div className="context-item"><span className="context-label"><FileText size={14} /> Work order</span><strong>{item.workOrderNumber}</strong></div>
+                <div className="context-item"><span className="context-label"><User size={14} /> Requested by</span><strong>{item.requestedBy}<small>{item.requestedByRole}</small></strong></div>
+                <div className="context-item"><span className="context-label"><Clock3 size={14} /> Requested date</span><strong>{item.requestedDate}</strong></div>
+              </div>
+              {item.scope && <div className="context-scope"><span className="context-label">Scope</span><p>{item.scope}</p></div>}
+            </div>
+          ) : (
+            <div className="detail-section">
+              <div className="section-heading"><h3>Customer details</h3></div>
+              <div className="context-grid">
+                <div className="context-item"><span className="context-label"><User size={14} /> Customer</span><strong>{item.customerName}</strong></div>
+                {item.phone && <div className="context-item"><span className="context-label"><Phone size={14} /> Phone</span><strong>{item.phone}</strong></div>}
+                {item.email && <div className="context-item"><span className="context-label"><Mail size={14} /> Email</span><strong>{item.email}</strong></div>}
+                {item.address && <div className="context-item"><span className="context-label"><MapPin size={14} /> Service address</span><strong>{item.address}</strong></div>}
+                {item.preferredDate && <div className="context-item"><span className="context-label"><Clock3 size={14} /> Preferred date</span><strong>{item.preferredDate}</strong></div>}
+              </div>
+              {item.customerNotes && <div className="context-scope"><span className="context-label">Customer notes</span><p>{item.customerNotes}</p></div>}
+            </div>
+          )}
+
+          {/* Photo gallery */}
+          {item.photos.length > 1 && (
+            <div className="detail-section">
+              <div className="section-heading"><h3>Photos</h3><span>{item.photos.length} photos</span></div>
+              <div className="photo-gallery">
+                {item.photos.map((src, i) => (
+                  <img key={i} src={src} alt={`${item.title} photo ${i + 1}`} loading="lazy" />
+                ))}
+              </div>
+            </div>
+          )}
 
           <button className="advanced-toggle" onClick={() => setShowAnalysis(!showAnalysis)}>
             See full analysis <ChevronDown size={17} className={showAnalysis ? 'flip' : ''} />
