@@ -1,7 +1,7 @@
 -- Migration 016: Add onboarding tracking columns to commercial_clients
 -- These support the /portal/start 5-step onboarding wizard.
 -- Records are written to the existing commercial_clients / properties / jobs tables
--- throughout the wizard — no separate onboarding table is needed.
+-- throughout the wizard - no separate onboarding table is needed.
 
 alter table commercial_clients
   add column if not exists job_title text,

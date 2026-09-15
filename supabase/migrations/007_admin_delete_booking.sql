@@ -14,7 +14,7 @@ begin
   if current_setting('app.allow_delete', true) = 'true' then
     return old;
   end if;
-  raise exception '% on % is not allowed — this table is append-only',
+  raise exception '% on % is not allowed - this table is append-only',
     tg_op, tg_table_name;
 end;
 $$ language plpgsql;

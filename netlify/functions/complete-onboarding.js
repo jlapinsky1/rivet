@@ -39,7 +39,7 @@ export default async function handler(req) {
     if (!job) return errorResponse('Job not found or access denied.', 404);
 
     if (job.status !== 'draft') {
-      // Already submitted — idempotent success so a double-submit does no harm
+      // Already submitted - idempotent success so a double-submit does no harm
       return jsonResponse({ success: true, alreadySubmitted: true }, 200);
     }
 
@@ -92,7 +92,7 @@ export default async function handler(req) {
             body: JSON.stringify({
               from: `Squatterz <${fromEmail}>`,
               to: [clientEmail],
-              subject: `Work order submitted — ${shortId}`,
+              subject: `Work order submitted - ${shortId}`,
               html: `
                 <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0a0f0d;color:#fff;border-radius:12px;">
                   <div style="text-align:center;margin-bottom:24px;">
@@ -140,7 +140,7 @@ export default async function handler(req) {
         );
       }
 
-      // Admin notification — includes job details for immediate action
+      // Admin notification - includes job details for immediate action
       if (adminEmail) {
         emailPromises.push(
           fetch('https://api.resend.com/emails', {
@@ -152,7 +152,7 @@ export default async function handler(req) {
             body: JSON.stringify({
               from: `Squatterz <${fromEmail}>`,
               to: [adminEmail],
-              subject: `New commercial account + work order ${shortId} — ${client.company_name || client.contact_name}`,
+              subject: `New commercial account + work order ${shortId} - ${client.company_name || client.contact_name}`,
               html: `
                 <div style="font-family:sans-serif;max-width:520px;padding:24px;">
                   <h2>New Commercial Account + Work Order</h2>
@@ -161,7 +161,7 @@ export default async function handler(req) {
                   <p><strong>Email:</strong> ${clientEmail || 'N/A'}</p>
                   <p><strong>Phone:</strong> ${client.phone || 'N/A'}</p>
                   <hr>
-                  <p><strong>Property:</strong> ${property.name} — ${property.address}</p>
+                  <p><strong>Property:</strong> ${property.name} - ${property.address}</p>
                   <p><strong>Job Reference:</strong> ${shortId}</p>
                   ${job.unit ? `<p><strong>Unit / Location:</strong> ${job.unit}</p>` : ''}
                   ${job.description ? `<p><strong>Description:</strong> ${job.description}</p>` : ''}

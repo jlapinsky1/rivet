@@ -3,17 +3,17 @@
  *
  * All fields are numbers (dollars) or null if not recorded.
  * @typedef {Object} JobActuals
- * @property {number} finalAmount        — Amount collected from customer
- * @property {number|null} disposalCost  — Actual dump/disposal fees paid
- * @property {number|null} fuelCost      — Actual fuel/travel cost
- * @property {number|null} paidLabor     — Wages paid to crew (not owner)
- * @property {number|null} ownerLabor    — Owner's time valued at hourly rate
- * @property {number|null} paymentFees   — Card processing, platform fees
- * @property {number|null} otherCosts    — Any other direct costs
+ * @property {number} finalAmount        - Amount collected from customer
+ * @property {number|null} disposalCost  - Actual dump/disposal fees paid
+ * @property {number|null} fuelCost      - Actual fuel/travel cost
+ * @property {number|null} paidLabor     - Wages paid to crew (not owner)
+ * @property {number|null} ownerLabor    - Owner's time valued at hourly rate
+ * @property {number|null} paymentFees   - Card processing, platform fees
+ * @property {number|null} otherCosts    - Any other direct costs
  * @property {number|null} actualTravelMinutes
  * @property {number|null} actualOnSiteMinutes
  * @property {number|null} actualTruckVolumePct
- * @property {string|null} additionalItems — Items found on site not in original request
+ * @property {string|null} additionalItems - Items found on site not in original request
  * @property {string|null} notes
  */
 

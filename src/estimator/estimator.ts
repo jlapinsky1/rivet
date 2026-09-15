@@ -213,7 +213,7 @@ function estimateViaComponents(extraction: ExtractionResult): EstimatorOutput {
     const comp = TASK_COMPONENTS[task.component as keyof typeof TASK_COMPONENTS];
 
     if (!comp) {
-      // Unknown component — flag it but don't crash
+      // Unknown component - flag it but don't crash
       riskFlags.push('unsupported_task_component');
       confidence -= 0.10;
       breakdown.push({
@@ -228,7 +228,7 @@ function estimateViaComponents(extraction: ExtractionResult): EstimatorOutput {
     recognizedTasks++;
     const qty = Math.max(1, task.quantity);
 
-    // Skip site_setup and cleanup as individual tasks — handled by project overhead
+    // Skip site_setup and cleanup as individual tasks - handled by project overhead
     if (task.component === 'site_setup' || task.component === 'cleanup') {
       continue;
     }
@@ -279,7 +279,7 @@ function estimateViaComponents(extraction: ExtractionResult): EstimatorOutput {
     // Fallback wide range
     totalLaborHours = { low: 2, expected: 5, high: 14 };
     totalMaterialCost = { low: 50, expected: 200, high: 500 };
-    breakdown.push({ code: 'FALLBACK_ESTIMATE', description: 'No tasks extracted — wide fallback range', deltaHours: 5, deltaMaterialCost: 200 });
+    breakdown.push({ code: 'FALLBACK_ESTIMATE', description: 'No tasks extracted - wide fallback range', deltaHours: 5, deltaMaterialCost: 200 });
   } else if (recognizedTasks < totalTasks * 0.5) {
     riskFlags.push('poor_component_coverage');
     confidence -= 0.15;
@@ -505,7 +505,7 @@ export function applyCalibration(
 
   // ─── Estimated Quote (NOT floored at minimumAcceptablePrice) ───
   // Labor-based pricing: what the job is worth at market rates.
-  // targetLaborRate = minimumHourlyRate × 1.2 — what an owner would typically charge.
+  // targetLaborRate = minimumHourlyRate × 1.2 - what an owner would typically charge.
   const targetLaborRate = config.minimumHourlyRate * 1.2;
   const laborRevenue = scaleRange(laborHours, targetLaborRate);
   const estimatedQuoteRange: Range = {

@@ -72,7 +72,7 @@ export function buildPropertyAddress(draft) {
 }
 
 export function buildJobDescriptionText(draft) {
-  return [draft.jobService, draft.jobDescription].filter(Boolean).join(' — ');
+  return [draft.jobService, draft.jobDescription].filter(Boolean).join(' - ');
 }
 
 export function buildAccessNotesText(draft) {

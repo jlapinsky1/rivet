@@ -1,10 +1,10 @@
 /*
   017_draft_jobs_rls.sql
 
-  1. Adds 'draft' to the job status constraint — used during onboarding so
+  1. Adds 'draft' to the job status constraint - used during onboarding so
      Step 3 can save progress without notifying admins.
 
-  2. Drops custom continuation token columns — the abandoned-onboarding
+  2. Drops custom continuation token columns - the abandoned-onboarding
      resume flow now uses a Supabase-generated magic link instead.
 
   3. Establishes row-level security for commercial tables so a client can
@@ -32,7 +32,7 @@ ALTER TABLE commercial_clients
   DROP COLUMN IF EXISTS continuation_token_hash,
   DROP COLUMN IF EXISTS continuation_token_expires_at;
 
--- ── 3. RLS — commercial_clients ────────────────────────────────────────────
+-- ── 3. RLS - commercial_clients ────────────────────────────────────────────
 ALTER TABLE commercial_clients ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "clients_select_own_row"   ON commercial_clients;
@@ -52,7 +52,7 @@ CREATE POLICY "clients_update_own_row" ON commercial_clients
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());
 
--- ── 4. RLS — properties ────────────────────────────────────────────────────
+-- ── 4. RLS - properties ────────────────────────────────────────────────────
 ALTER TABLE properties ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "clients_select_own_properties" ON properties;
@@ -91,7 +91,7 @@ CREATE POLICY "clients_update_own_properties" ON properties
     )
   );
 
--- ── 5. RLS — jobs ──────────────────────────────────────────────────────────
+-- ── 5. RLS - jobs ──────────────────────────────────────────────────────────
 ALTER TABLE jobs ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "clients_select_own_jobs"  ON jobs;
@@ -120,9 +120,9 @@ CREATE POLICY "clients_insert_draft_jobs" ON jobs
     )
   );
 
--- No UPDATE policy for clients — job updates use the service role only.
+-- No UPDATE policy for clients - job updates use the service role only.
 
--- ── 6. RLS — job_photos ────────────────────────────────────────────────────
+-- ── 6. RLS - job_photos ────────────────────────────────────────────────────
 ALTER TABLE job_photos ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "clients_select_own_job_photos"       ON job_photos;

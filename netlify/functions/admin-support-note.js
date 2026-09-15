@@ -7,7 +7,7 @@ import {
  * POST /api/admin-support-note
  *
  * Admin-only. Adds a timestamped, attributed support note to a booking.
- * Support notes are internal only — never exposed to customers.
+ * Support notes are internal only - never exposed to customers.
  */
 export default async function handler(req) {
   if (req.method !== 'POST') return errorResponse('Method not allowed', 405);

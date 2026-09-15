@@ -77,7 +77,7 @@ export default async function handler(req) {
     const beforePhotos = (photos ?? []).filter(p => p.kind === 'before').slice(0, 4);
     const afterPhotos  = (photos ?? []).filter(p => p.kind === 'after').slice(0, 4);
 
-    // Generate signed URLs (1-hour expiry) — never expose raw storage paths
+    // Generate signed URLs (1-hour expiry) - never expose raw storage paths
     async function signedUrl(storagePath) {
       const { data, error } = await supabase.storage
         .from('booking-photos')
@@ -99,7 +99,7 @@ export default async function handler(req) {
       try {
         const stripe = getStripeClient();
 
-        // hostedInvoiceUrl hidden on final page — customer pays via Payment Element
+        // hostedInvoiceUrl hidden on final page - customer pays via Payment Element
         const dto = await getPaymentSummaryDTO(stripe, booking.stripe_invoice_id, false);
         payment = {
           invoiceTotalCents: dto.invoiceTotalCents,

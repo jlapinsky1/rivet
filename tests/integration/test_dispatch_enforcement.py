@@ -82,7 +82,7 @@ def test_complete_job_allowed_after_deposit_confirmed(api, admin_headers, supaba
 
     payload = _valid_completion_payload(booking_id)
     r = api.post("/api/complete-job", json=payload, headers=admin_headers)
-    # Will fail at Stripe PI creation if no Stripe configured — non-fatal (completion still saved)
+    # Will fail at Stripe PI creation if no Stripe configured - non-fatal (completion still saved)
     assert r.status_code == 200
     body = r.json()
     assert body["success"] is True

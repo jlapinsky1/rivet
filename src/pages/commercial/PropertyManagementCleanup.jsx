@@ -51,13 +51,13 @@ const SERVICES = [
   {
     icon: Building2,
     title: "Unit Turnover Cleanout",
-    desc: "Get units clear so your maintenance team can assess and your cleaners can start — without waiting on debris removal.",
+    desc: "Get units clear so your maintenance team can assess and your cleaners can start - without waiting on debris removal.",
     to: "/commercial/unit-turnover-cleanout",
   },
   {
     icon: Trash2,
     title: "Bulk Trash Removal",
-    desc: "Dumpster overflow, common-area furniture, illegal dumping on lots — removed before code violations or resident complaints escalate.",
+    desc: "Dumpster overflow, common-area furniture, illegal dumping on lots - removed before code violations or resident complaints escalate.",
     to: "/commercial/bulk-trash-removal",
   },
   {
@@ -69,7 +69,7 @@ const SERVICES = [
 ];
 
 const ACCOUNT_BENEFITS = [
-  "Multi-property account — manage all your locations in one place",
+  "Multi-property account - manage all your locations in one place",
   "Submit work orders in minutes from your phone or desktop",
   "Real-time job status across your entire portfolio",
   "Before-and-after photos and completion notes on every job",
@@ -106,13 +106,13 @@ export default function PropertyManagementCleanup() {
         <title>{makeTitle("Property Management Cleanup Services Northeast GA")}</title>
         <meta
           name="description"
-          content="Cleanup services for property managers across Northeast Georgia. Apartment cleanouts, eviction debris, unit turnovers, and bulk trash — documented on every job."
+          content="Cleanup services for property managers across Northeast Georgia. Apartment cleanouts, eviction debris, unit turnovers, and bulk trash - documented on every job."
         />
         <link rel="canonical" href={makeCanonical("/commercial/property-management-cleanup")} />
         <meta property="og:title" content="Property Management Cleanup Services | Squatterz Northeast GA" />
         <meta
           property="og:description"
-          content="One cleanup partner for every property you manage. Turnovers, eviction debris, bulk trash, and recurring service — Northeast Georgia property managers."
+          content="One cleanup partner for every property you manage. Turnovers, eviction debris, bulk trash, and recurring service - Northeast Georgia property managers."
         />
         <meta property="og:url" content={makeCanonical("/commercial/property-management-cleanup")} />
         <meta property="og:type" content="website" />
@@ -141,11 +141,11 @@ export default function PropertyManagementCleanup() {
             <span className="text-[#22c55e] text-xs font-semibold uppercase tracking-widest">Commercial Services</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-black leading-tight mb-6">
-            Property Management Cleanup Services —{" "}
+            Property Management Cleanup Services -{" "}
             <span className="text-[#22c55e]">Northeast Georgia</span>
           </h1>
           <p className="text-white/60 text-lg leading-relaxed max-w-2xl mb-8">
-            Property managers deal with a steady stream of cleanup problems — units full of furniture after move-outs, eviction debris that needs to be cleared before inspections, bulk trash piling up around dumpster enclosures, and illegal dumping on lots. We handle all of it, with documentation on every job, through a portal your whole team can use.
+            Property managers deal with a steady stream of cleanup problems - units full of furniture after move-outs, eviction debris that needs to be cleared before inspections, bulk trash piling up around dumpster enclosures, and illegal dumping on lots. We handle all of it, with documentation on every job, through a portal your whole team can use.
           </p>
           <div className="flex flex-wrap gap-3">
             <button
@@ -172,7 +172,7 @@ export default function PropertyManagementCleanup() {
         <section className="max-w-4xl mx-auto px-5 mb-16">
           <h2 className="text-2xl font-black mb-2">Our Services for Property Managers</h2>
           <p className="text-white/50 text-sm mb-8">
-            Each service is available on-demand through your portal account — no retainer, no minimum commitment.
+            Each service is available on-demand through your portal account - no retainer, no minimum commitment.
           </p>
           <div className="grid md:grid-cols-2 gap-5">
             {SERVICES.map(({ icon: Icon, title, desc, to }) => (
@@ -199,7 +199,7 @@ export default function PropertyManagementCleanup() {
           <div className="bg-white/[0.03] border border-white/8 rounded-2xl p-8">
             <h2 className="text-2xl font-black mb-2">Your Commercial Portal Account</h2>
             <p className="text-white/50 text-sm mb-6">
-              Everything runs through the portal — one account for all your properties, all your jobs, all your documentation.
+              Everything runs through the portal - one account for all your properties, all your jobs, all your documentation.
             </p>
             <ul className="space-y-3">
               {ACCOUNT_BENEFITS.map((item) => (

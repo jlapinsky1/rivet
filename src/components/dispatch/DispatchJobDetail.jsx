@@ -24,7 +24,7 @@ function Skeleton() {
  * @param {object} props
  * @param {string} props.bookingId
  * @param {function} props.onBack
- * @param {function} [props.onJobCompleted]  — called when job is completed successfully
+ * @param {function} [props.onJobCompleted]  - called when job is completed successfully
  */
 export default function DispatchJobDetail({ bookingId, onBack, onJobCompleted }) {
   const [job, setJob]             = useState(null);

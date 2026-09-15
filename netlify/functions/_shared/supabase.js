@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * Server-side Supabase client using the service role key.
- * Bypasses RLS — use only in Netlify functions, never in client code.
+ * Bypasses RLS - use only in Netlify functions, never in client code.
  */
 export function getServiceClient() {
   const url = process.env.SUPABASE_URL;
@@ -26,7 +26,7 @@ export async function verifyAdmin(req) {
   const { data: { user }, error } = await supabase.auth.getUser(token);
   if (error || !user) return null;
 
-  // Check admin_users table — not just "is authenticated"
+  // Check admin_users table - not just "is authenticated"
   const { count, error: adminErr } = await supabase
     .from('admin_users')
     .select('user_id', { count: 'exact', head: true })
@@ -57,7 +57,7 @@ export async function verifyBusinessMember(req, { businessId: explicitBusinessId
     || req.headers.get('x-business-id');
 
   if (!resolvedBusinessId) {
-    // No business_id provided — auto-select if user has exactly one business
+    // No business_id provided - auto-select if user has exactly one business
     const { data: memberships, error: memErr } = await supabase
       .from('business_memberships')
       .select('business_id')
@@ -89,7 +89,7 @@ export async function verifyBusinessMember(req, { businessId: explicitBusinessId
 export async function verifyTurnstile(turnstileToken, ip) {
   const secret = process.env.TURNSTILE_SECRET_KEY;
   if (!secret) {
-    console.warn('TURNSTILE_SECRET_KEY not set — skipping verification');
+    console.warn('TURNSTILE_SECRET_KEY not set - skipping verification');
     return { success: true };
   }
 
@@ -124,7 +124,7 @@ export async function checkRateLimit(supabase, ip, endpoint, windowSeconds = 300
 
   if (error) {
     console.error('Rate limit check failed:', error);
-    return true; // fail open — don't block users due to DB errors
+    return true; // fail open - don't block users due to DB errors
   }
 
   return data;

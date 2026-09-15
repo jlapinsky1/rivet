@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getRepo } from '../../../utils/repository';
 
 function formatCurrency(cents) {
-  if (cents == null) return '—';
+  if (cents == null) return '-';
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
 }
 
@@ -23,7 +23,7 @@ function StatusBadge({ status }) {
   };
   return (
     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${styles[status] || 'bg-gray-100 text-gray-600'}`}>
-      {status?.toUpperCase() || '—'}
+      {status?.toUpperCase() || '-'}
     </span>
   );
 }
@@ -90,12 +90,12 @@ export default function PaymentSummaryPanel({ bookingId, stripeInvoiceId }) {
           label={`Deposit paid${depositDate ? ` · ${depositDate}` : ''}`}
           value={summary.depositConfirmed && depositCents != null
             ? formatCurrency(depositCents)
-            : '—'}
+            : '-'}
         />
         {(finalDate || finalPaidCents > 0) && (
           <PayRow
             label={`Final payment${finalDate ? ` · ${finalDate}` : ''}`}
-            value={finalPaidCents != null ? formatCurrency(finalPaidCents) : '—'}
+            value={finalPaidCents != null ? formatCurrency(finalPaidCents) : '-'}
           />
         )}
         <div className="border-t pt-2">

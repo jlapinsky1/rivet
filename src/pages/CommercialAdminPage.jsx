@@ -35,12 +35,12 @@ function fmt(cents) {
 }
 
 function fmtDate(iso) {
-  if (!iso) return '—';
+  if (!iso) return '-';
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function fmtDateTime(iso) {
-  if (!iso) return '—';
+  if (!iso) return '-';
   return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
@@ -199,7 +199,7 @@ function QuotePanel({ job, onRefresh }) {
           )}
           {quotePrice && parseFloat(quotePrice) > 0 && (
             <p className="text-xs text-white/40 mt-1">
-              Deposit (50%): ${(parseFloat(quotePrice) / 2).toFixed(2)} — Balance: ${(parseFloat(quotePrice) / 2).toFixed(2)}
+              Deposit (50%): ${(parseFloat(quotePrice) / 2).toFixed(2)} - Balance: ${(parseFloat(quotePrice) / 2).toFixed(2)}
             </p>
           )}
         </div>
@@ -465,7 +465,7 @@ function CompletionPanel({ job, onRefresh }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ jobId: job.id }), // just a ping — photos handled separately
+        body: JSON.stringify({ jobId: job.id }), // just a ping - photos handled separately
       }).catch(() => {});
 
       // Insert photo record directly via adminFetch to a dedicated endpoint isn't available;
@@ -759,7 +759,7 @@ function JobDetail({ jobSummary, onRefresh, onClose }) {
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white/4 border border-white/8 rounded-xl p-4 space-y-2">
           <p className="text-xs text-white/40 uppercase tracking-wider">Client</p>
-          <p className="text-sm font-semibold text-white">{job.client.companyName || job.client.contactName || '—'}</p>
+          <p className="text-sm font-semibold text-white">{job.client.companyName || job.client.contactName || '-'}</p>
           {job.client.contactName && job.client.companyName && (
             <p className="text-xs text-white/50">{job.client.contactName}</p>
           )}

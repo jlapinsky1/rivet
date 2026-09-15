@@ -1,11 +1,11 @@
 /**
  * Default quote form configuration for each vertical.
- * Option VALUES are immutable — they are part of the estimator contract
+ * Option VALUES are immutable - they are part of the estimator contract
  * (QUANTITY_TO_LOAD, ACCESS_MAP, STAIRS_TIME_ADD in estimateBuilder.js).
  * Operators can change display labels but never the values the engine uses.
  */
 
-// Locked option values — these map to estimateBuilder.js lookup tables
+// Locked option values - these map to estimateBuilder.js lookup tables
 export const JUNK_REMOVAL_QUANTITY_VALUES = [
   'A few items (1-5)',
   'A room worth of stuff',
@@ -154,7 +154,7 @@ export function getDefaultQuoteFormConfig(vertical = 'junk_removal') {
 
 /**
  * Deep-merges a saved config over defaults so missing keys always fall back.
- * Only merges known keys — unknown keys in saved config are preserved but
+ * Only merges known keys - unknown keys in saved config are preserved but
  * never override structural defaults.
  */
 export function mergeQuoteFormConfig(saved, vertical = 'junk_removal') {
@@ -206,7 +206,7 @@ function mergeFields(defaults, saved) {
     }
 
     if (defaultVal.options && savedVal.options) {
-      // Merge options by value — preserve locked values, apply saved labels
+      // Merge options by value - preserve locked values, apply saved labels
       merged[key] = {
         ...defaultVal,
         ...savedVal,

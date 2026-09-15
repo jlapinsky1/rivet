@@ -43,25 +43,25 @@ export function deriveRecommendation(
       : 1; // no context → treat as plenty of capacity
 
     if (gapPercent <= GAP_BAND_TINY) {
-      // Tiny gap — barely below minimum
+      // Tiny gap - barely below minimum
       reasons.push({ icon: 'caution',
-        text: `This looks like roughly a $${Math.round(job.evaluatedPrice)} job, just below the $${Math.round(job.minimumAcceptablePrice)} minimum — ${Math.round(gapPercent * 100)}% gap` });
+        text: `This looks like roughly a $${Math.round(job.evaluatedPrice)} job, just below the $${Math.round(job.minimumAcceptablePrice)} minimum - ${Math.round(gapPercent * 100)}% gap` });
       forceReview = true;
     } else if (gapPercent <= GAP_BAND_MODERATE) {
-      // Moderate gap — depends on remaining capacity
+      // Moderate gap - depends on remaining capacity
       if (capacityRatio < MODERATE_GAP_SCARCITY_RATIO) {
         reasons.push({ icon: 'x',
-          text: `This looks like roughly a $${Math.round(job.evaluatedPrice)} job, but it would need to be about $${Math.round(job.minimumAcceptablePrice)} to justify the schedule time — ${Math.round(gapPercent * 100)}% gap with scarce capacity` });
+          text: `This looks like roughly a $${Math.round(job.evaluatedPrice)} job, but it would need to be about $${Math.round(job.minimumAcceptablePrice)} to justify the schedule time - ${Math.round(gapPercent * 100)}% gap with scarce capacity` });
         forcePass = true;
       } else {
         reasons.push({ icon: 'caution',
-          text: `This looks like roughly a $${Math.round(job.evaluatedPrice)} job, but it would need to be about $${Math.round(job.minimumAcceptablePrice)} to stay on pace — ${Math.round(gapPercent * 100)}% gap` });
+          text: `This looks like roughly a $${Math.round(job.evaluatedPrice)} job, but it would need to be about $${Math.round(job.minimumAcceptablePrice)} to stay on pace - ${Math.round(gapPercent * 100)}% gap` });
         forceReview = true;
       }
     } else {
-      // Large gap — unambiguous pass
+      // Large gap - unambiguous pass
       reasons.push({ icon: 'x',
-        text: `This looks like roughly a $${Math.round(job.evaluatedPrice)} job, but it would need to be about $${Math.round(job.minimumAcceptablePrice)} to justify the schedule time this week — ${Math.round(gapPercent * 100)}% gap` });
+        text: `This looks like roughly a $${Math.round(job.evaluatedPrice)} job, but it would need to be about $${Math.round(job.minimumAcceptablePrice)} to justify the schedule time this week - ${Math.round(gapPercent * 100)}% gap` });
       forcePass = true;
     }
   } else {
@@ -100,10 +100,10 @@ export function deriveRecommendation(
   }
 
   // ─── Confidence Check ───
-  // Always evaluated — reasons are preserved even when economics produce PASS
+  // Always evaluated - reasons are preserved even when economics produce PASS
 
   if (job.confidence < config.confidenceThreshold) {
-    reasons.push({ icon: 'caution', text: `Estimate confidence ${Math.round(job.confidence * 100)}% is below ${Math.round(config.confidenceThreshold * 100)}% threshold — needs review` });
+    reasons.push({ icon: 'caution', text: `Estimate confidence ${Math.round(job.confidence * 100)}% is below ${Math.round(config.confidenceThreshold * 100)}% threshold - needs review` });
     forceReview = true;
   }
 
@@ -120,16 +120,16 @@ export function deriveRecommendation(
   }
 
   // ─── Risk Flags ───
-  // Always evaluated — risk reasons are visible even on PASS recommendations
+  // Always evaluated - risk reasons are visible even on PASS recommendations
 
   if (job.riskFlags.includes('no_tasks_extracted')) {
-    reasons.push({ icon: 'caution', text: 'Could not identify specific work tasks — requires manual review' });
+    reasons.push({ icon: 'caution', text: 'Could not identify specific work tasks - requires manual review' });
     forceReview = true;
     forcePass = false;
   }
 
   if (job.riskFlags.includes('poor_component_coverage')) {
-    reasons.push({ icon: 'caution', text: 'Many work components not recognized — estimate less reliable' });
+    reasons.push({ icon: 'caution', text: 'Many work components not recognized - estimate less reliable' });
     forceReview = true;
   }
 
@@ -139,12 +139,12 @@ export function deriveRecommendation(
 
   // Legacy flags (backward compat)
   if (job.riskFlags.includes('unrecognized_job_class')) {
-    reasons.push({ icon: 'caution', text: 'Job classification was not recognized — estimate less reliable' });
+    reasons.push({ icon: 'caution', text: 'Job classification was not recognized - estimate less reliable' });
     forceReview = true;
   }
 
   if (job.riskFlags.includes('unknown_job_family')) {
-    reasons.push({ icon: 'caution', text: 'Job type not recognized — requires manual review' });
+    reasons.push({ icon: 'caution', text: 'Job type not recognized - requires manual review' });
     forceReview = true;
     forcePass = false;
   }
@@ -171,7 +171,7 @@ export function deriveRecommendation(
       reasons.push({ icon: 'caution', text: `Job uses ${Math.round(job.capacityHours / context.remainingCapacityHours * 100)}% of remaining weekly capacity` });
     }
 
-    // Weekly capacity pace — schedule-hour productivity (graduated, no hard PASS cliff)
+    // Weekly capacity pace - schedule-hour productivity (graduated, no hard PASS cliff)
     const required = context.requiredContributionPerCapacityHour;
     if (required > 0) {
       const rate = job.contributionPerCapacityHour;
@@ -181,12 +181,12 @@ export function deriveRecommendation(
           text: `The hands-on work earns $${Math.round(job.contributionPerLaborHour.expected)} per work hour; including schedule time, it earns $${Math.round(rate)} per schedule hour (above $${Math.round(required)}/hr pace)` });
       } else if (rate >= required * 0.85) {
         reasons.push({ icon: 'caution',
-          text: `The hands-on work pays $${Math.round(job.contributionPerLaborHour.expected)}/hr, but the job earns only $${Math.round(rate)} per schedule hour — close to the $${Math.round(required)}/hr pace needed` });
+          text: `The hands-on work pays $${Math.round(job.contributionPerLaborHour.expected)}/hr, but the job earns only $${Math.round(rate)} per schedule hour - close to the $${Math.round(required)}/hr pace needed` });
         const capacityRatio = context.remainingCapacityHours / config.weeklyCapacityHours;
         if (capacityRatio < 0.5 && !forcePass) forceReview = true;
       } else {
         reasons.push({ icon: 'x',
-          text: `The hands-on work pays $${Math.round(job.contributionPerLaborHour.expected)}/hr, but the job consumes too much schedule capacity — only $${Math.round(rate)} per schedule hour vs $${Math.round(required)}/hr needed` });
+          text: `The hands-on work pays $${Math.round(job.contributionPerLaborHour.expected)}/hr, but the job consumes too much schedule capacity - only $${Math.round(rate)} per schedule hour vs $${Math.round(required)}/hr needed` });
         if (!forcePass) forceReview = true;
       }
     }

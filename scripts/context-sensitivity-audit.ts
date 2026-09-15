@@ -1,5 +1,5 @@
 /**
- * Context Sensitivity Audit — runs the same 22 Mason Home Services demo jobs
+ * Context Sensitivity Audit - runs the same 22 Mason Home Services demo jobs
  * through three business-context scenarios to verify the decision engine
  * reacts sensibly to capacity and earnings pace changes.
  *
@@ -510,7 +510,7 @@ function runSanityChecks(): SanityIssue[] {
       // However, B also has less remaining capacity (24h vs 30h), so capacity checks could cut the other way.
       // Only flag this as an issue if B's remaining capacity isn't the explanation.
       if (rA.capacityHours <= rB.capacityHours) {
-        issues.push({ jobId: job.id, issue: `Job got BETTER from B→A despite A having higher required rate ($63 vs $29): B=${rB.recommendation}, A=${rA.recommendation} — may be explained by A's larger remaining capacity (30h vs 24h)` });
+        issues.push({ jobId: job.id, issue: `Job got BETTER from B→A despite A having higher required rate ($63 vs $29): B=${rB.recommendation}, A=${rA.recommendation} - may be explained by A's larger remaining capacity (30h vs 24h)` });
       }
     }
     if (recRank(rB.recommendation) < recRank(rC.recommendation)) {
@@ -541,7 +541,7 @@ function generateAuditMd(): string {
   const lines: string[] = [];
   const ln = (s: string = '') => lines.push(s);
 
-  ln('# Context Sensitivity Audit — v0.3.1');
+  ln('# Context Sensitivity Audit - v0.3.1');
   ln();
   ln('**Date:** 2026-09-09');
   ln('**Scope:** 22 Mason Home Services demo jobs re-evaluated under three business-context scenarios');
@@ -568,7 +568,7 @@ function generateAuditMd(): string {
   // ─── Full Results per Scenario ───
   for (const scenario of scenarios) {
     const results = allResults[scenario.name];
-    ln(`## Scenario ${scenario.name} — ${scenario.label}`);
+    ln(`## Scenario ${scenario.name} - ${scenario.label}`);
     ln();
     ln(`requiredContributionPerCapacityHour: $${Math.round(scenario.context.requiredContributionPerCapacityHour)}/hr`);
     ln();
@@ -584,7 +584,7 @@ function generateAuditMd(): string {
   ln();
 
   // ─── Comparison Table ───
-  ln('## Comparison Table — Recommendation Changes');
+  ln('## Comparison Table - Recommendation Changes');
   ln();
   ln('| Run | Description | Early Week (A) | Midweek (B) | Late Week (C) | Change Pattern |');
   ln('|-----|-------------|----------------|-------------|---------------|----------------|');
@@ -652,7 +652,7 @@ function generateAuditMd(): string {
     for (const j of neverChange) {
       const r = allResults['A'].find(r => r.runId === j.id)!;
       const reason = r.riskFlags.length > 0 ? `risk flags: ${r.riskFlags.join(', ')}` : r.confidence < 70 ? 'low confidence' : 'economics stable';
-      ln(`- **${j.id}** ${j.description} — always **${r.recommendation}** (${reason})`);
+      ln(`- **${j.id}** ${j.description} - always **${r.recommendation}** (${reason})`);
     }
   }
   ln();
@@ -713,7 +713,7 @@ function generateAuditMd(): string {
   } else {
     for (const j of riskPrimary) {
       const r = allResults['A'].find(r => r.runId === j.id)!;
-      ln(`- **${j.id}** ${j.description} — confidence ${r.confidence}%, risk flags: [${r.riskFlags.join(', ')}]`);
+      ln(`- **${j.id}** ${j.description} - confidence ${r.confidence}%, risk flags: [${r.riskFlags.join(', ')}]`);
     }
   }
   ln();
@@ -727,7 +727,7 @@ function generateAuditMd(): string {
   ln('### Jobs with potentially illogical recommendation changes');
   ln();
   if (logicallyWrong.length === 0) {
-    ln('None found — all changes are directionally correct.');
+    ln('None found - all changes are directionally correct.');
   } else {
     for (const issue of logicallyWrong) {
       ln(`- **${issue.jobId}**: ${issue.issue}`);
@@ -802,11 +802,11 @@ function generateAuditMd(): string {
   ln(`3. **weeklyCapacityPace becomes the binding floor** for ${wcpBindingC} jobs in Scenario C (vs ${wcpBindingB} in Scenario B). At $100/hr required pace, this floor dominates because capacityHours * $100 exceeds laborProductivity for most jobs.`);
   ln();
 
-  ln(`4. **Estimates are correctly immutable across scenarios.** Recommended quotes, labor hours, capacity hours, confidence, and risk flags do not change — only the pricing floor (via weeklyCapacityPace) and the decision change.`);
+  ln(`4. **Estimates are correctly immutable across scenarios.** Recommended quotes, labor hours, capacity hours, confidence, and risk flags do not change - only the pricing floor (via weeklyCapacityPace) and the decision change.`);
   ln();
 
   const stableReviewCount = riskPrimary.length;
-  ln(`5. **${stableReviewCount} job(s) remain REVIEW regardless of context** — their primary issue is low confidence or risk flags, not economics. This is correct: business context cannot fix estimation uncertainty.`);
+  ln(`5. **${stableReviewCount} job(s) remain REVIEW regardless of context** - their primary issue is low confidence or risk flags, not economics. This is correct: business context cannot fix estimation uncertainty.`);
   ln();
 
   // ─── Potential Bugs ───
@@ -839,10 +839,10 @@ function generateAuditMd(): string {
 
   // Check for required rate = $63 (Scenario A): is this already causing passes?
   const passFromA = allResults['A'].filter(r => r.recommendation === 'pass').length;
-  ln(`- **Scenario A ($63/hr required pace):** ${passFromA} PASS — ${passFromA > 5 ? 'appears too sensitive at this moderate pace' : 'reasonable'}`);
+  ln(`- **Scenario A ($63/hr required pace):** ${passFromA} PASS - ${passFromA > 5 ? 'appears too sensitive at this moderate pace' : 'reasonable'}`);
 
   // Check Scenario C
-  ln(`- **Scenario C ($100/hr required pace):** ${passC} PASS — ${passC > 18 ? 'may be over-rejecting; consider graduated thresholds for extreme pace' : passC < 5 ? 'may not be reactive enough to severe capacity scarcity' : 'reasonable progression'}`);
+  ln(`- **Scenario C ($100/hr required pace):** ${passC} PASS - ${passC > 18 ? 'may be over-rejecting; consider graduated thresholds for extreme pace' : passC < 5 ? 'may not be reactive enough to severe capacity scarcity' : 'reasonable progression'}`);
   ln();
 
   // Jobs that don't react enough

@@ -1,5 +1,5 @@
 /**
- * Supabase repository — production mode.
+ * Supabase repository - production mode.
  *
  * Admin operations use the authenticated Supabase client (RLS-protected).
  * Customer operations call Netlify functions (which use the service role key).
@@ -578,7 +578,7 @@ const supabaseRepo = {
       }
     }
 
-    // Bookings (junk removal flow) — optional, may not exist
+    // Bookings (junk removal flow) - optional, may not exist
     try {
       const { data: bookings, error: bErr } = await supabase
         .from('bookings')

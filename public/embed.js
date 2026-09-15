@@ -15,11 +15,11 @@
  *           data-button-color="#22c55e"></script>
  *
  * Attributes:
- *   data-business   (required) — business slug
- *   data-mode       — "inline" (default) or "popup"
- *   data-target     — CSS selector for inline container (default: "#rivet-quote")
- *   data-button-text — popup button label (default: "Request a Quote")
- *   data-button-color — popup button background color (default: "#22c55e")
+ *   data-business   (required) - business slug
+ *   data-mode       - "inline" (default) or "popup"
+ *   data-target     - CSS selector for inline container (default: "#rivet-quote")
+ *   data-button-text - popup button label (default: "Request a Quote")
+ *   data-button-color - popup button background color (default: "#22c55e")
  */
 (function () {
   'use strict';

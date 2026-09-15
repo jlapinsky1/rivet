@@ -21,7 +21,7 @@ export default async function handler(req) {
 
     const supabase = getServiceClient();
 
-    // Load booking — dispatch-safe columns only
+    // Load booking - dispatch-safe columns only
     const { data: booking, error: bookingErr } = await supabase
       .from('bookings')
       .select(
@@ -35,7 +35,7 @@ export default async function handler(req) {
 
     if (bookingErr || !booking) return errorResponse('Booking not found', 404);
 
-    // Load customer photos (source='customer') — generate signed URLs
+    // Load customer photos (source='customer') - generate signed URLs
     const { data: customerPhotoRows } = await supabase
       .from('booking_photos')
       .select('id, kind, file_name, sort_order, storage_path')

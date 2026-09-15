@@ -51,7 +51,7 @@ function range(v: number): Range {
 
 // ─── Static Threshold Tests ───
 
-describe('deriveRecommendation — static thresholds', () => {
+describe('deriveRecommendation - static thresholds', () => {
   it('good job → Take', () => {
     const job = makeJob({
       contributionPerLaborHour: range(100),
@@ -104,7 +104,7 @@ describe('deriveRecommendation — static thresholds', () => {
 
 // ─── Review Cases ───
 
-describe('deriveRecommendation — review triggers', () => {
+describe('deriveRecommendation - review triggers', () => {
   it('low confidence → Review regardless of economics', () => {
     const job = makeJob({
       contributionPerLaborHour: range(200),
@@ -168,7 +168,7 @@ describe('deriveRecommendation — review triggers', () => {
 
 // ─── DecisionContext ───
 
-describe('deriveRecommendation — DecisionContext', () => {
+describe('deriveRecommendation - DecisionContext', () => {
   it('scarce capacity → affects recommendation', () => {
     const job = makeJob({
       contributionPerLaborHour: range(100),
@@ -304,7 +304,7 @@ describe('labor-hour vs capacity-hour economics', () => {
     expect(resultB.reasons.some(r => r.icon !== 'check' && r.text.includes('schedule hour'))).toBe(true);
   });
 
-  it('recommendedQuote can be below minimumAcceptablePrice — decision reflects that', () => {
+  it('recommendedQuote can be below minimumAcceptablePrice - decision reflects that', () => {
     const est = estimateHandymanJob(makeAssemblyExtraction('SMALL_DRYWALL_PATCH'));
     const highPaceContext: DecisionContext = {
       weeklyEarningsToDate: 0,
@@ -499,7 +499,7 @@ describe('labor-hour vs capacity-hour economics', () => {
     expect(reasons.some(r => r.icon === 'caution' && r.text.includes('hidden water damage'))).toBe(true);
   });
 
-  it('scarce capacity without hard PASS cliff — below-pace job is Review not Pass when 25% capacity remains', () => {
+  it('scarce capacity without hard PASS cliff - below-pace job is Review not Pass when 25% capacity remains', () => {
     const job = makeJob({
       contributionPerLaborHour: range(100),
       contributionPerCapacityHour: 50,
@@ -522,7 +522,7 @@ describe('labor-hour vs capacity-hour economics', () => {
     expect(recommendation).toBe('review');
   });
 
-  it('metric consistency — never compares capacity-hour metric against labor-hour threshold', () => {
+  it('metric consistency - never compares capacity-hour metric against labor-hour threshold', () => {
     // The decision engine checks contributionPerLaborHour against minimumHourlyRate
     // and contributionPerCapacityHour against requiredContributionPerCapacityHour
     // This test verifies by constructing a job where the two rates differ significantly

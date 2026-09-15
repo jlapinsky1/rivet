@@ -16,7 +16,7 @@ function buildPropertyNotes({ propType, propUnits, propNotes }) {
 }
 
 function buildJobDescription({ jobService, jobDescription }) {
-  return [jobService, jobDescription].filter(Boolean).join(' — ').trim();
+  return [jobService, jobDescription].filter(Boolean).join(' - ').trim();
 }
 
 function buildAccessNotes({ jobAccessNotes, jobPoRef }) {
@@ -147,7 +147,7 @@ export default async function handler(req) {
     let jobId = null;
 
     try {
-      // Similar company names — internal log only
+      // Similar company names - internal log only
       const { data: similarOrgs } = await supabase
         .from('commercial_clients')
         .select('id')

@@ -2,7 +2,7 @@ import type { TaskComponentCode, TaskComponentDef } from './types';
 
 // ~22 reusable handyman task components.
 // Each defines transparent deterministic baseline data.
-// All marked needs_domain_validation — not yet validated with real data.
+// All marked needs_domain_validation - not yet validated with real data.
 
 export const TASK_COMPONENTS: Record<TaskComponentCode, TaskComponentDef> = {
 
@@ -32,7 +32,7 @@ export const TASK_COMPONENTS: Record<TaskComponentCode, TaskComponentDef> = {
 
   demolition_light: {
     code: 'demolition_light',
-    description: 'Light demolition — tear-out of damaged material',
+    description: 'Light demolition - tear-out of damaged material',
     labor: { baseHours: 0.25, hoursPerUnit: 0.40, minimumHours: 0.25 },
     materials: { allowancePerUnit: 0 },
     validationStatus: 'needs_domain_validation',

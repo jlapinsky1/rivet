@@ -67,7 +67,7 @@ export default async function handler(req) {
       .maybeSingle();
 
     // Validate token: must exist and not be revoked or expired
-    // Note: used_at is NOT checked here — customer may view payment summary
+    // Note: used_at is NOT checked here - customer may view payment summary
     // multiple times during and after the payment flow.
     if (tokenErr || !tokenRow || tokenRow.revoked_at || new Date(tokenRow.expires_at) < new Date()) {
       return errorResponse('Unable to process this request', 400);

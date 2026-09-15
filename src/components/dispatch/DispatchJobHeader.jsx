@@ -32,7 +32,7 @@ export default function DispatchJobHeader({
   const statusLabel = STATUS_LABELS[status] ?? status;
   const statusColor = STATUS_COLORS[status] ?? 'bg-gray-100 text-gray-700';
 
-  // Short address — first line only
+  // Short address - first line only
   const shortAddress = fullAddress?.split(',')[0] ?? '';
 
   function handleAction() {

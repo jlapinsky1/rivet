@@ -1,5 +1,5 @@
 """
-POST /api/notify-expansion — validation and persistence.
+POST /api/notify-expansion - validation and persistence.
 
 This is the expansion-lead workflow (separate from portal signup via /api/signup).
 These are out-of-zone customers who want to be notified when service expands.
@@ -85,7 +85,7 @@ def test_null_email_returns_400(api):
 
 
 def test_optional_name_and_zip_accepted(api, test_run_id):
-    """Name and zip are optional — should not cause rejection."""
+    """Name and zip are optional - should not cause rejection."""
     email = f"test-optional-{test_run_id[:6]}@squatterz-test.com"
     r = api.post("/api/notify-expansion", json={"email": email, "testRunId": test_run_id})
     assert r.status_code == 200

@@ -82,7 +82,7 @@ export function calculateCommittedProjection(completedBookings, scheduledBooking
 
 /**
  * Calculate weighted pipeline profit (pending_review, quote_sent only).
- * Scheduled bookings are NOT weighted — they are at 100% in committed projection.
+ * Scheduled bookings are NOT weighted - they are at 100% in committed projection.
  */
 export function calculatePipelineProfit(pipelineBookings, weights, goalType) {
   const w = weights || DEFAULT_PIPELINE_WEIGHTS;
@@ -145,7 +145,7 @@ export function calculateGoalProgress(goal, completedBookings, scheduledBookings
     }
   }
 
-  // Scheduled expected profit (100% weight — committed)
+  // Scheduled expected profit (100% weight - committed)
   let bookedProfit = 0;
   for (const b of scheduledBookings) {
     bookedProfit += extractExpectedProfit(b, goal.goal_type);
@@ -290,7 +290,7 @@ export function generateAlerts(progress, goal) {
     alerts.push({
       type: 'ahead_of_pace',
       severity: 'success',
-      message: `Ahead of pace — projected to finish at $${fmt(progress.projectedEOP)}.`,
+      message: `Ahead of pace - projected to finish at $${fmt(progress.projectedEOP)}.`,
     });
   } else if (progress.paceStatus === 'behind') {
     const deficit = progress.remaining;
@@ -303,7 +303,7 @@ export function generateAlerts(progress, goal) {
     alerts.push({
       type: 'at_risk',
       severity: 'info',
-      message: `At risk — current daily average ($${fmt(progress.avgDailyProfit)}) is below the required pace ($${fmt(progress.requiredDailyProfit)}).`,
+      message: `At risk - current daily average ($${fmt(progress.avgDailyProfit)}) is below the required pace ($${fmt(progress.requiredDailyProfit)}).`,
     });
   }
 
@@ -311,7 +311,7 @@ export function generateAlerts(progress, goal) {
     alerts.push({
       type: 'missing_actuals',
       severity: 'warning',
-      message: `${progress.jobsMissingActuals} completed job(s) missing actuals — not included in profit calculations.`,
+      message: `${progress.jobsMissingActuals} completed job(s) missing actuals - not included in profit calculations.`,
     });
   }
 
@@ -337,8 +337,8 @@ export function generateAlerts(progress, goal) {
 /**
  * Calculate dynamic profit targets based on current goal progress and today's schedule.
  *
- * These are advisory targets — "what profit should the next job contribute given
- * where we stand?" — not hard guardrails.
+ * These are advisory targets - "what profit should the next job contribute given
+ * where we stand?" - not hard guardrails.
  *
  * @param {Object} goalProgress - from calculateGoalProgress()
  * @param {Object} todayProgress - from getTodayProgress()

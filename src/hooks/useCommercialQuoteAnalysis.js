@@ -134,7 +134,7 @@ export function useCommercialQuoteAnalysis(job) {
           }
         }
       } catch {
-        // Non-fatal — estimate uses default travel time
+        // Non-fatal - estimate uses default travel time
       }
     })();
   }, [job?.property?.address, job?.id, travelMinutes]);

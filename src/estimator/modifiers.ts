@@ -1,7 +1,7 @@
 import type { ConditionCode, ConditionModifierDef } from './types';
 
 // Condition modifiers applied to both assembly and component estimates.
-// Plain code — not a rule DSL.
+// Plain code - not a rule DSL.
 
 export const CONDITION_MODIFIERS: Record<ConditionCode, ConditionModifierDef> = {
 
@@ -54,7 +54,7 @@ export const CONDITION_MODIFIERS: Record<ConditionCode, ConditionModifierDef> = 
 
   customer_supplied_material: {
     code: 'customer_supplied_material',
-    description: 'Customer supplies primary materials — compatibility risk',
+    description: 'Customer supplies primary materials - compatibility risk',
     materialMultiplier: 0.30,
     confidenceDelta: -0.05,
     riskFlag: 'customer_supplied_compatibility',
@@ -62,7 +62,7 @@ export const CONDITION_MODIFIERS: Record<ConditionCode, ConditionModifierDef> = 
 
   unknown_substrate: {
     code: 'unknown_substrate',
-    description: 'Wall/floor/surface material unknown — may complicate work',
+    description: 'Wall/floor/surface material unknown - may complicate work',
     laborHighMultiplier: 1.20,
     confidenceDelta: -0.10,
     riskFlag: 'unknown_substrate',
@@ -77,7 +77,7 @@ export const CONDITION_MODIFIERS: Record<ConditionCode, ConditionModifierDef> = 
 
   water_damage: {
     code: 'water_damage',
-    description: 'Visible or suspected water damage — hidden extent unknown',
+    description: 'Visible or suspected water damage - hidden extent unknown',
     laborHighMultiplier: 1.40,
     materialMultiplier: 1.15,
     confidenceDelta: -0.10,

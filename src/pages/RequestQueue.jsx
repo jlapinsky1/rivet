@@ -290,7 +290,7 @@ function RequestDetail({ booking, onBack }) {
           }
         }
       } catch {
-        // Non-fatal — estimate will show default
+        // Non-fatal - estimate will show default
       }
     })();
   }, []);
@@ -579,7 +579,7 @@ function RequestDetail({ booking, onBack }) {
       alert(
         result.finalPaymentLinkSent
           ? 'Job completed! Final payment link sent to customer.'
-          : 'Job completed! Note: final payment link was not sent — check the email on file.'
+          : 'Job completed! Note: final payment link was not sent - check the email on file.'
       );
     } catch {
       setJobCompletionError('Network error. Please try again.');
@@ -931,7 +931,7 @@ function RequestDetail({ booking, onBack }) {
             className="w-full bg-green-600 text-white py-3 rounded-xl font-bold disabled:opacity-40"
           >
             {activeBlockers.length > 0
-              ? `${activeBlockers.length} blocker(s) — resolve to approve`
+              ? `${activeBlockers.length} blocker(s) - resolve to approve`
               : data.status === 'quote_sent' ? 'Update Quote' : 'Approve & Send Quote'}
           </button>
 
@@ -994,11 +994,11 @@ function RequestDetail({ booking, onBack }) {
             <>
               {paymentSummary.depositConfirmed ? (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800 font-medium">
-                  ✓ Deposit confirmed — dispatch allowed
+                  ✓ Deposit confirmed - dispatch allowed
                 </div>
               ) : (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 font-medium">
-                  ⚠ Deposit not confirmed — do not dispatch
+                  ⚠ Deposit not confirmed - do not dispatch
                 </div>
               )}
 
@@ -1016,8 +1016,8 @@ function RequestDetail({ booking, onBack }) {
               </div>
 
               <div className="border-t pt-2 space-y-0.5 text-xs text-gray-400 font-mono break-all">
-                <div>Customer: {paymentSummary.stripeCustomerId || '—'}</div>
-                <div>Invoice: {paymentSummary.stripeInvoiceId || '—'}</div>
+                <div>Customer: {paymentSummary.stripeCustomerId || '-'}</div>
+                <div>Invoice: {paymentSummary.stripeInvoiceId || '-'}</div>
               </div>
 
               {paymentSummary.hostedInvoiceUrl && (
@@ -1152,7 +1152,7 @@ function RequestDetail({ booking, onBack }) {
             <label className="block text-xs font-medium text-gray-700 mb-1">
               Amount charged to customer
               {data.approvedQuote && (
-                <span className="text-gray-400 font-normal ml-1">(quoted: ${Number(data.approvedQuote).toFixed(2)} — only change if adjusted on-site)</span>
+                <span className="text-gray-400 font-normal ml-1">(quoted: ${Number(data.approvedQuote).toFixed(2)} - only change if adjusted on-site)</span>
               )}
             </label>
             <input
@@ -1166,12 +1166,12 @@ function RequestDetail({ booking, onBack }) {
             {data.approvedQuote && jobCompletionForm.finalAmountDollars &&
               Math.round(Number(jobCompletionForm.finalAmountDollars) * 100) !== Math.round(Number(data.approvedQuote) * 100) && (
               <div className="text-xs text-amber-600 mt-1">
-                Price changed from quoted amount — please explain below
+                Price changed from quoted amount - please explain below
               </div>
             )}
           </div>
 
-          {/* Price adjustment reason — shown only when amount differs */}
+          {/* Price adjustment reason - shown only when amount differs */}
           {data.approvedQuote && jobCompletionForm.finalAmountDollars &&
             Math.round(Number(jobCompletionForm.finalAmountDollars) * 100) !== Math.round(Number(data.approvedQuote) * 100) && (
             <div>
@@ -1240,7 +1240,7 @@ function RequestDetail({ booking, onBack }) {
             actual={`${(actualsResult.cashMargin * 100).toFixed(0)}%`}
             delta={actualsResult.deltas.marginDelta ? actualsResult.deltas.marginDelta * 100 : null} unit="pp" />
           {data.actuals.ownerLabor && Number(data.actuals.ownerLabor) > 0 && (
-            <ComparisonRow label="Owner-adj profit" est="—" actual={`$${actualsResult.ownerAdjustedProfit}`} />
+            <ComparisonRow label="Owner-adj profit" est="-" actual={`$${actualsResult.ownerAdjustedProfit}`} />
           )}
           {actualsResult.deltas.travelDelta !== undefined && (
             <ComparisonRow label="Travel" est={`${estimate.estimatedTravelMinutes} min`}
@@ -1376,7 +1376,7 @@ function QuoteLinkPanel({ booking, lastQuoteToken, onNewToken, getAdminToken }) 
         {sending ? 'Sending…' : 'Resend Quote Email to Customer'}
       </button>
 
-      {sent && <p className="text-xs text-green-700 font-medium">Email sent — new link generated above.</p>}
+      {sent && <p className="text-xs text-green-700 font-medium">Email sent - new link generated above.</p>}
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   );

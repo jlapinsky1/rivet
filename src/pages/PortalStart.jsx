@@ -36,7 +36,7 @@ const SERVICE_TYPES = [
   "Furniture Removal",
   "Appliance Removal",
   "General Junk Removal",
-  "Other — describe in notes",
+  "Other - describe in notes",
 ];
 
 const US_STATES = [
@@ -395,7 +395,7 @@ export default function PortalStart() {
           password,
         });
         if (signInErr) {
-          // Non-fatal — account and job exist
+          // Non-fatal - account and job exist
           console.error("Post-submit sign-in failed");
         }
       }
@@ -455,7 +455,7 @@ export default function PortalStart() {
                 {step === 3 && "Save and Submit Your Request"}
               </h1>
               <p className="text-white/45 text-sm">
-                {step === 1 && "Property and cleanup details first — account setup comes at the end."}
+                {step === 1 && "Property and cleanup details first - account setup comes at the end."}
                 {step === 2 && "We'll use this to follow up about your estimate."}
                 {step === 3 && "Create secure portal access to submit your request, review your estimate, approve work, track progress, and manage future cleanups."}
               </p>
@@ -484,7 +484,7 @@ export default function PortalStart() {
             </div>
           )}
 
-          {/* Step 1 — Cleanup details */}
+          {/* Step 1 - Cleanup details */}
           {step === 1 && (
             <form onSubmit={handleStep1} className="bg-white/[0.03] border border-white/8 rounded-2xl p-6 space-y-5">
               <FieldWrap label="Property Name" required>
@@ -580,7 +580,7 @@ export default function PortalStart() {
               </FieldWrap>
 
               <FieldWrap label="Preferred Date">
-                <p className="text-xs text-white/35 -mt-1 mb-3">Optional — click a day that works best.</p>
+                <p className="text-xs text-white/35 -mt-1 mb-3">Optional - click a day that works best.</p>
                 <div className="grid grid-cols-3 gap-2.5">
                   {(showMoreDates ? availableDays : availableDays.slice(0, 12)).map((day) => {
                     const { weekday, date } = formatDateShort(day);
@@ -633,7 +633,7 @@ export default function PortalStart() {
             </form>
           )}
 
-          {/* Step 2 — Contact details */}
+          {/* Step 2 - Contact details */}
           {step === 2 && (
             <form onSubmit={handleStep2} className="bg-white/[0.03] border border-white/8 rounded-2xl p-6 space-y-5">
               <FieldWrap label="Full Name" required>
@@ -677,7 +677,7 @@ export default function PortalStart() {
             </form>
           )}
 
-          {/* Step 3 — Review + password */}
+          {/* Step 3 - Review + password */}
           {step === 3 && (
             <form onSubmit={handleStep3} className="space-y-5">
               <div className="bg-white/[0.03] border border-white/8 rounded-2xl p-6 space-y-3">

@@ -22,7 +22,7 @@ export function useSettings() {
           setSettings({ ...DEFAULT_SETTINGS, ...dbSettings });
         }
       } catch {
-        // Use localStorage fallback — already set as default
+        // Use localStorage fallback - already set as default
       } finally {
         setLoading(false);
       }

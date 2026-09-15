@@ -148,7 +148,7 @@ jobs:
           python - << 'EOF'
           # Test data cleanup is scoped per testRunId via the test-lookup DELETE endpoint.
           # Session-level cleanup happens automatically via fixture teardown.
-          # This step is a no-op if no testRunId is tracked — pytest session handles it.
+          # This step is a no-op if no testRunId is tracked - pytest session handles it.
           print("Test data cleanup complete (handled by fixture teardown)")
           EOF
 

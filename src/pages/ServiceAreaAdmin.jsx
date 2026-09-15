@@ -111,7 +111,7 @@ function ZipTestPanel({ config }) {
     }
 
     if (config.mode === 'radius') {
-      // Radius mode requires the ZIP database on the server — call the API
+      // Radius mode requires the ZIP database on the server - call the API
       setLoading(true);
       setResult(null);
       try {
@@ -142,7 +142,7 @@ function ZipTestPanel({ config }) {
       return;
     }
 
-    // ZIP list mode — local check against current (unsaved) config
+    // ZIP list mode - local check against current (unsaved) config
     if (config.excludedZips.includes(z)) {
       setResult({ status: 'excluded', message: `${z} is on the excluded list. Customers in this ZIP will be rejected.` });
     } else if (config.unavailableZips.includes(z)) {
@@ -382,7 +382,7 @@ export default function ServiceAreaAdmin() {
               <div className="font-medium text-gray-800 text-sm group-hover:text-blue-700 transition-colors">Radius Mode</div>
               <div className="text-xs text-gray-500 mt-0.5">
                 Automatically serve every ZIP code within a set distance of your base location.
-                No need to list ZIPs manually — you'll never miss one.
+                No need to list ZIPs manually - you'll never miss one.
               </div>
             </div>
           </label>
@@ -406,7 +406,7 @@ export default function ServiceAreaAdmin() {
         </div>
       </div>
 
-      {/* Radius settings — only in radius mode */}
+      {/* Radius settings - only in radius mode */}
       {isRadiusMode && (
         <div className="bg-white rounded-xl border p-4 space-y-4">
           <div>
@@ -455,7 +455,7 @@ export default function ServiceAreaAdmin() {
         </div>
       )}
 
-      {/* Active ZIP codes — only in zip-list mode */}
+      {/* Active ZIP codes - only in zip-list mode */}
       {!isRadiusMode && (
         <div className="bg-white rounded-xl border p-4 space-y-3">
           <h3 className="font-bold text-gray-800">Active ZIP Codes</h3>

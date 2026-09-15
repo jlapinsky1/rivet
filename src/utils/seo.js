@@ -5,4 +5,4 @@ export const makeCanonical = (path) => {
   const normalized = path.endsWith('/') ? path : `${path}/`;
   return `${SITE_URL}${normalized}`;
 };
-export const makeTitle = (page) => `${page} | Squatterz — Junk Removal Braselton GA`;
+export const makeTitle = (page) => `${page} | Squatterz - Junk Removal Braselton GA`;

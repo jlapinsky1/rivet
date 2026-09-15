@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 function formatDollars(cents) {
-  if (!cents || cents <= 0) return '—';
+  if (!cents || cents <= 0) return '-';
   return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
 
@@ -14,10 +14,10 @@ function toISOLocal() {
 /**
  * @param {object} props
  * @param {string} props.bookingId
- * @param {number} [props.approvedQuoteCents]   — read-only final amount
+ * @param {number} [props.approvedQuoteCents]   - read-only final amount
  * @param {number} props.crewBeforePhotoCount
  * @param {number} props.crewAfterPhotoCount
- * @param {function} props.onReview             — called with formData to advance to review step
+ * @param {function} props.onReview             - called with formData to advance to review step
  */
 export default function CompletionForm({ bookingId, approvedQuoteCents, crewBeforePhotoCount, crewAfterPhotoCount, onReview }) {
   const storageKey = `dispatch_form_${bookingId}`;
@@ -150,7 +150,7 @@ export default function CompletionForm({ bookingId, approvedQuoteCents, crewBefo
           />
         </div>
 
-        {/* Final amount — read-only */}
+        {/* Final amount - read-only */}
         <div className="rounded-xl bg-gray-50 border border-gray-200 px-4 py-3">
           <p className="text-xs text-gray-500 mb-0.5">Final Amount (Approved Quote)</p>
           <p className="text-xl font-bold text-gray-900">{formatDollars(approvedQuoteCents)}</p>

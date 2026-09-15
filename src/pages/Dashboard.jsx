@@ -883,7 +883,7 @@ export default function Dashboard({ onNavigate }) {
     }
   }
 
-  // Navigation handler — try parent prop first, fall back to finding AdminDashboard's setActiveTab
+  // Navigation handler - try parent prop first, fall back to finding AdminDashboard's setActiveTab
   function handleNavigate(tab) {
     if (onNavigate) {
       onNavigate(tab);

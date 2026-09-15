@@ -59,7 +59,7 @@ describe('commercialEstimateBuilder', () => {
   it('builds a recommended price for a commercial job', () => {
     const job = {
       id: 'test',
-      description: 'Apartment unit cleanout — sofa, mattress, misc debris',
+      description: 'Apartment unit cleanout - sofa, mattress, misc debris',
       accessNotes: 'Ground floor, curbside pickup',
       unit: '12B',
       photos: [{ kind: 'submission' }, { kind: 'submission' }, { kind: 'submission' }],

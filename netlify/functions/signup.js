@@ -22,7 +22,7 @@ export default async function handler(req) {
     const siteUrl = process.env.URL || req.headers.get('origin') || '';
 
     // Use admin API to create the user and generate a confirmation link.
-    // This does NOT trigger Supabase's own email — we send via Resend instead.
+    // This does NOT trigger Supabase's own email - we send via Resend instead.
     const { data, error } = await supabase.auth.admin.generateLink({
       type: 'signup',
       email,

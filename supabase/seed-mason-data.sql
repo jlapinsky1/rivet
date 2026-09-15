@@ -2,7 +2,7 @@
 -- Run AFTER all migrations and seed-demo-user.sql
 --
 -- This seeds the demo account's data into Supabase tables so it's
--- scoped to Mason's business_id via RLS — NOT shared with other accounts.
+-- scoped to Mason's business_id via RLS - NOT shared with other accounts.
 
 -- ─── Business ───
 -- Uses a deterministic UUID so seed SQL for work items can reference it

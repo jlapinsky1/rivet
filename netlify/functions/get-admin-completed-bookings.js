@@ -11,11 +11,11 @@ const PER_PAGE = 25;
  * Admin-only. Returns paginated, filtered, searchable list of completed bookings.
  *
  * Query params:
- *   search       — searches customer_name, email, phone, address, stripe_invoice_id, booking ref
- *   dateFrom     — ISO date string, filter by completed_at >=
- *   dateTo       — ISO date string, filter by completed_at <=
- *   paymentStatus — 'paid' | 'balance_due' | '' (all)
- *   page         — page number (default 1)
+ *   search       - searches customer_name, email, phone, address, stripe_invoice_id, booking ref
+ *   dateFrom     - ISO date string, filter by completed_at >=
+ *   dateTo       - ISO date string, filter by completed_at <=
+ *   paymentStatus - 'paid' | 'balance_due' | '' (all)
+ *   page         - page number (default 1)
  */
 export default async function handler(req) {
   if (req.method !== 'GET') return errorResponse('Method not allowed', 405);

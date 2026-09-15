@@ -133,7 +133,7 @@ export async function runCompleteJob({
       },
     })
     .eq('id', bookingId)
-    .neq('status', 'completed'); // idempotent — no-op if already completed
+    .neq('status', 'completed'); // idempotent - no-op if already completed
 
   // ── Step 4: Update slot reservation ─────────────────────────────────────────
   await supabase
@@ -142,7 +142,7 @@ export async function runCompleteJob({
     .eq('booking_id', bookingId)
     .in('status', ['reserved', 'confirmed']);
 
-  // ── Step 5: Audit log — booking_completed (skip if already logged) ───────────
+  // ── Step 5: Audit log - booking_completed (skip if already logged) ───────────
   if (!isIdempotent) {
     await supabase.from('audit_log').insert({
       booking_id:  bookingId,
@@ -251,7 +251,7 @@ export async function runCompleteJob({
             );
           }
         } else {
-          // Token exists — email was already sent on a previous attempt
+          // Token exists - email was already sent on a previous attempt
           finalPaymentLinkSent = true;
         }
       } else if (amountRemainingCents === 0) {

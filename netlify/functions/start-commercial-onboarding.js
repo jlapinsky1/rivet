@@ -18,7 +18,7 @@ export default async function handler(req) {
 
     const { name, email, password, phone, company, jobTitle, attribution } = await req.json();
 
-    // Validate required fields — do not log values
+    // Validate required fields - do not log values
     if (!name || !email || !password || !phone || !company) {
       return errorResponse('Name, email, password, phone, and company are required.');
     }
@@ -67,7 +67,7 @@ export default async function handler(req) {
       .limit(1);
 
     if (similarOrgs?.length > 0) {
-      // Log for admin awareness — do not include company name in the log
+      // Log for admin awareness - do not include company name in the log
       console.warn('start-commercial-onboarding: similar company name detected, review manually');
     }
 
@@ -88,7 +88,7 @@ export default async function handler(req) {
       .eq('user_id', user.id);
 
     if (updateErr) {
-      // Non-fatal — user exists, portal will still work
+      // Non-fatal - user exists, portal will still work
       console.error('commercial_clients update error (step 1)');
     }
 
@@ -112,7 +112,7 @@ export default async function handler(req) {
           resumeLink = linkData.properties.action_link;
         }
       } catch (e) {
-        // Non-fatal — user can log in manually
+        // Non-fatal - user can log in manually
         console.error('generateLink error');
       }
 

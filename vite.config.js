@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      // Don't inject manifest into every HTML page — only /dispatch needs PWA
+      // Don't inject manifest into every HTML page - only /dispatch needs PWA
       // but vite-plugin-pwa injects globally; that's fine, non-dispatch pages ignore it
       manifest: {
         name: 'Rivet',

@@ -1,5 +1,5 @@
 /**
- * Route context utilities — haversine distance, nearby job lookup, address hashing.
+ * Route context utilities - haversine distance, nearby job lookup, address hashing.
  * Modest implementation for Phase 4.
  */
 

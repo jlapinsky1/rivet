@@ -89,7 +89,7 @@ export default function InternalQuoteView({ formData, quoteResult }) {
       </div>
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-blue-800 text-xs">
-        Easy curbside jobs can be priced to win, but don't go too low. You are still charging for truck, time, fuel, disposal, convenience, and risk — not just dump fees.
+        Easy curbside jobs can be priced to win, but don't go too low. You are still charging for truck, time, fuel, disposal, convenience, and risk - not just dump fees.
       </div>
     </div>
   );

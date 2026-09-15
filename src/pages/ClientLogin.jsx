@@ -65,7 +65,7 @@ export default function ClientLogin() {
         if (!res.ok) throw new Error(result.error || "Something went wrong.");
         setResetSent(true);
       } else {
-        // signup — handled server-side so Resend sends the confirmation email
+        // signup - handled server-side so Resend sends the confirmation email
         if (password.length < 8) {
           throw new Error("Password must be at least 8 characters.");
         }

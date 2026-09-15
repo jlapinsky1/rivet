@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 
 /**
  * @param {object} props
- * @param {object} props.formData         — from CompletionForm
+ * @param {object} props.formData         - from CompletionForm
  * @param {number} props.crewBeforePhotoCount
  * @param {number} props.crewAfterPhotoCount
  * @param {boolean} props.isOnline
- * @param {function} props.onConfirm      — async, submits the job
+ * @param {function} props.onConfirm      - async, submits the job
  * @param {function} props.onBack
  */
 export default function CompletionReview({
@@ -60,7 +60,7 @@ export default function CompletionReview({
         <Row label="Completion notes" value={formData.completionNotes} />
         {formData.volumeEstimate && <Row label="Volume"       value={formData.volumeEstimate} />}
         {formData.disposalNotes  && <Row label="Disposal"     value={formData.disposalNotes} />}
-        <Row label="Completed at"     value={formData.completedAt ? new Date(formData.completedAt).toLocaleString() : '—'} />
+        <Row label="Completed at"     value={formData.completedAt ? new Date(formData.completedAt).toLocaleString() : '-'} />
       </div>
 
       <p className="text-sm text-gray-600 text-center">

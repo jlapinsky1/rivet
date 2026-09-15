@@ -102,7 +102,7 @@ def test_extra_json_fields_do_not_break_endpoint(api, test_upload_session, test_
                            role="admin",
                            payment_status="paid")
     r = api.post("/api/create-booking", json=payload)
-    # Should either succeed normally or fail on a known validation rule — not 500
+    # Should either succeed normally or fail on a known validation rule - not 500
     assert r.status_code in (201, 400, 422)
 
 

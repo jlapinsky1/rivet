@@ -1,4 +1,4 @@
--- Location geocode cache (no full PII — address lives on booking)
+-- Location geocode cache (no full PII - address lives on booking)
 CREATE TABLE location_cache (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   address_hash      TEXT NOT NULL UNIQUE,

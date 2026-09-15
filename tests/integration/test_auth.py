@@ -1,6 +1,6 @@
 """
 Authentication: login, session, role enforcement, portal signup.
-Portal signup and expansion-lead capture are separate workflows — tested independently.
+Portal signup and expansion-lead capture are separate workflows - tested independently.
 """
 import os
 import uuid

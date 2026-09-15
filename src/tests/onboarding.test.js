@@ -254,7 +254,7 @@ describe('submit-commercial-request', () => {
 
 // ── create-commercial-job (authenticated path) ───────────────────────────────
 
-describe('create-commercial-job — draft mode', () => {
+describe('create-commercial-job - draft mode', () => {
   let handler;
   let supabaseMock;
   let fetchMock;
@@ -303,9 +303,9 @@ describe('create-commercial-job — draft mode', () => {
   });
 });
 
-// ── PortalStart — double-submit guard ────────────────────────────────────────
+// ── PortalStart - double-submit guard ────────────────────────────────────────
 
-describe('PortalStart — final step double-submit protection', () => {
+describe('PortalStart - final step double-submit protection', () => {
   it('submitted flag prevents duplicate submit handler calls', async () => {
     let callCount = 0;
     const submitted = { current: false };

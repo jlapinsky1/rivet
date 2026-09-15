@@ -54,7 +54,7 @@ export default async function handler(req) {
     if (!shopLat || !shopLng) {
       return jsonResponse({
         skipped: true,
-        reason: 'Shop location not configured — set SHOP_LAT/SHOP_LNG or pass shopAddress',
+        reason: 'Shop location not configured - set SHOP_LAT/SHOP_LNG or pass shopAddress',
       });
     }
 

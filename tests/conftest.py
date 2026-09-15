@@ -71,7 +71,7 @@ def client_headers(client_token) -> dict:
 def lookup_secret() -> str:
     secret = os.environ.get("TEST_LOOKUP_SECRET", "")
     if not secret:
-        pytest.skip("TEST_LOOKUP_SECRET not configured — test-lookup endpoint unavailable")
+        pytest.skip("TEST_LOOKUP_SECRET not configured - test-lookup endpoint unavailable")
     return secret
 
 

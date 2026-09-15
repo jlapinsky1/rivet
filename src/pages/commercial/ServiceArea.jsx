@@ -75,13 +75,13 @@ export default function ServiceArea() {
   return (
     <div className="min-h-screen bg-[#0a0f0d] text-white">
       <Helmet>
-        <title>{makeTitle("Service Area — Northeast Georgia Junk Removal")}</title>
+        <title>{makeTitle("Service Area - Northeast Georgia Junk Removal")}</title>
         <meta
           name="description"
-          content="Squatterz serves property managers across Northeast Georgia — Gainesville, Hoschton, Braselton, Buford, Lawrenceville, and surrounding communities."
+          content="Squatterz serves property managers across Northeast Georgia - Gainesville, Hoschton, Braselton, Buford, Lawrenceville, and surrounding communities."
         />
         <link rel="canonical" href={makeCanonical("/commercial/service-area")} />
-        <meta property="og:title" content="Service Area — Northeast Georgia Junk Removal | Squatterz" />
+        <meta property="og:title" content="Service Area - Northeast Georgia Junk Removal | Squatterz" />
         <meta
           property="og:description"
           content="Commercial junk removal and property cleanup serving Hall, Jackson, Gwinnett, Barrow, Forsyth, and Dawson counties in Northeast Georgia."
@@ -114,7 +114,7 @@ export default function ServiceArea() {
             <span className="text-[#22c55e] text-xs font-semibold uppercase tracking-widest">Service Area</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-black leading-tight mb-6">
-            Junk Removal Service Area —{" "}
+            Junk Removal Service Area -{" "}
             <span className="text-[#22c55e]">Northeast Georgia</span>
           </h1>
           <p className="text-white/60 text-lg leading-relaxed max-w-2xl mb-8">
@@ -217,7 +217,7 @@ export default function ServiceArea() {
         <section className="max-w-4xl mx-auto px-5 mb-16">
           <div className="border border-white/8 rounded-xl p-5">
             <p className="text-white/40 text-xs leading-relaxed">
-              <strong className="text-white/60">Note on disposal:</strong> Certain items and materials require specific disposal facilities — appliances with refrigerants, electronics, tires, and similar items. Availability may vary depending on current facility capacity and regulations in your area. We'll note any limitations when reviewing your work order.
+              <strong className="text-white/60">Note on disposal:</strong> Certain items and materials require specific disposal facilities - appliances with refrigerants, electronics, tires, and similar items. Availability may vary depending on current facility capacity and regulations in your area. We'll note any limitations when reviewing your work order.
             </p>
           </div>
         </section>

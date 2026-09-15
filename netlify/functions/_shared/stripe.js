@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 
 /**
- * Pinned Stripe API version — must support POST /v1/invoices/{id}/attach_payment.
+ * Pinned Stripe API version - must support POST /v1/invoices/{id}/attach_payment.
  * Verify with: curl https://api.stripe.com/v1/invoices/in_test/attach_payment \
  *   -H "Stripe-Version: 2025-05-28.basil" -u $STRIPE_SECRET_KEY:
  * Expected: 404 "No such invoice" (endpoint exists).
@@ -25,7 +25,7 @@ export function getStripeClient() {
  *
  * @param {Stripe} stripe
  * @param {string} invoiceId
- * @param {boolean} includeHostedUrl — only expose hosted invoice URL when final payment requested
+ * @param {boolean} includeHostedUrl - only expose hosted invoice URL when final payment requested
  */
 export async function getPaymentSummaryDTO(stripe, invoiceId, includeHostedUrl = false) {
   const invoice = await stripe.invoices.retrieve(invoiceId, {
@@ -62,14 +62,14 @@ export function calculateDepositCents(invoiceTotalCents) {
 /**
  * Convert a dollar amount (numeric) to integer cents.
  * Uses Math.round to avoid floating-point drift.
- * All Stripe amounts must be integer cents — never use floats.
+ * All Stripe amounts must be integer cents - never use floats.
  */
 export function toCents(dollars) {
   return Math.round(Number(dollars) * 100);
 }
 
 /**
- * Deterministic idempotency keys — include quote_version to prevent
+ * Deterministic idempotency keys - include quote_version to prevent
  * cross-version collisions when quotes are revised and invoices voided/recreated.
  */
 export const ikey = {

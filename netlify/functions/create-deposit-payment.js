@@ -118,7 +118,7 @@ export default async function handler(req) {
           });
         }
       } catch {
-        // PI not found or error — create a new one below
+        // PI not found or error - create a new one below
       }
     }
 
@@ -160,7 +160,7 @@ export default async function handler(req) {
         invoiceId: booking.stripe_invoice_id,
         piId: pi.id,
       });
-      // PI was created but not attached — store ID so idempotency key reuses it
+      // PI was created but not attached - store ID so idempotency key reuses it
       // Webhook will still fire when PI succeeds; reconciliation can fix the attach
     }
 

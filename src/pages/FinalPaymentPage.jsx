@@ -162,7 +162,7 @@ export default function FinalPaymentPage() {
 
       if (attempts >= maxAttempts) {
         stopPolling();
-        // Keep showing payment_submitted — customer should check email
+        // Keep showing payment_submitted - customer should check email
       }
     }, 3000);
   }

@@ -88,7 +88,7 @@ function bookingToDTO(b) {
 export default async function handler(req) {
   if (req.method !== 'GET') return errorResponse('Method not allowed', 405);
 
-  // Auth — try business member first, fall back to admin
+  // Auth - try business member first, fall back to admin
   let user, businessId;
   try {
     const member = await verifyBusinessMember(req);
@@ -119,7 +119,7 @@ export default async function handler(req) {
     const supabase = getServiceClient();
     const jobs = [];
 
-    // 1. Work items — scoped to business
+    // 1. Work items - scoped to business
     if (businessId) {
       const { data: workItems, error: wiErr } = await supabase
         .from('work_items')
@@ -138,7 +138,7 @@ export default async function handler(req) {
       }
     }
 
-    // 2. Bookings — optional, table may not exist for all businesses
+    // 2. Bookings - optional, table may not exist for all businesses
     try {
       const bookingsQuery = supabase
         .from('bookings')
@@ -159,9 +159,9 @@ export default async function handler(req) {
           jobs.push(bookingToDTO(b));
         }
       }
-      // bErr is expected if bookings table doesn't exist — just skip
+      // bErr is expected if bookings table doesn't exist - just skip
     } catch (_) {
-      // bookings table may not exist — that's fine
+      // bookings table may not exist - that's fine
     }
 
     // Sort: active first, then by status priority

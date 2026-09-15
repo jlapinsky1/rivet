@@ -23,7 +23,7 @@ WHERE status NOT IN (
 );
 
 -- Re-apply the expanded constraint (includes 'draft' from 017).
--- Safe to run even if you will re-run 017 afterward — 017 drops and re-adds this.
+-- Safe to run even if you will re-run 017 afterward - 017 drops and re-adds this.
 ALTER TABLE jobs ADD CONSTRAINT jobs_status_check
   CHECK (status IN (
     'draft', 'pending_review', 'quote_sent', 'awaiting_payment',

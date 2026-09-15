@@ -2,12 +2,12 @@
  * Decision rules for evaluating whether to Take, Review, or Pass on a job.
  *
  * Rule types:
- *   hard  — failure = automatic Pass (loss protection, true blockers)
- *   gate  — failure = forced Review (operational concern, not an auto-reject)
- *   soft  — contributes to the composite score via bonuses/penalties
+ *   hard  - failure = automatic Pass (loss protection, true blockers)
+ *   gate  - failure = forced Review (operational concern, not an auto-reject)
+ *   soft  - contributes to the composite score via bonuses/penalties
  *
  * Safety guardrails (minimum_job_profit, minimum_margin) are now named
- * "Absolute Profit Floor" and "Absolute Margin Floor" — owner-configured
+ * "Absolute Profit Floor" and "Absolute Margin Floor" - owner-configured
  * hard limits that do not change dynamically.
  *
  * Dynamic rules use context.dynamicTargets (from calculateDynamicTargets)
@@ -99,7 +99,7 @@ export const DECISION_RULES = [
     evaluate(ctx) {
       if (!ctx.confidence) return { result: 'skip', message: 'No confidence data' };
       if (ctx.confidence.level === 'low') {
-        return { result: 'review', message: 'Low confidence — manual review needed' };
+        return { result: 'review', message: 'Low confidence - manual review needed' };
       }
       return { result: 'pass', message: `${ctx.confidence.level} confidence` };
     },
@@ -127,10 +127,10 @@ export const DECISION_RULES = [
     evaluate(ctx) {
       if (!ctx.goalProgress) return { result: 'skip', message: 'No active goal' };
       const pace = ctx.goalProgress.paceStatus;
-      if (pace === 'achieved') return { result: 'pass', message: 'Goal achieved — be selective', data: { bonus: -0.05 } };
-      if (pace === 'behind') return { result: 'pass', message: 'Behind pace — take profitable jobs', data: { bonus: 0.15 } };
-      if (pace === 'at_risk') return { result: 'pass', message: 'At risk — prioritize good jobs', data: { bonus: 0.10 } };
-      if (pace === 'ahead') return { result: 'pass', message: 'Ahead of pace — can be selective', data: { bonus: -0.05 } };
+      if (pace === 'achieved') return { result: 'pass', message: 'Goal achieved - be selective', data: { bonus: -0.05 } };
+      if (pace === 'behind') return { result: 'pass', message: 'Behind pace - take profitable jobs', data: { bonus: 0.15 } };
+      if (pace === 'at_risk') return { result: 'pass', message: 'At risk - prioritize good jobs', data: { bonus: 0.10 } };
+      if (pace === 'ahead') return { result: 'pass', message: 'Ahead of pace - can be selective', data: { bonus: -0.05 } };
       return { result: 'pass', message: 'On pace', data: { bonus: 0 } };
     },
   },
@@ -185,9 +185,9 @@ export const DECISION_RULES = [
       const travel = ctx.estimate?.estimatedTravelMinutes;
       if (travel == null) return { result: 'skip', message: 'No travel estimate' };
       if (!ctx.estimate?.hasDistanceData) {
-        return { result: 'pass', message: 'Travel not verified — using placeholder estimate', data: { bonus: -0.08 } };
+        return { result: 'pass', message: 'Travel not verified - using placeholder estimate', data: { bonus: -0.08 } };
       }
-      if (travel <= 30) return { result: 'pass', message: 'Short travel — efficient', data: { bonus: 0.05 } };
+      if (travel <= 30) return { result: 'pass', message: 'Short travel - efficient', data: { bonus: 0.05 } };
       if (travel <= 60) return { result: 'pass', message: 'Normal travel time', data: { bonus: 0 } };
       if (travel <= 90) return { result: 'pass', message: 'Long travel time', data: { bonus: -0.05 } };
       return { result: 'pass', message: `Very long travel (${travel} min)`, data: { bonus: -0.10 } };
@@ -204,7 +204,7 @@ export const DECISION_RULES = [
       const utilization = jobsToday / capacityLimit;
       if (utilization >= 1) return { result: 'pass', message: 'At capacity', data: { bonus: -0.10 } };
       if (utilization >= 0.75) return { result: 'pass', message: 'Near capacity', data: { bonus: -0.03 } };
-      if (utilization <= 0.25) return { result: 'pass', message: 'Light schedule — fills unused capacity', data: { bonus: 0.10 } };
+      if (utilization <= 0.25) return { result: 'pass', message: 'Light schedule - fills unused capacity', data: { bonus: 0.10 } };
       return { result: 'pass', message: 'Moderate schedule', data: { bonus: 0 } };
     },
   },
@@ -221,12 +221,12 @@ export const DECISION_RULES = [
       const profit = ctx.estimate?.estimatedProfit || 0;
 
       if (dt.todayCovered) {
-        // Today's goal is already met — this slot is bonus capacity
-        return { result: 'pass', message: 'Daily target already covered — bonus capacity', data: { bonus: -0.03 } };
+        // Today's goal is already met - this slot is bonus capacity
+        return { result: 'pass', message: 'Daily target already covered - bonus capacity', data: { bonus: -0.03 } };
       }
 
       if (dt.openSlots <= 0) {
-        return { result: 'pass', message: 'No open slots — would exceed capacity', data: { bonus: -0.10 } };
+        return { result: 'pass', message: 'No open slots - would exceed capacity', data: { bonus: -0.10 } };
       }
 
       const suggested = dt.suggestedPerSlot;
@@ -260,24 +260,24 @@ export const DECISION_RULES = [
 
       // When capacity is scarce, only accept strong jobs
       if (dt.openSlots === 1 && !dt.todayCovered) {
-        // Last slot — only worth it if the job meaningfully contributes
+        // Last slot - only worth it if the job meaningfully contributes
         if (suggested > 0 && profit < suggested * 0.60) {
-          return { result: 'pass', message: `Last open slot — ${fmtC(profit)} profit unlikely the best use`, data: { bonus: -0.10 } };
+          return { result: 'pass', message: `Last open slot - ${fmtC(profit)} profit unlikely the best use`, data: { bonus: -0.10 } };
         }
         if (suggested > 0 && profit >= suggested) {
-          return { result: 'pass', message: `Last slot and job meets target — good use of capacity`, data: { bonus: 0.08 } };
+          return { result: 'pass', message: `Last slot and job meets target - good use of capacity`, data: { bonus: 0.08 } };
         }
-        return { result: 'pass', message: 'Last open slot — consider carefully', data: { bonus: -0.05 } };
+        return { result: 'pass', message: 'Last open slot - consider carefully', data: { bonus: -0.05 } };
       }
 
       if (dt.capacityScarcity >= 0.75 && !dt.todayCovered) {
-        // Near capacity — raise the bar slightly
-        return { result: 'pass', message: 'Near capacity — be selective', data: { bonus: -0.03 } };
+        // Near capacity - raise the bar slightly
+        return { result: 'pass', message: 'Near capacity - be selective', data: { bonus: -0.03 } };
       }
 
       if (dt.openSlots >= 3 && dt.urgency >= 0.6) {
-        // Plenty of room and behind pace — be open to jobs
-        return { result: 'pass', message: 'Open capacity and behind pace — filling slots helps', data: { bonus: 0.05 } };
+        // Plenty of room and behind pace - be open to jobs
+        return { result: 'pass', message: 'Open capacity and behind pace - filling slots helps', data: { bonus: 0.05 } };
       }
 
       return { result: 'skip', message: 'Normal capacity' };

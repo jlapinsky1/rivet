@@ -82,7 +82,7 @@ export type IndividualCustomer = {
   totalRevenue: number;
 };
 
-// ─── Static seed data (for tests only — UI fetches from Supabase) ───
+// ─── Static seed data (for tests only - UI fetches from Supabase) ───
 
 import { demoWorkItems } from '../demo/seed';
 import { demoIndividuals, demoCompanies } from '../demo/customers';

@@ -44,7 +44,7 @@ async function handlePut(req) {
     mode,
   } = body;
 
-  // Validate and normalize each list — invalid ZIPs are silently dropped
+  // Validate and normalize each list - invalid ZIPs are silently dropped
   const normalized = {
     serviceableZips: normalizeAndDedupeZips(serviceableZips),
     excludedZips: normalizeAndDedupeZips(excludedZips),

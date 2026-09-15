@@ -1,5 +1,5 @@
 """
-POST /api/create-booking — field matrix, idempotency, server-side enforcement.
+POST /api/create-booking - field matrix, idempotency, server-side enforcement.
 """
 import uuid
 

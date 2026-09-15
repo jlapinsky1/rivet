@@ -7,7 +7,7 @@
  *  - Does NOT accept finalAmountCents from the client. Reads approved_quote
  *    from the DB and uses that as the final amount.  Price cannot be changed
  *    from the dispatch interface.
- *  - No deposit override. Deposit must be confirmed — period.
+ *  - No deposit override. Deposit must be confirmed - period.
  *  - Fetches after-photo paths from the DB (crew photos already uploaded via
  *    dispatch-photo). Client never sends paths.
  *  - Resumable: if the booking is already completed, resumes from the first
@@ -71,7 +71,7 @@ export default async function handler(req) {
       );
     }
 
-    // ── Deposit enforcement — no override from dispatch ──────────────────────
+    // ── Deposit enforcement - no override from dispatch ──────────────────────
     if (!booking.deposit_confirmed_at) {
       return errorResponse(
         'Deposit not confirmed. Contact the office before completing this job.',
@@ -114,7 +114,7 @@ export default async function handler(req) {
       return errorResponse('Invalid approved quote amount on booking', 500);
     }
 
-    // After photo paths from DB (server-side) — client never sends paths here
+    // After photo paths from DB (server-side) - client never sends paths here
     const afterPhotoStoragePaths = (afterPhotos || []).map(p => p.storage_path);
 
     // ── Run completion (resumable) ────────────────────────────────────────────
@@ -130,7 +130,7 @@ export default async function handler(req) {
       disposalNotes,
       afterPhotoStoragePaths,
       finalAmountCents,
-      // No priceAdjustmentReason — amount always equals approved quote
+      // No priceAdjustmentReason - amount always equals approved quote
     });
 
     return jsonResponse(result);

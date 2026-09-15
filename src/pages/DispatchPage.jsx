@@ -47,7 +47,7 @@ export default function DispatchPage() {
   const [isOffline, setIsOffline]   = useState(!navigator.onLine);
   const [view, setView]             = useState('estimates'); // 'jobs' | 'estimates'
 
-  // Prevent background scrolling — keep it simple, just lock overflow
+  // Prevent background scrolling - keep it simple, just lock overflow
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
@@ -244,7 +244,7 @@ export default function DispatchPage() {
 
       {isOffline && (
         <div className="bg-yellow-400 text-yellow-900 text-xs font-semibold text-center py-2 px-4 flex-shrink-0">
-          You're offline — showing cached jobs
+          You're offline - showing cached jobs
         </div>
       )}
 

@@ -55,7 +55,7 @@ const STEPS = [
   {
     num: "02",
     title: "Review and Approve",
-    desc: "We review the request and send a line-item estimate. Approve from your phone — no phone calls required.",
+    desc: "We review the request and send a line-item estimate. Approve from your phone - no phone calls required.",
   },
   {
     num: "03",
@@ -109,7 +109,7 @@ export default function ApartmentCleanouts() {
         <title>{makeTitle("Apartment Cleanout Service for Property Managers")}</title>
         <meta
           name="description"
-          content="Apartment cleanout service for property managers and landlords in Northeast Georgia. Move-outs, turnovers, abandoned units — documented on every job."
+          content="Apartment cleanout service for property managers and landlords in Northeast Georgia. Move-outs, turnovers, abandoned units - documented on every job."
         />
         <link rel="canonical" href={makeCanonical("/commercial/apartment-cleanouts")} />
         <meta property="og:title" content="Apartment Cleanout Service for Property Managers | Squatterz" />
@@ -193,7 +193,7 @@ export default function ApartmentCleanouts() {
         <section className="max-w-4xl mx-auto px-5 mb-16">
           <h2 className="text-2xl font-black mb-2">How It Works</h2>
           <p className="text-white/50 text-sm mb-8">
-            Every cleanout goes through the same process — submit, approve, we clear, you get documentation.
+            Every cleanout goes through the same process - submit, approve, we clear, you get documentation.
           </p>
           <div className="grid md:grid-cols-2 gap-5">
             {STEPS.map(({ num, title, desc }) => (

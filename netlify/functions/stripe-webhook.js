@@ -2,7 +2,7 @@ import { getServiceClient } from './_shared/supabase.js';
 import { getStripeClient, calculateDepositCents } from './_shared/stripe.js';
 // Note: calculateDepositCents is used for both residential and commercial deposit handling
 
-// Must NOT use jsonResponse helper — Stripe expects specific response shapes
+// Must NOT use jsonResponse helper - Stripe expects specific response shapes
 function respond(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -16,7 +16,7 @@ export default async function handler(req) {
   }
 
   // ── Read raw body for signature verification ──────────────────────────────
-  // Must use raw bytes — never parse as JSON first
+  // Must use raw bytes - never parse as JSON first
   let rawBody;
   try {
     rawBody = Buffer.from(await req.arrayBuffer());
@@ -61,7 +61,7 @@ export default async function handler(req) {
 
     if (insertErr) {
       if (insertErr.code === '23505') {
-        // Duplicate key — event already seen
+        // Duplicate key - event already seen
         const { data: existing } = await supabase
           .from('processed_stripe_events')
           .select('processing_status')
@@ -72,7 +72,7 @@ export default async function handler(req) {
           return respond({ received: true, idempotent: true });
         }
         if (existing?.processing_status === 'processing') {
-          // Another instance is handling this — safe to return OK
+          // Another instance is handling this - safe to return OK
           return respond({ received: true });
         }
         if (existing?.processing_status === 'failed') {
@@ -95,7 +95,7 @@ export default async function handler(req) {
         }
       } else {
         console.error('Failed to record webhook event:', insertErr);
-        // Continue processing despite DB error — don't return 500 to Stripe
+        // Continue processing despite DB error - don't return 500 to Stripe
       }
     }
   } catch (idempErr) {
@@ -134,7 +134,7 @@ export default async function handler(req) {
         break;
 
       default:
-        // Unhandled event type — acknowledge without error
+        // Unhandled event type - acknowledge without error
         break;
     }
   } catch (e) {
@@ -216,7 +216,7 @@ async function handleInvoicePaymentPaid(stripe, supabase, event) {
       got: invoice.id,
       bookingId,
     });
-    return; // Ignore — not our invoice
+    return; // Ignore - not our invoice
   }
 
   if (invoice.customer !== booking.stripe_customer_id) {
@@ -284,7 +284,7 @@ async function handleInvoicePaymentPaid(stripe, supabase, event) {
       }
 
     } else {
-      // Underpayment — do not confirm deposit; log for admin review
+      // Underpayment - do not confirm deposit; log for admin review
       console.error('Deposit underpayment detected', {
         bookingId,
         required: requiredDepositCents,
@@ -295,7 +295,7 @@ async function handleInvoicePaymentPaid(stripe, supabase, event) {
     }
 
   } else if (isFinalPI) {
-    // Final payment confirmation (backup — primary is invoice.paid)
+    // Final payment confirmation (backup - primary is invoice.paid)
     if (!booking.financially_completed_at && invoice.amount_remaining === 0) {
       await supabase
         .from('bookings')
@@ -322,7 +322,7 @@ async function handleInvoicePaid(stripe, supabase, event) {
   const invoice = event.data.object;
 
   if (invoice.amount_remaining !== 0) {
-    return; // Guard — shouldn't happen for invoice.paid but be safe
+    return; // Guard - shouldn't happen for invoice.paid but be safe
   }
 
   const bookingId = invoice.metadata?.booking_id;
@@ -366,7 +366,7 @@ async function handleInvoicePaid(stripe, supabase, event) {
 }
 
 // ── Handler: payment_intent.payment_failed ────────────────────────────────
-// Card declined — do NOT cancel slot reservation.
+// Card declined - do NOT cancel slot reservation.
 // Customer can retry; slot expires naturally after 30 minutes.
 
 async function handlePaymentFailed(supabase, event) {
@@ -382,7 +382,7 @@ async function handlePaymentFailed(supabase, event) {
     .eq('id', bookingId)
     .single();
 
-  // Audit only — booking stays in awaiting_deposit for retry
+  // Audit only - booking stays in awaiting_deposit for retry
   await supabase.from('audit_log').insert({
     booking_id: bookingId,
     business_id: failedBooking?.business_id,
@@ -420,7 +420,7 @@ async function sendDepositConfirmationEmail(supabase, booking) {
       body: JSON.stringify({
         from: process.env.RESEND_FROM_EMAIL || 'noreply@squatterz.com',
         to: fullBooking.customer_email,
-        subject: 'Your deposit is confirmed — appointment scheduled',
+        subject: 'Your deposit is confirmed - appointment scheduled',
         html: `<p>Hi ${fullBooking.customer_name?.split(' ')[0] || 'there'},</p>
 <p>Your 50% deposit has been received and your appointment is confirmed.</p>
 ${fullBooking.scheduled_pickup ? `<p><strong>Pickup:</strong> ${fullBooking.scheduled_pickup}</p>` : ''}
@@ -454,9 +454,9 @@ async function sendFinalPaidReceiptEmail(supabase, booking) {
       body: JSON.stringify({
         from: process.env.RESEND_FROM_EMAIL || 'noreply@squatterz.com',
         to: fullBooking.customer_email,
-        subject: 'Payment received — thank you!',
+        subject: 'Payment received - thank you!',
         html: `<p>Hi ${fullBooking.customer_name?.split(' ')[0] || 'there'},</p>
-<p>Your final payment has been received. Your job is fully paid — thank you!</p>
+<p>Your final payment has been received. Your job is fully paid - thank you!</p>
 <p>If you have any questions, don't hesitate to reach out.</p>`,
       }),
     });
@@ -508,7 +508,7 @@ async function handleCommercialInvoicePaymentPaid(supabase, invoice, invoicePaym
           body: JSON.stringify({
             from: `Squatterz <${process.env.RESEND_FROM_EMAIL || 'noreply@squatterz.com'}>`,
             to: [adminEmail],
-            subject: `Commercial deposit received — job ${jobId.slice(0, 8).toUpperCase()}`,
+            subject: `Commercial deposit received - job ${jobId.slice(0, 8).toUpperCase()}`,
             html: `<p>Deposit confirmed for commercial job ${jobId}. Job is now scheduled.</p>
                    <p><a href="${process.env.URL || ''}/admin/commercial">View in admin →</a></p>`,
           }),

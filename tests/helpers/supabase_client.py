@@ -1,6 +1,6 @@
 """
 Service-role Supabase REST client for test setup and teardown ONLY.
-Never use the service-role key inside test assertions — it bypasses RLS
+Never use the service-role key inside test assertions - it bypasses RLS
 and would give false confidence about authorization.
 """
 import os

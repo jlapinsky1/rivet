@@ -64,18 +64,18 @@ export function evaluateDecision(context) {
     headline = gateIssues.map(r => r.message).join('; ');
   } else if (score >= 65) {
     recommendation = 'take';
-    headline = 'Strong job — fits goals and schedule';
+    headline = 'Strong job - fits goals and schedule';
   } else if (score >= 40) {
     recommendation = 'review';
-    headline = 'Review carefully — mixed signals';
+    headline = 'Review carefully - mixed signals';
   } else {
     recommendation = 'pass';
-    headline = 'Weak job — consider passing unless schedule is light';
+    headline = 'Weak job - consider passing unless schedule is light';
   }
 
   // Contextual headline adjustments
   if (context.goalProgress?.paceStatus === 'behind' && recommendation === 'review' && !hardFail) {
-    headline = 'Behind pace — review carefully, consider taking if profitable';
+    headline = 'Behind pace - review carefully, consider taking if profitable';
   }
 
   // Collect reasons by category
@@ -209,7 +209,7 @@ function buildExplanation(recommendation, context, ruleResults, goalContribution
 
     // Capacity scarcity
     if (dt.openSlots === 1 && !dt.todayCovered) {
-      parts.push('This is the last open slot today — consider whether a stronger job might fill it.');
+      parts.push('This is the last open slot today - consider whether a stronger job might fill it.');
     } else if (dt.openSlots === 0) {
       parts.push('Schedule is at capacity. Taking this job would exceed the daily limit.');
     }
@@ -218,11 +218,11 @@ function buildExplanation(recommendation, context, ruleResults, goalContribution
   // Pace context
   if (gp) {
     if (gp.paceStatus === 'behind') {
-      parts.push('You are behind pace — profitable work helps close the gap.');
+      parts.push('You are behind pace - profitable work helps close the gap.');
     } else if (gp.paceStatus === 'at_risk') {
-      parts.push('You are at risk of falling behind — prioritize strong jobs.');
+      parts.push('You are at risk of falling behind - prioritize strong jobs.');
     } else if (gp.paceStatus === 'ahead' || gp.paceStatus === 'achieved') {
-      parts.push('You are ahead of pace — you can afford to be selective.');
+      parts.push('You are ahead of pace - you can afford to be selective.');
     }
   }
 

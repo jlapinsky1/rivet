@@ -28,7 +28,7 @@ export async function getRepo() {
 }
 
 /**
- * Synchronous accessor — only safe after first `await getRepo()`.
+ * Synchronous accessor - only safe after first `await getRepo()`.
  * Throws if called before initialization.
  */
 export function repo() {

@@ -140,7 +140,7 @@ export function approveBooking(id, { approvedQuote, quoteExpiresAt, availableSlo
  *   4. Returns success or conflict error
  */
 export function acceptQuote(id, { scheduledPickup, acceptedPrice, quoteVersion, confirmations }) {
-  // Check slot availability (client-side — NOT sufficient for production)
+  // Check slot availability (client-side - NOT sufficient for production)
   const bookedSlots = getBookedSlots();
   if (scheduledPickup && bookedSlots.includes(scheduledPickup)) {
     return { success: false, error: 'slot_taken' };

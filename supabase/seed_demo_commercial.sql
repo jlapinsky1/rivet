@@ -96,7 +96,7 @@ BEGIN
    'Sandra Holt',
    '(404) 555-0192',
    'sholt@oakwoodapts.com',
-   '128 units across 6 buildings. High tenant turnover in Buildings C and D. Dumpster enclosure is keyed — coordinate with Sandra before scheduling.'),
+   '128 units across 6 buildings. High tenant turnover in Buildings C and D. Dumpster enclosure is keyed - coordinate with Sandra before scheduling.'),
 
   (p_riverside, v_client_id,
    'Riverside Office Park',
@@ -128,12 +128,12 @@ BEGIN
    'Lisa Okafor',
    '(404) 555-0519',
    'lokafor@brookhavenhoa.org',
-   '72-unit HOA-managed condo complex. Common area cleanouts and move-out debris. Freight elevator available — must be reserved with Lisa. No street parking: use rear parking structure.');
+   '72-unit HOA-managed condo complex. Common area cleanouts and move-out debris. Freight elevator available - must be reserved with Lisa. No street parking: use rear parking structure.');
 
 
   -- ── 5. Jobs ─────────────────────────────────────────────────
 
-  -- OAKWOOD — 8 jobs
+  -- OAKWOOD - 8 jobs
   INSERT INTO jobs (id, property_id, status, unit, description, scheduled_date, completed_at, estimate, final_amount, items_removed, completion_notes, access_notes, preferred_date) VALUES
 
   (j_oak_comp1, p_oakwood, 'completed', 'Unit 14C',
@@ -142,7 +142,7 @@ BEGIN
    425.00, 450.00,
    'Sofa, loveseat, queen bed frame + mattress, dresser, 2x nightstands, microwave, small refrigerator, ~20 boxes of miscellaneous household items',
    'Took 2 trips. Extra charge applied for second truck run. Unit left broom clean.',
-   'Key from office. No elevator in Building C — stairs only to 2nd floor.',
+   'Key from office. No elevator in Building C - stairs only to 2nd floor.',
    now() - interval '63 days'),
 
   (j_oak_comp2, p_oakwood, 'completed', 'Unit 7A',
@@ -150,11 +150,11 @@ BEGIN
    now() - interval '45 days', now() - interval '44 days',
    275.00, 275.00,
    'Twin bed + mattress, desk, office chair, 4x trash bags, old TV (CRT), shelving unit',
-   'Single trip. Unit was mostly cleared by tenant — quick job.',
+   'Single trip. Unit was mostly cleared by tenant - quick job.',
    'Unit on ground floor, east side of Building A.',
    now() - interval '46 days'),
 
-  (j_oak_comp3, p_oakwood, 'completed', 'Building D — Common Area',
+  (j_oak_comp3, p_oakwood, 'completed', 'Building D - Common Area',
    'Quarterly common area cleanout. Lobby and laundry room items.',
    now() - interval '30 days', now() - interval '29 days',
    195.00, 195.00,
@@ -168,7 +168,7 @@ BEGIN
    now() - interval '14 days', now() - interval '13 days',
    575.00, 600.00,
    'Full bedroom set, dining table + 4 chairs, couch, large TV + stand, washer/dryer, ~30 bags of trash/clothes, bicycle',
-   'Heavy load — 2 trucks needed. Washer/dryer required appliance dolly. Extra charge approved by Sandra.',
+   'Heavy load - 2 trucks needed. Washer/dryer required appliance dolly. Extra charge approved by Sandra.',
    'Coordinate with Sandra for access. Building C, 3rd floor.',
    now() - interval '15 days'),
 
@@ -196,22 +196,22 @@ BEGIN
    'Building C, 1st floor. Dumpster enclosure open.',
    now()),
 
-  (j_oak_open1, p_oakwood, 'open', 'Building B — Storage Room',
+  (j_oak_open1, p_oakwood, 'open', 'Building B - Storage Room',
    'Storage room in basement has accumulated years of abandoned tenant items. Needs full cleanout.',
    NULL, NULL,
    NULL, NULL,
    NULL, NULL,
-   'Storage room B-lower. Sandra has key. Stairs only — tight stairwell.',
+   'Storage room B-lower. Sandra has key. Stairs only - tight stairwell.',
    now() + interval '14 days'),
 
 
-  -- RIVERSIDE OFFICE PARK — 5 jobs
+  -- RIVERSIDE OFFICE PARK - 5 jobs
   (j_riv_comp1, p_riverside, 'completed', 'Suite 210',
    'Tenant move-out. Office furniture and IT equipment debris.',
    now() - interval '55 days', now() - interval '54 days',
    350.00, 350.00,
    '6x office chairs, 4x desks, 2x filing cabinets, printer, server rack (empty), cubicle panels, assorted IT cables/boxes',
-   'Filing cabinets were heavy — required 2-man team. All removed cleanly.',
+   'Filing cabinets were heavy - required 2-man team. All removed cleanly.',
    'Loading dock Building B. Marcus will have dock door open.',
    now() - interval '56 days'),
 
@@ -220,20 +220,20 @@ BEGIN
    now() - interval '20 days', now() - interval '19 days',
    680.00, 720.00,
    'Drywall scraps (~2 cubic yards), old carpet + padding, fluorescent light fixtures (12), ceiling tiles, metal framing scraps, 2x old HVAC vents',
-   'Construction debris only — coordinate with contractor was smooth. Slight overage on drywall volume, $40 added.',
+   'Construction debris only - coordinate with contractor was smooth. Slight overage on drywall volume, $40 added.',
    'Loading dock Building A. Contractor (Mike Reeves) will be on site.',
    now() - interval '21 days'),
 
   (j_riv_sched1, p_riverside, 'scheduled', 'Suite 318',
-   'New tenant buildout — old furniture and fixture removal before contractor arrives.',
+   'New tenant buildout - old furniture and fixture removal before contractor arrives.',
    now() + interval '5 days', NULL,
    290.00, NULL,
    NULL, NULL,
-   'Loading dock Building C. Marcus will meet crew at 7:30am sharp — contractor arrives at 9am.',
+   'Loading dock Building C. Marcus will meet crew at 7:30am sharp - contractor arrives at 9am.',
    now() + interval '4 days'),
 
   (j_riv_open1, p_riverside, 'open', 'Suite 402',
-   'Tenant downsizing — removing half their furniture. Needs assessment visit first.',
+   'Tenant downsizing - removing half their furniture. Needs assessment visit first.',
    NULL, NULL,
    NULL, NULL,
    NULL, NULL,
@@ -244,31 +244,31 @@ BEGIN
    'Tenant requested cleanout but resolved internally before job date.',
    now() - interval '10 days', NULL,
    200.00, NULL,
-   NULL, 'Cancelled by client — tenant moved items themselves.',
+   NULL, 'Cancelled by client - tenant moved items themselves.',
    NULL,
    now() - interval '12 days'),
 
 
-  -- PEACHTREE PLAZA — 4 jobs
-  (j_pea_comp1, p_peachtree, 'completed', 'Bay 7 — Former Nail Salon',
+  -- PEACHTREE PLAZA - 4 jobs
+  (j_pea_comp1, p_peachtree, 'completed', 'Bay 7 - Former Nail Salon',
    'Full retail tenant cleanout. Pedicure chairs, shelving, salon equipment.',
    now() - interval '38 days', now() - interval '37 days',
    520.00, 520.00,
    '8x pedicure chairs, 6x manicure stations, 3x hair dryer chairs, shelving units, mirrors, retail display racks, bags of product inventory',
-   'Pedicure chairs are very heavy — required appliance dolly and extra time. Job ran 30 min over but fit within original quote.',
+   'Pedicure chairs are very heavy - required appliance dolly and extra time. Job ran 30 min over but fit within original quote.',
    'Service road east side. Gate code from Diana: 4821. Bay 7 is mid-center.',
    now() - interval '39 days'),
 
-  (j_pea_comp2, p_peachtree, 'completed', 'Bay 14 — Former Restaurant',
+  (j_pea_comp2, p_peachtree, 'completed', 'Bay 14 - Former Restaurant',
    'Restaurant equipment and debris after tenant defaulted.',
    now() - interval '10 days', now() - interval '9 days',
    875.00, 920.00,
    'Commercial refrigerator (x2), prep tables (x4), shelving, hood vent system, deep fryer (x2), dish racks, boxes of miscellaneous kitchen items, ~15 bags of food waste/debris',
-   'Food waste bags required extra care — bagged separately. Appliances were heavy — 3-man crew. $45 overage for food waste handling.',
+   'Food waste bags required extra care - bagged separately. Appliances were heavy - 3-man crew. $45 overage for food waste handling.',
    'Service road east side. Diana met crew at 7am for access.',
    now() - interval '11 days'),
 
-  (j_pea_open1, p_peachtree, 'open', 'Bay 3 — Former Clothing Boutique',
+  (j_pea_open1, p_peachtree, 'open', 'Bay 3 - Former Clothing Boutique',
    'Tenant vacated overnight. Left behind display fixtures, clothing racks, boxes.',
    NULL, NULL,
    NULL, NULL,
@@ -276,7 +276,7 @@ BEGIN
    'Service road east side. Gate code from Diana.',
    now() + interval '5 days'),
 
-  (j_pea_open2, p_peachtree, 'open', 'Bay 19 — Parking Lot Debris',
+  (j_pea_open2, p_peachtree, 'open', 'Bay 19 - Parking Lot Debris',
    'Recurring quarterly lot cleanup. Shopping carts, debris, abandoned items near dumpsters.',
    NULL, NULL,
    NULL, NULL,
@@ -285,7 +285,7 @@ BEGIN
    now() + interval '8 days'),
 
 
-  -- SUNSET SELF-STORAGE — 3 jobs
+  -- SUNSET SELF-STORAGE - 3 jobs
   (j_sun_comp1, p_sunset, 'completed', 'Units 44, 67, 71',
    'Three abandoned unit cleanouts. All past 90-day lien period.',
    now() - interval '25 days', now() - interval '24 days',
@@ -296,7 +296,7 @@ BEGIN
    now() - interval '26 days'),
 
   (j_sun_sched1, p_sunset, 'scheduled', 'Units 12, 88',
-   'Two more abandoned unit cleanouts — just passed lien period.',
+   'Two more abandoned unit cleanouts - just passed lien period.',
    now() + interval '6 days', NULL,
    380.00, NULL,
    NULL, NULL,
@@ -304,25 +304,25 @@ BEGIN
    now() + interval '5 days'),
 
   (j_sun_cancel1, p_sunset, 'cancelled', 'Unit 33',
-   'Lien cleanout — tenant paid balance before removal date.',
+   'Lien cleanout - tenant paid balance before removal date.',
    now() - interval '5 days', NULL,
    180.00, NULL,
-   NULL, 'Cancelled — tenant settled account and removed items.',
+   NULL, 'Cancelled - tenant settled account and removed items.',
    NULL,
    now() - interval '7 days'),
 
 
-  -- BROOKHAVEN CONDOS — 3 jobs
+  -- BROOKHAVEN CONDOS - 3 jobs
   (j_brk_comp1, p_brookhaven, 'completed', 'Unit 4B',
    'Move-out cleanout. Full unit including outdoor storage locker.',
    now() - interval '8 days', now() - interval '7 days',
    490.00, 490.00,
    'Queen bed set, dining set (table + 6 chairs), sectional sofa, 2x dressers, outdoor furniture (from storage locker), ~12 bags of household items',
-   'Freight elevator reserved by Lisa — smooth access. Storage locker was packed but all one trip.',
+   'Freight elevator reserved by Lisa - smooth access. Storage locker was packed but all one trip.',
    'Freight elevator reservation with Lisa. Unit 4B is 4th floor.',
    now() - interval '9 days'),
 
-  (j_brk_inprog, p_brookhaven, 'in_progress', 'Common Areas — Lobby + Pool Deck',
+  (j_brk_inprog, p_brookhaven, 'in_progress', 'Common Areas - Lobby + Pool Deck',
    'HOA annual common area refresh. Old furniture, planters, and debris removal.',
    now(), NULL,
    310.00, NULL,
@@ -331,7 +331,7 @@ BEGIN
    now()),
 
   (j_brk_open1, p_brookhaven, 'open', 'Unit 11A',
-   'Pending eviction cleanout — court date next week. Pre-schedule for following week.',
+   'Pending eviction cleanout - court date next week. Pre-schedule for following week.',
    NULL, NULL,
    NULL, NULL,
    NULL, NULL,

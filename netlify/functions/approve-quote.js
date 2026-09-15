@@ -8,7 +8,7 @@ import {
 
 /**
  * Sends the customer their quote link via Resend.
- * Fire-and-forget — email failure never blocks the approval response.
+ * Fire-and-forget - email failure never blocks the approval response.
  */
 async function sendQuoteEmail({ customerName, customerEmail, fullAddress, approvedPrice, quoteUrl }) {
   const resendKey = process.env.RESEND_API_KEY;
@@ -27,7 +27,7 @@ async function sendQuoteEmail({ customerName, customerEmail, fullAddress, approv
     body: JSON.stringify({
       from: `Squatterz <${fromEmail}>`,
       to: [customerEmail],
-      subject: `Your junk removal quote — ${priceFormatted}`,
+      subject: `Your junk removal quote - ${priceFormatted}`,
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0a0f0d;color:#fff;border-radius:12px;">
           <div style="text-align:center;margin-bottom:32px;">
@@ -158,7 +158,7 @@ export default async function handler(req) {
         try {
           const existingInvoice = await stripe.invoices.retrieve(booking.stripe_invoice_id);
           if (existingInvoice.metadata?.booking_id === bookingId) {
-            // Reuse existing invoice — idempotent re-approval
+            // Reuse existing invoice - idempotent re-approval
             return jsonResponse({
               ...data,
               quoteToken: rawToken,
@@ -167,7 +167,7 @@ export default async function handler(req) {
             });
           }
         } catch {
-          // Invoice not found in Stripe — proceed to create new one
+          // Invoice not found in Stripe - proceed to create new one
         }
       }
 
@@ -247,7 +247,7 @@ export default async function handler(req) {
 
       return jsonResponse({
         ...data,
-        quoteToken: rawToken, // only returned once — admin sends this to customer
+        quoteToken: rawToken, // only returned once - admin sends this to customer
         stripeInvoiceId: invoice.id,
         stripeCustomerId: customerId,
       });

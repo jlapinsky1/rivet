@@ -1,7 +1,7 @@
 /*
-  020_multi_tenant_rivet.sql — Multi-Tenant Foundation (Rivet-only)
+  020_multi_tenant_rivet.sql - Multi-Tenant Foundation (Rivet-only)
 
-  Extracted from 020_multi_tenant.sql — only the parts needed for Rivet:
+  Extracted from 020_multi_tenant.sql - only the parts needed for Rivet:
     1. businesses table
     2. business_memberships table
     3. RLS helper functions

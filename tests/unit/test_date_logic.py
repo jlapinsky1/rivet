@@ -2,7 +2,7 @@
 Date-logic regression tests.
 
 Exercises the real getAvailableBookingDates implementation via a Node subprocess.
-referenceDate is passed explicitly so results are deterministic — no time-mocking.
+referenceDate is passed explicitly so results are deterministic - no time-mocking.
 """
 import json
 import subprocess
@@ -172,7 +172,7 @@ def test_late_primary_leaves_no_backup():
     # Block all days except the last Saturday in the window (Apr 26)
     all_days = call_date_logic(ref.strftime("%Y-%m-%d"))
     if len(all_days) <= 1:
-        pytest.skip("Window has 0 or 1 days — nothing to test")
+        pytest.skip("Window has 0 or 1 days - nothing to test")
     # Block all but the final date
     block = all_days[:-1]
     remaining = call_date_logic(ref.strftime("%Y-%m-%d"), unavailable=block)

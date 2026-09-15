@@ -85,7 +85,7 @@ function PhotoSection({ label, kind, bookingId, entries, setEntries }) {
         kind,
         capturedAt:  new Date().toISOString(),
       });
-      // storagePath is discarded from client state here — never stored or rendered
+      // storagePath is discarded from client state here - never stored or rendered
 
       setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, status: UPLOAD_STATUS.UPLOADED, storagePath: null } : e));
     } catch (err) {
@@ -175,7 +175,7 @@ function PhotoSection({ label, kind, bookingId, entries, setEntries }) {
 /**
  * @param {object} props
  * @param {string} props.bookingId
- * @param {function} props.onPhotoCountChange  — called with ({ before, after }) whenever counts change
+ * @param {function} props.onPhotoCountChange  - called with ({ before, after }) whenever counts change
  */
 export default function CrewPhotoCapture({ bookingId, onPhotoCountChange }) {
   const [beforeEntries, setBeforeEntries] = useState([]);

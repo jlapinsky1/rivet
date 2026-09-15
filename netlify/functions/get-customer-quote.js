@@ -14,7 +14,7 @@ export default async function handler(req) {
     const tokenHash = await sha256(token);
     const supabase = getServiceClient();
 
-    // Look up token — generic error for all failure modes
+    // Look up token - generic error for all failure modes
     const { data: tokenRow, error: tokenErr } = await supabase
       .from('quote_tokens')
       .select('id, booking_id, quote_snapshot_id, expires_at, revoked_at, used_at')
@@ -29,7 +29,7 @@ export default async function handler(req) {
       return errorResponse('This quote is no longer available');
     }
 
-    // Get snapshot — explicit allowlist, no internal fields
+    // Get snapshot - explicit allowlist, no internal fields
     const { data: snapshot, error: snapErr } = await supabase
       .from('quote_snapshots')
       .select('approved_price, version, expires_at, available_slots, customer_terms')
@@ -40,7 +40,7 @@ export default async function handler(req) {
       return errorResponse('Unable to process this request');
     }
 
-    // Get booking (limited fields only — no internal data)
+    // Get booking (limited fields only - no internal data)
     const { data: booking, error: bookErr } = await supabase
       .from('bookings')
       .select('id, customer_name, status, full_address, quantity, description, preferred_date, second_choice_date, time_preference')

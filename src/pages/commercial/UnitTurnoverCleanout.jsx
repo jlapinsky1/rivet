@@ -54,7 +54,7 @@ const STEPS = [
   {
     num: "02",
     title: "Review and Approve",
-    desc: "We send a line-item estimate based on the scope. Approve from your phone or portal — no calls back and forth.",
+    desc: "We send a line-item estimate based on the scope. Approve from your phone or portal - no calls back and forth.",
   },
   {
     num: "03",
@@ -75,7 +75,7 @@ const FAQ = [
   },
   {
     q: "Do you do any cleaning, painting, or repairs?",
-    a: "No — our service is junk and debris removal only. We clear the space so your maintenance and cleaning vendors can work without obstacles.",
+    a: "No - our service is junk and debris removal only. We clear the space so your maintenance and cleaning vendors can work without obstacles.",
   },
   {
     q: "What if the previous tenant left items they want back?",
@@ -92,13 +92,13 @@ export default function UnitTurnoverCleanout() {
         <title>{makeTitle("Unit Turnover Cleanout Service for Property Managers")}</title>
         <meta
           name="description"
-          content="Unit turnover cleanout for apartment managers and landlords in Northeast Georgia. Furniture, appliances, and debris removed — documentation on every job."
+          content="Unit turnover cleanout for apartment managers and landlords in Northeast Georgia. Furniture, appliances, and debris removed - documentation on every job."
         />
         <link rel="canonical" href={makeCanonical("/commercial/unit-turnover-cleanout")} />
         <meta property="og:title" content="Unit Turnover Cleanout Service | Squatterz Northeast GA" />
         <meta
           property="og:description"
-          content="Clear turnover units fast. Submit a work order, approve the estimate, and we'll handle the rest — with photos and invoice included."
+          content="Clear turnover units fast. Submit a work order, approve the estimate, and we'll handle the rest - with photos and invoice included."
         />
         <meta property="og:url" content={makeCanonical("/commercial/unit-turnover-cleanout")} />
         <meta property="og:type" content="website" />
@@ -131,7 +131,7 @@ export default function UnitTurnoverCleanout() {
             <span className="text-[#22c55e]">for Property Managers</span>
           </h1>
           <p className="text-white/60 text-lg leading-relaxed max-w-2xl mb-8">
-            Every unit turn creates a cleanup need — furniture left behind, appliances that aren't staying, piles of bags and boxes from move-out. We clear the space quickly so your maintenance team can assess damage, your cleaners can start, and the unit can be re-listed without unnecessary delay.
+            Every unit turn creates a cleanup need - furniture left behind, appliances that aren't staying, piles of bags and boxes from move-out. We clear the space quickly so your maintenance team can assess damage, your cleaners can start, and the unit can be re-listed without unnecessary delay.
           </p>
           <div className="flex flex-wrap gap-3">
             <button
@@ -159,7 +159,7 @@ export default function UnitTurnoverCleanout() {
           <div className="bg-white/[0.03] border border-white/8 rounded-2xl p-8">
             <h2 className="text-2xl font-black mb-2">What's Included</h2>
             <p className="text-white/50 text-sm mb-6">
-              Each cleanout covers removal and documentation — no sorting or prep needed on your end.
+              Each cleanout covers removal and documentation - no sorting or prep needed on your end.
             </p>
             <ul className="grid md:grid-cols-2 gap-3">
               {WHAT_INCLUDED.map((item) => (

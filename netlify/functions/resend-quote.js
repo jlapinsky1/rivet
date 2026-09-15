@@ -56,7 +56,7 @@ export default async function handler(req) {
     }
 
     if (!activeToken) {
-      return errorResponse('No active quote token found — the quote may have already been accepted or expired', 422);
+      return errorResponse('No active quote token found - the quote may have already been accepted or expired', 422);
     }
 
     // Generate replacement token
@@ -128,7 +128,7 @@ export default async function handler(req) {
         body: JSON.stringify({
           from: `Squatterz <${fromEmail}>`,
           to: [booking.customer_email],
-          subject: `Your junk removal quote — ${priceFormatted}`,
+          subject: `Your junk removal quote - ${priceFormatted}`,
           html: `
             <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0a0f0d;color:#fff;border-radius:12px;">
               <div style="text-align:center;margin-bottom:32px;">

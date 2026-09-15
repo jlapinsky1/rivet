@@ -23,7 +23,7 @@ export default async function handler(req) {
     if (!sessionId || !idempotencyKey || !customerName || !customerPhone || !address || !city || !zip || !fullAddress) {
       return errorResponse('Missing required fields');
     }
-    // Optional test-run tag — stored alongside booking for scoped cleanup in test environments
+    // Optional test-run tag - stored alongside booking for scoped cleanup in test environments
     const testRunId = body.testRunId || null;
 
     // Server-side service-area enforcement (cannot be bypassed by the client).
@@ -220,7 +220,7 @@ export default async function handler(req) {
                   </div>
                 </div>
                 <p style="color:rgba(255,255,255,0.3);font-size:12px;line-height:1.5;text-align:center;">
-                  Keep this confirmation number handy — we may reference it when we reach out.<br>
+                  Keep this confirmation number handy - we may reference it when we reach out.<br>
                   Questions? Call us at (813) 555-0123.
                 </p>
               </div>
@@ -275,7 +275,7 @@ export default async function handler(req) {
       console.error('Lead notification lookup failed (non-fatal):', err.message);
     }
 
-    // Fire-and-forget geocoding (non-blocking — failure does not affect booking creation)
+    // Fire-and-forget geocoding (non-blocking - failure does not affect booking creation)
     const siteUrl = process.env.URL || '';
     if (siteUrl && process.env.SHOP_LAT && process.env.SHOP_LNG) {
       fetch(`${siteUrl}/api/geocode-booking`, {

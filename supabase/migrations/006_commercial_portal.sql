@@ -1,5 +1,5 @@
 /*
-  Commercial Client Portal — authenticated multi-tenant schema
+  Commercial Client Portal - authenticated multi-tenant schema
 
   Tables:
     commercial_clients  – links auth.users to client profile

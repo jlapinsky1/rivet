@@ -80,7 +80,7 @@ export default function NextJobCard({ job, onStatusAction, onSelectJob, statusLo
           )}
         </div>
 
-        {/* Deposit indicator — only for bookings */}
+        {/* Deposit indicator - only for bookings */}
         {!isWorkItem && (
           <div className={`text-xs font-semibold px-3 py-1.5 rounded-full inline-block ${
             depositConfirmed

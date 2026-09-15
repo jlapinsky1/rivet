@@ -181,7 +181,7 @@ function buildReasoning(label, direction, magnitude, metrics, confidence) {
 
 /**
  * Apply an accepted calibration to settings.
- * Returns a new settings object — does not mutate the original.
+ * Returns a new settings object - does not mutate the original.
  */
 export function applyCalibration(settings, calibrationRecord) {
   // For now, calibrations are informational recommendations.

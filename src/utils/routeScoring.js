@@ -1,5 +1,5 @@
 /**
- * Route scoring — score routes, compare scenarios, optimize stop order.
+ * Route scoring - score routes, compare scenarios, optimize stop order.
  * Modest implementation for Phase 4.
  */
 

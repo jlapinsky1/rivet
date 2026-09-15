@@ -51,18 +51,18 @@ export function rateJob(estimate, confidence) {
   const confidenceScore = CONFIDENCE_SCORES[confidence?.level] ?? 1;
 
   if (marginScore >= 4) reasons.push('Excellent margin');
-  else if (marginScore <= 1) reasons.push('Low margin — review pricing');
+  else if (marginScore <= 1) reasons.push('Low margin - review pricing');
 
   if (profitScore >= 4) reasons.push('High profit potential');
-  else if (profitScore <= 1) reasons.push('Low profit — consider raising price');
+  else if (profitScore <= 1) reasons.push('Low profit - consider raising price');
 
   if (travelScore <= 1) reasons.push('Long travel distance');
-  if (durationScore <= 1) reasons.push('Lengthy job — verify estimate');
+  if (durationScore <= 1) reasons.push('Lengthy job - verify estimate');
 
   if (truckScore >= 4) reasons.push('Good truck utilization');
   else if (truckScore <= 1) reasons.push('Low truck utilization for the trip');
 
-  if (confidenceScore <= 1) reasons.push('Low confidence — manual review needed');
+  if (confidenceScore <= 1) reasons.push('Low confidence - manual review needed');
 
   const weighted =
     marginScore * WEIGHTS.margin +

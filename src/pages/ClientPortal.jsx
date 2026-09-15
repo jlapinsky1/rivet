@@ -278,7 +278,7 @@ function Dashboard({ go }) {
               <div>
                 <p className="font-bold text-white text-sm">You have an unfinished estimate request</p>
                 <p className="text-xs text-white/50 mt-1">
-                  {savedDraft.propName} — {savedDraft.jobService}. Submit it now to add it to your portal.
+                  {savedDraft.propName} - {savedDraft.jobService}. Submit it now to add it to your portal.
                 </p>
               </div>
               {draftError && <p className="text-xs text-red-300">{draftError}</p>}
@@ -315,7 +315,7 @@ function Dashboard({ go }) {
             {pendingQuotes.map(q => (
               <div key={q.id} className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-3">
                 <div>
-                  <p className="text-sm font-semibold text-white">{q.properties?.name || "Property"}{q.unit ? ` — Unit ${q.unit}` : ""}</p>
+                  <p className="text-sm font-semibold text-white">{q.properties?.name || "Property"}{q.unit ? ` - Unit ${q.unit}` : ""}</p>
                   {q.estimate && <p className="text-xs text-white/50">Estimate: ${Number(q.estimate).toFixed(2)}</p>}
                 </div>
                 <button
@@ -1156,7 +1156,7 @@ function NewRequest({ go }) {
             required
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            placeholder="e.g. Tenant move-out cleanout — furniture, mattresses, household trash"
+            placeholder="e.g. Tenant move-out cleanout - furniture, mattresses, household trash"
             rows={3}
             className="w-full bg-transparent text-sm text-white placeholder:text-white/30 outline-none resize-none"
           />

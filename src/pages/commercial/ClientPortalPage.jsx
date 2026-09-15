@@ -34,7 +34,7 @@ const FEATURES = [
   {
     icon: Building2,
     title: "Multi-Property Account Management",
-    desc: "Add every property you manage to a single account. Each property has its own name, address, contact details, and job history. No separate login for each location — one account, one view.",
+    desc: "Add every property you manage to a single account. Each property has its own name, address, contact details, and job history. No separate login for each location - one account, one view.",
   },
   {
     icon: ClipboardList,
@@ -44,12 +44,12 @@ const FEATURES = [
   {
     icon: BarChart3,
     title: "Portfolio-Wide Job Visibility",
-    desc: "See the status of every active and past job across all your properties in one view. Jobs move through statuses — Requested, Under Review, Scheduled, In Progress, Completed — and you're notified at each step.",
+    desc: "See the status of every active and past job across all your properties in one view. Jobs move through statuses - Requested, Under Review, Scheduled, In Progress, Completed - and you're notified at each step.",
   },
   {
     icon: Camera,
     title: "Completion Documentation",
-    desc: "Every completed job includes before-and-after photos, itemized removal notes, and access details. Documentation is stored in the portal and emailed automatically — no chasing down records.",
+    desc: "Every completed job includes before-and-after photos, itemized removal notes, and access details. Documentation is stored in the portal and emailed automatically - no chasing down records.",
   },
   {
     icon: Receipt,
@@ -133,13 +133,13 @@ export default function ClientPortalPage() {
         <title>{makeTitle("Property Management Cleanup Portal")}</title>
         <meta
           name="description"
-          content="The Squatterz client portal for property managers — one dashboard for all your properties, work orders, documentation, and invoices."
+          content="The Squatterz client portal for property managers - one dashboard for all your properties, work orders, documentation, and invoices."
         />
         <link rel="canonical" href={makeCanonical("/commercial/client-portal")} />
         <meta property="og:title" content="Property Management Cleanup Portal | Squatterz" />
         <meta
           property="og:description"
-          content="Submit cleanup requests, track job status, access before-and-after photos, and manage invoices — all from one portal built for property managers."
+          content="Submit cleanup requests, track job status, access before-and-after photos, and manage invoices - all from one portal built for property managers."
         />
         <meta property="og:url" content={makeCanonical("/commercial/client-portal")} />
         <meta property="og:type" content="website" />
@@ -172,7 +172,7 @@ export default function ClientPortalPage() {
             <span className="text-[#22c55e]">for Property Managers</span>
           </h1>
           <p className="text-white/60 text-lg leading-relaxed max-w-2xl mb-8">
-            One dashboard for every property and every work order. Submit cleanup requests, track job status, access documentation, and manage invoices — without email chains or phone calls for routine requests.
+            One dashboard for every property and every work order. Submit cleanup requests, track job status, access documentation, and manage invoices - without email chains or phone calls for routine requests.
           </p>
           <div className="flex flex-wrap gap-3">
             <button
@@ -216,7 +216,7 @@ export default function ClientPortalPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-black">Example Portfolio</h2>
             <span className="text-xs text-white/30 bg-white/5 border border-white/10 rounded-full px-3 py-1">
-              Example data — not real customer information
+              Example data - not real customer information
             </span>
           </div>
 

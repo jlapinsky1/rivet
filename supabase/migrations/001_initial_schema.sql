@@ -1,5 +1,5 @@
 -- ============================================================
--- Junk Removal Quoter — production schema
+-- Junk Removal Quoter - production schema
 -- ============================================================
 
 -- ── Helper: immutability trigger ────────────────────────────
@@ -7,7 +7,7 @@
 create or replace function prevent_mutation()
 returns trigger as $$
 begin
-  raise exception '% on % is not allowed — this table is append-only',
+  raise exception '% on % is not allowed - this table is append-only',
     tg_op, tg_table_name;
 end;
 $$ language plpgsql;
@@ -450,7 +450,7 @@ create policy "admin_read_storage" on storage.objects
   for select to authenticated
   using (bucket_id = 'booking-photos' and is_admin());
 
--- No public access — all uploads via signed URLs from service role
+-- No public access - all uploads via signed URLs from service role
 
 
 -- ============================================================

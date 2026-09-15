@@ -90,7 +90,7 @@ export default function HostedQuoteForm() {
   const mergedConfig = mergeQuoteFormConfig(quoteFormConfig, vertical || 'junk_removal');
 
   // Set page title
-  document.title = `${name} — Request a Quote`;
+  document.title = `${name} - Request a Quote`;
 
   return (
     <VerticalQuoteForm

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 /**
- * Dispatch frontend unit tests — clipboard utility behaviour.
+ * Dispatch frontend unit tests - clipboard utility behaviour.
  *
  * These test the extracted copyToClipboard function without requiring
  * React Testing Library or a DOM renderer.
@@ -60,7 +60,7 @@ describe('copyToClipboard (dispatch Copy Address utility)', () => {
       configurable: true,
     });
 
-    // jsdom does not define execCommand — stub it so vi.spyOn can wrap it
+    // jsdom does not define execCommand - stub it so vi.spyOn can wrap it
     document.execCommand = () => true;
     const execCommandSpy = vi.spyOn(document, 'execCommand').mockReturnValue(true);
 
@@ -77,7 +77,7 @@ describe('copyToClipboard (dispatch Copy Address utility)', () => {
       configurable: true,
     });
 
-    // jsdom does not define execCommand — stub it so vi.spyOn can wrap it
+    // jsdom does not define execCommand - stub it so vi.spyOn can wrap it
     document.execCommand = () => true;
     const execCommandSpy = vi.spyOn(document, 'execCommand').mockReturnValue(true);
 

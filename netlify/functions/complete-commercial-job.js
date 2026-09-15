@@ -33,7 +33,7 @@ async function sendCompletionEmail({
     body: JSON.stringify({
       from: `Squatterz <${fromEmail}>`,
       to: [email],
-      subject: `Job complete — ${propertyName}${unit ? ` Unit ${unit}` : ''}`,
+      subject: `Job complete - ${propertyName}${unit ? ` Unit ${unit}` : ''}`,
       html: `
         <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#0a0f0d;color:#fff;border-radius:12px;">
           <div style="text-align:center;margin-bottom:24px;">

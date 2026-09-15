@@ -87,7 +87,7 @@ const WEIGHT_RISK_ITEMS = [
 
 /**
  * Builds a detailed internal estimate from a customer booking.
- * Tracks missing inputs explicitly — never silently defaults critical
+ * Tracks missing inputs explicitly - never silently defaults critical
  * financial fields to zero.
  */
 export function buildEstimate(booking, settingsOverride) {
@@ -113,10 +113,10 @@ export function buildEstimate(booking, settingsOverride) {
   const numberOfDumpLoads = QUANTITY_TO_DUMPS[booking.quantity] ?? null;
 
   if (estimatedVolumePct === null) {
-    missingInputs.push({ field: 'truckCapacity', message: 'Cannot estimate truck volume — quantity unknown', financial: true });
+    missingInputs.push({ field: 'truckCapacity', message: 'Cannot estimate truck volume - quantity unknown', financial: true });
   }
   if (numberOfDumpLoads === null) {
-    missingInputs.push({ field: 'dumpLoads', message: 'Cannot estimate dump loads — quantity unknown', financial: true });
+    missingInputs.push({ field: 'dumpLoads', message: 'Cannot estimate dump loads - quantity unknown', financial: true });
   }
 
   // --- Detect item-based attributes ---
@@ -165,7 +165,7 @@ export function buildEstimate(booking, settingsOverride) {
   if (!hasDistanceData) {
     missingInputs.push({
       field: 'distance',
-      message: 'Travel time estimated — geocoding pending.',
+      message: 'Travel time estimated - geocoding pending.',
       financial: false,
     });
   }
@@ -188,7 +188,7 @@ export function buildEstimate(booking, settingsOverride) {
 
   const baseOnSiteHours = QUANTITY_TO_HOURS[booking.quantity] || null;
   if (baseOnSiteHours === null) {
-    missingInputs.push({ field: 'onSiteTime', message: 'Cannot estimate on-site time — quantity unknown', financial: true });
+    missingInputs.push({ field: 'onSiteTime', message: 'Cannot estimate on-site time - quantity unknown', financial: true });
   }
   const stairsAdd = STAIRS_TIME_ADD[booking.stairs] || 0;
   const accessAdd = ACCESS_TIME_ADD[booking.accessType] || 0;

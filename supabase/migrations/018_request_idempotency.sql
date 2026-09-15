@@ -8,7 +8,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_idempotency_key
   ON jobs (idempotency_key)
   WHERE idempotency_key IS NOT NULL;
 
--- Server-side email lookup for step 2 (service role only — not exposed to anon)
+-- Server-side email lookup for step 2 (service role only - not exposed to anon)
 CREATE OR REPLACE FUNCTION public.commercial_email_registered(p_email text)
 RETURNS boolean
 LANGUAGE sql

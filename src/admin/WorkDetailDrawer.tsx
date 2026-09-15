@@ -93,7 +93,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
       });
     } catch (err) {
       console.error('Failed to record owner decision:', err);
-      // Non-fatal — don't block the user's action
+      // Non-fatal - don't block the user's action
     }
   }, [item, buildDecisionSnapshot]);
 
@@ -105,8 +105,8 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   const copy = recCopy(item.recommendation, item.rate);
 
   const ctaLabel = isCommercial
-    ? item.recommendation === 'take' ? `Accept Work Order — $${price.toLocaleString()}` : item.recommendation === 'review' ? 'Review Work Order' : 'Decline Work Order'
-    : item.recommendation === 'take' ? `Create Quote — $${price.toLocaleString()}` : item.recommendation === 'review' ? 'Keep reviewing' : 'Pass on job';
+    ? item.recommendation === 'take' ? `Accept Work Order - $${price.toLocaleString()}` : item.recommendation === 'review' ? 'Review Work Order' : 'Decline Work Order'
+    : item.recommendation === 'take' ? `Create Quote - $${price.toLocaleString()}` : item.recommendation === 'review' ? 'Keep reviewing' : 'Pass on job';
 
   async function handleApprove() {
     if (item.recommendation === 'pass' || item.recommendation === 'review') {
@@ -251,7 +251,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
             <div className="estimate-breakdown">
               <div className="estimate-line"><span>Recommended price</span><strong>${item.price.toLocaleString()}</strong></div>
               {item.costBreakdown.map((line) => (
-                <div key={line.label} className="estimate-line sub"><span>{line.label}</span><strong>{line.value ?? '—'}</strong></div>
+                <div key={line.label} className="estimate-line sub"><span>{line.label}</span><strong>{line.value ?? '-'}</strong></div>
               ))}
               <div className="estimate-line total"><span>Estimated profit</span><strong className="success-text">${item.profit}</strong></div>
               <div className="estimate-line"><span>Profit per hour</span><strong>{item.rate}</strong></div>

@@ -101,7 +101,7 @@ def test_complete_job_requires_completed_at(api, admin_headers, test_booking):
 # ── Validation: storage path security ────────────────────────────────────────
 
 def test_complete_job_rejects_path_traversal(api, admin_headers, test_booking):
-    """Storage paths must start with completions/{bookingId}/ — no traversal."""
+    """Storage paths must start with completions/{bookingId}/ - no traversal."""
     payload = _valid_completion_payload(test_booking, paths=[
         "completions/../other-booking/photo.jpg"  # path traversal attempt
     ])
@@ -140,7 +140,7 @@ def test_complete_job_blocked_without_deposit(api, admin_headers, test_upload_se
     # In tests without Stripe, we can use the supabase fixture to set status directly.
     # This test verifies the 403 response when deposit is missing.
     # Since we can't deposit without Stripe, we skip if Stripe isn't wired up.
-    pytest.skip("Requires database manipulation to set status=scheduled without deposit — covered by test_dispatch_enforcement.py")
+    pytest.skip("Requires database manipulation to set status=scheduled without deposit - covered by test_dispatch_enforcement.py")
 
 
 # ── Admin auth enforcement ────────────────────────────────────────────────────
@@ -195,7 +195,7 @@ def test_final_job_page_quote_token_rejected(api, test_upload_session, test_run_
 
 def test_final_job_page_returns_404_before_completion(api, test_upload_session, test_run_id, test_service_area, admin_headers, supabase):
     """get-final-job-page must return 404 if booking_completions row does not exist yet."""
-    # This test requires a valid payment_access_token — requires full Stripe flow.
+    # This test requires a valid payment_access_token - requires full Stripe flow.
     # Covered by integration tests that run with Stripe CLI.
     pytest.skip("Requires Stripe CLI + webhook flow to generate a valid payment_access_token")
 

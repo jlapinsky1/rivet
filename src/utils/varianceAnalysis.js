@@ -102,7 +102,7 @@ export function computeMetrics(pairs, minDenominator = 10) {
     ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2
     : sorted[Math.floor(n / 2)];
 
-  // MAPE — skip pairs with small denominators
+  // MAPE - skip pairs with small denominators
   const validForPct = pairs.filter(p => Math.abs(p.estimated) >= minDenominator);
   const mape = validForPct.length > 0
     ? validForPct.reduce((s, p) => s + Math.abs(p.actual - p.estimated) / Math.abs(p.estimated), 0) / validForPct.length

@@ -1,5 +1,5 @@
 """
-POST /api/check-service-area — full parameter matrix.
+POST /api/check-service-area - full parameter matrix.
 All tests require the `test_service_area` fixture so the ZIP config is known.
 """
 import pytest

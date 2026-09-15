@@ -31,7 +31,7 @@ export default async function handler(req) {
       },
     });
 
-    // If the email doesn't exist Supabase returns an error — swallow it silently
+    // If the email doesn't exist Supabase returns an error - swallow it silently
     if (error || !data?.properties?.action_link) {
       return jsonResponse({ success: true });
     }

@@ -3,7 +3,7 @@
 
 -- ─── Owner Decisions ───
 -- Records what the owner did with Rivet's recommendation every time.
--- One row per estimation run per action (append-only — re-decisions get new rows).
+-- One row per estimation run per action (append-only - re-decisions get new rows).
 -- decision_snapshot captures the full situational context at decision time:
 --   time (day of week, hour, week number), capacity (remaining hours, jobs done),
 --   financials (earnings to date, gap to goal, required pace),

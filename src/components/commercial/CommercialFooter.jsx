@@ -9,7 +9,7 @@ export default function CommercialFooter() {
     <footer className="border-t border-white/5 py-14 bg-[#0a0f0d]">
       <div className="max-w-7xl mx-auto px-5">
         <div className="grid md:grid-cols-3 gap-10 mb-10">
-          {/* Col 1 — Brand */}
+          {/* Col 1 - Brand */}
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center">
@@ -32,7 +32,7 @@ export default function CommercialFooter() {
             </a>
           </div>
 
-          {/* Col 2 — Commercial Services */}
+          {/* Col 2 - Commercial Services */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-[#22c55e] mb-4">
               Commercial Services
@@ -56,7 +56,7 @@ export default function CommercialFooter() {
             </ul>
           </div>
 
-          {/* Col 3 — Company */}
+          {/* Col 3 - Company */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-[#22c55e] mb-4">
               Company

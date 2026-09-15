@@ -1,5 +1,5 @@
 /*
-  020_multi_tenant.sql — Multi-Tenant Safety
+  020_multi_tenant.sql - Multi-Tenant Safety
 
   Creates the multi-tenant foundation:
     1. businesses table
@@ -121,7 +121,7 @@ AS $$
   );
 $$;
 
--- Keep is_admin() working during transition — now checks business_memberships
+-- Keep is_admin() working during transition - now checks business_memberships
 -- Any user with at least one membership is considered "admin" for backward compat
 CREATE OR REPLACE FUNCTION is_admin()
 RETURNS boolean
@@ -217,7 +217,7 @@ BEGIN
 
   -- If no admin exists, skip migration (fresh install)
   IF v_owner_id IS NULL THEN
-    RAISE NOTICE 'No admin_users found — skipping Squatterz tenant creation';
+    RAISE NOTICE 'No admin_users found - skipping Squatterz tenant creation';
     RETURN;
   END IF;
 
@@ -448,17 +448,17 @@ CREATE POLICY "business_read_notification_events" ON notification_events
   FOR SELECT TO authenticated
   USING (business_id = ANY(user_business_ids()));
 
--- ── 8q. processed_stripe_events — keep global (admin-only, no business_id) ──
+-- ── 8q. processed_stripe_events - keep global (admin-only, no business_id) ──
 -- No changes needed
 
--- ── 8r. commercial_clients — add business-scoped admin policies ──
+-- ── 8r. commercial_clients - add business-scoped admin policies ──
 -- Keep existing client self-access policies (clients_own_profile, clients_select_own_row, etc.)
 -- Add business-scoped admin read
 CREATE POLICY "business_admin_read_commercial_clients" ON commercial_clients
   FOR SELECT TO authenticated
   USING (business_id = ANY(user_business_ids()));
 
--- ── 8s. booking_photos — add business-scoped policy ──
+-- ── 8s. booking_photos - add business-scoped policy ──
 -- booking_photos doesn't have business_id directly; scope through bookings
 DROP POLICY IF EXISTS "Admins can read booking photos" ON booking_photos;
 DROP POLICY IF EXISTS "admin_read_booking_photos" ON booking_photos;
@@ -470,7 +470,7 @@ CREATE POLICY "business_read_booking_photos" ON booking_photos
     )
   );
 
--- session_photos — scope through upload_sessions
+-- session_photos - scope through upload_sessions
 CREATE POLICY "business_read_session_photos" ON session_photos
   FOR SELECT TO authenticated
   USING (
@@ -850,7 +850,7 @@ $$;
 -- ============================================================
 -- The existing trigger auto-creates a commercial_clients row for EVERY
 -- auth.users INSERT. In multi-tenant, not every user is a commercial client.
--- We need to make this conditional — only create if the user signed up
+-- We need to make this conditional - only create if the user signed up
 -- through the commercial portal (indicated by raw_user_meta_data).
 
 CREATE OR REPLACE FUNCTION handle_new_client()

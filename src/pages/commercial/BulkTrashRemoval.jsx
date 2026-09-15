@@ -62,7 +62,7 @@ const SCENARIOS = [
 const FAQ = [
   {
     q: "What counts as bulk trash?",
-    a: "Any large item that municipal collection won't take — mattresses, sofas, appliances, televisions, exercise equipment, and similar items. We also remove piles of general junk and debris that exceed normal collection limits.",
+    a: "Any large item that municipal collection won't take - mattresses, sofas, appliances, televisions, exercise equipment, and similar items. We also remove piles of general junk and debris that exceed normal collection limits.",
   },
   {
     q: "Can you set up recurring bulk pickups for my property?",
@@ -70,7 +70,7 @@ const FAQ = [
   },
   {
     q: "Do you remove items from inside units, or only common areas?",
-    a: "Both. We can clear common areas, dumpster enclosures, parking lots, and individual units — submit a single work order and describe all the locations that need attention.",
+    a: "Both. We can clear common areas, dumpster enclosures, parking lots, and individual units - submit a single work order and describe all the locations that need attention.",
   },
 ];
 
@@ -83,13 +83,13 @@ export default function BulkTrashRemoval() {
         <title>{makeTitle("Bulk Trash Removal for Property Managers")}</title>
         <meta
           name="description"
-          content="Bulk trash removal for apartments and commercial properties in Northeast Georgia. Dumpster overflow, illegal dumping, hallway furniture — cleared fast."
+          content="Bulk trash removal for apartments and commercial properties in Northeast Georgia. Dumpster overflow, illegal dumping, hallway furniture - cleared fast."
         />
         <link rel="canonical" href={makeCanonical("/commercial/bulk-trash-removal")} />
         <meta property="og:title" content="Bulk Trash Removal for Property Managers | Squatterz" />
         <meta
           property="og:description"
-          content="Dumpster overflow, common-area furniture, illegal dumping — we remove bulk trash from apartment communities and commercial properties across Northeast Georgia."
+          content="Dumpster overflow, common-area furniture, illegal dumping - we remove bulk trash from apartment communities and commercial properties across Northeast Georgia."
         />
         <meta property="og:url" content={makeCanonical("/commercial/bulk-trash-removal")} />
         <meta property="og:type" content="website" />
@@ -122,7 +122,7 @@ export default function BulkTrashRemoval() {
             <span className="text-[#22c55e]">Apartments and Commercial Properties</span>
           </h1>
           <p className="text-white/60 text-lg leading-relaxed max-w-2xl mb-8">
-            Dumpster overflow, furniture piled in common areas, illegal dumping on your lot — these problems show up without warning and create code violations, resident complaints, and liability if left unresolved. We remove bulk items from your property, document the job, and clear the area so it doesn't become a recurring issue.
+            Dumpster overflow, furniture piled in common areas, illegal dumping on your lot - these problems show up without warning and create code violations, resident complaints, and liability if left unresolved. We remove bulk items from your property, document the job, and clear the area so it doesn't become a recurring issue.
           </p>
           <div className="flex flex-wrap gap-3">
             <button
@@ -182,7 +182,7 @@ export default function BulkTrashRemoval() {
               <div>
                 <h2 className="text-xl font-black mb-2">Recurring Service for High-Volume Properties</h2>
                 <p className="text-white/55 text-sm leading-relaxed">
-                  Some properties — large apartment communities, HOAs near move-in/move-out peaks, commercial lots subject to ongoing dumping — generate bulk trash on a predictable schedule. After your first work order, let us know if you'd like to discuss a recurring arrangement. We'll work with your portal account to set up regular requests so you're not resubmitting the same order every month.
+                  Some properties - large apartment communities, HOAs near move-in/move-out peaks, commercial lots subject to ongoing dumping - generate bulk trash on a predictable schedule. After your first work order, let us know if you'd like to discuss a recurring arrangement. We'll work with your portal account to set up regular requests so you're not resubmitting the same order every month.
                 </p>
               </div>
             </div>

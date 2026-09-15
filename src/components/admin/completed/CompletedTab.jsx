@@ -56,7 +56,7 @@ export default function CompletedTab({ onBack }) {
     }
   }, []);
 
-  // Debounce search input only (skip on initial mount — filter effect handles first load)
+  // Debounce search input only (skip on initial mount - filter effect handles first load)
   useEffect(() => {
     if (!searchMounted.current) {
       searchMounted.current = true;

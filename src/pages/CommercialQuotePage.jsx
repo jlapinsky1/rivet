@@ -48,7 +48,7 @@ function DepositForm({ jobId, token, depositCents, invoiceTotalCents, onSuccess 
         disabled={!stripe || processing}
         className="w-full bg-[#22c55e] hover:bg-[#16a34a] disabled:opacity-50 text-black font-bold text-base py-3.5 rounded-xl transition-colors"
       >
-        {processing ? 'Processing…' : `Pay Deposit — ${fmt(depositCents)}`}
+        {processing ? 'Processing…' : `Pay Deposit - ${fmt(depositCents)}`}
       </button>
       <p className="text-xs text-white/30 text-center">
         Remaining balance of {fmt(invoiceTotalCents - depositCents)} is due after the job is complete.
@@ -78,7 +78,7 @@ export default function CommercialQuotePage() {
         setQuote(data);
 
         if (['awaiting_payment', 'scheduled', 'in_progress', 'completed'].includes(data.status)) {
-          // Already accepted — go straight to payment or show status
+          // Already accepted - go straight to payment or show status
           if (data.status === 'awaiting_payment') {
             await loadPayment(data);
           } else {
@@ -211,7 +211,7 @@ export default function CommercialQuotePage() {
               </div>
               <h1 className="text-3xl font-black">Your estimate</h1>
               <p className="text-white/50 text-sm mt-2">
-                {quote.propertyName}{quote.unit ? ` — Unit ${quote.unit}` : ''}
+                {quote.propertyName}{quote.unit ? ` - Unit ${quote.unit}` : ''}
               </p>
             </div>
 
@@ -240,7 +240,7 @@ export default function CommercialQuotePage() {
             )}
 
             <div className="bg-white/4 border border-white/8 rounded-2xl p-5 text-sm text-white/60 leading-relaxed space-y-1">
-              <p>✓ Price is locked — no surprises</p>
+              <p>✓ Price is locked - no surprises</p>
               <p>✓ Before &amp; after photos delivered</p>
               <p>✓ Completion packet sent when done</p>
             </div>
@@ -249,7 +249,7 @@ export default function CommercialQuotePage() {
               onClick={handleAccept}
               className="w-full bg-[#22c55e] hover:bg-[#16a34a] text-black font-bold text-base py-4 rounded-xl transition-colors"
             >
-              Accept &amp; Pay Deposit — {fmt(quote.depositCents)}
+              Accept &amp; Pay Deposit - {fmt(quote.depositCents)}
             </button>
           </div>
         )}
@@ -259,7 +259,7 @@ export default function CommercialQuotePage() {
             <div className="text-center">
               <h1 className="text-2xl font-black">Pay deposit</h1>
               <p className="text-white/50 text-sm mt-1">
-                {quote?.propertyName}{quote?.unit ? ` — Unit ${quote.unit}` : ''}
+                {quote?.propertyName}{quote?.unit ? ` - Unit ${quote.unit}` : ''}
               </p>
             </div>
 

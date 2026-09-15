@@ -4,7 +4,7 @@
  * Every pending job is run through the REAL estimateHandymanJob + applyCalibration + deriveRecommendation
  * pipeline. Completed jobs use engine outputs with realistic actual outcomes layered on top.
  *
- * This file is imported at app startup — no network calls, no Supabase needed.
+ * This file is imported at app startup - no network calls, no Supabase needed.
  */
 
 import type {
@@ -47,7 +47,7 @@ export const demoBusinessConfig: BusinessEconomicsConfig = {
   weeklyCapacityHours: 35,
 };
 
-// ─── Decision Context — a realistic Tuesday mid-week snapshot ───
+// ─── Decision Context - a realistic Tuesday mid-week snapshot ───
 
 const demoDecisionContext: DecisionContext = {
   weeklyEarningsToDate: 1800,
@@ -321,10 +321,10 @@ function makeOwnerDecision(
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PENDING JOBS (10) — run through real engine
+// PENDING JOBS (10) - run through real engine
 // ═══════════════════════════════════════════════════════════════
 
-// 1. Straightforward TAKE — small drywall patch
+// 1. Straightforward TAKE - small drywall patch
 const extraction1: ExtractionResult = {
   tradeContexts: ['drywall_repair'],
   assemblyCandidate: 'SMALL_DRYWALL_PATCH',
@@ -344,7 +344,7 @@ const extraction1: ExtractionResult = {
 };
 const pipeline1 = runPipeline(extraction1, 8);
 
-// 2. TAKE — standard TV mount (customer supplied mount)
+// 2. TAKE - standard TV mount (customer supplied mount)
 const extraction2: ExtractionResult = {
   tradeContexts: ['tv_wall_mounting'],
   assemblyCandidate: 'STANDARD_TV_MOUNT',
@@ -362,7 +362,7 @@ const extraction2: ExtractionResult = {
 };
 const pipeline2 = runPipeline(extraction2, 10);
 
-// 3. REVIEW — exterior door replacement with frame concern
+// 3. REVIEW - exterior door replacement with frame concern
 const extraction3: ExtractionResult = {
   tradeContexts: ['exterior_door_replacement'],
   assemblyCandidate: 'STANDARD_EXTERIOR_DOOR',
@@ -381,11 +381,11 @@ const extraction3: ExtractionResult = {
 };
 const pipeline3 = runPipeline(extraction3, 14);
 
-// 4. REVIEW — water damaged ceiling drywall
+// 4. REVIEW - water damaged ceiling drywall
 const extraction4: ExtractionResult = {
   tradeContexts: ['drywall_repair'],
   assemblyCandidate: 'DRYWALL_SECTION_REPLACEMENT',
-  assemblyConfidence: 0.72, // below threshold — will use component path
+  assemblyConfidence: 0.72, // below threshold - will use component path
   tasks: [
     { component: 'protect_work_area', quantity: 1, complexity: 'standard', confidence: 0.90, source: 'inferred' },
     { component: 'demolition_light', quantity: 1, complexity: 'high', confidence: 0.65, source: 'inferred' },
@@ -402,7 +402,7 @@ const extraction4: ExtractionResult = {
 };
 const pipeline4 = runPipeline(extraction4, 12);
 
-// 5. PASS — tiny job with long travel
+// 5. PASS - tiny job with long travel
 const extraction5: ExtractionResult = {
   tradeContexts: ['general_handyman'],
   assemblyCandidate: null,
@@ -419,7 +419,7 @@ const extraction5: ExtractionResult = {
 };
 const pipeline5 = runPipeline(extraction5, 28); // 28 miles = long travel
 
-// 6. Component path — dog damage stair repair
+// 6. Component path - dog damage stair repair
 const extraction6: ExtractionResult = {
   tradeContexts: ['finish_carpentry'],
   assemblyCandidate: null,
@@ -439,7 +439,7 @@ const extraction6: ExtractionResult = {
 };
 const pipeline6 = runPipeline(extraction6, 11);
 
-// 7. Component path — cabinet bottom + caulk
+// 7. Component path - cabinet bottom + caulk
 const extraction7: ExtractionResult = {
   tradeContexts: ['carpentry', 'minor_plumbing'],
   assemblyCandidate: null,
@@ -458,7 +458,7 @@ const extraction7: ExtractionResult = {
 };
 const pipeline7 = runPipeline(extraction7, 9);
 
-// 8. TAKE — fence post reset (3 posts)
+// 8. TAKE - fence post reset (3 posts)
 const extraction8: ExtractionResult = {
   tradeContexts: ['fence_repair'],
   assemblyCandidate: 'FENCE_POST_RESET',
@@ -476,7 +476,7 @@ const extraction8: ExtractionResult = {
 };
 const pipeline8 = runPipeline(extraction8, 7);
 
-// 9. TAKE — deck board replacement
+// 9. TAKE - deck board replacement
 const extraction9: ExtractionResult = {
   tradeContexts: ['deck_repair'],
   assemblyCandidate: 'DECK_BOARD_REPLACEMENT',
@@ -495,7 +495,7 @@ const extraction9: ExtractionResult = {
 };
 const pipeline9 = runPipeline(extraction9, 15);
 
-// 10. REVIEW — commercial work order, medium drywall
+// 10. REVIEW - commercial work order, medium drywall
 const extraction10: ExtractionResult = {
   tradeContexts: ['drywall_repair'],
   assemblyCandidate: 'MEDIUM_DRYWALL_PATCH',
@@ -518,14 +518,14 @@ const pipeline10 = runPipeline(extraction10, 18);
 
 // Build pending WorkItems
 const pendingWorkItems: WorkItem[] = [
-  buildWorkItem(1001, 'Small drywall patch — bedroom', pipeline1, {
+  buildWorkItem(1001, 'Small drywall patch - bedroom', pipeline1, {
     customerName: 'Karen Mitchell', location: 'Nashville, TN', travel: '8 min',
     description: extraction1.rawDescription, photos: PHOTOS.drywall,
     opStatus: 'needs_review', billingStatus: 'not_invoiced',
     phone: '(615) 555-0134', email: 'karen.m@email.com', address: '214 Maple Ridge Dr, Nashville, TN',
     preferredDate: 'Sept 12',
   }),
-  buildWorkItem(1002, 'Mount 65" TV — living room', pipeline2, {
+  buildWorkItem(1002, 'Mount 65" TV - living room', pipeline2, {
     customerName: 'Derek Nguyen', location: 'Nashville, TN', travel: '10 min',
     description: extraction2.rawDescription, photos: PHOTOS.tv,
     opStatus: 'needs_review', billingStatus: 'not_invoiced',
@@ -578,7 +578,7 @@ const pendingWorkItems: WorkItem[] = [
     phone: '(615) 555-0478', email: 'yfreeman@email.com', address: '3310 Charlotte Ave, Nashville, TN',
     preferredDate: 'Sept 14',
   }),
-  buildWorkItem(1010, 'Patch hallway drywall — Unit 4B', pipeline10, {
+  buildWorkItem(1010, 'Patch hallway drywall - Unit 4B', pipeline10, {
     customerName: 'Greenway Property Management', customerSub: 'Riverside Commons · Unit 4B',
     customerType: 'organization', source: 'commercial_work_order',
     location: 'Nashville, TN', travel: '18 min',
@@ -606,10 +606,10 @@ const pendingRuns: EstimationRun[] = [
 ];
 
 // ═══════════════════════════════════════════════════════════════
-// COMPLETED JOBS (12) — with actual outcomes
+// COMPLETED JOBS (12) - with actual outcomes
 // ═══════════════════════════════════════════════════════════════
 
-// A. Rivet was accurate — small drywall patch
+// A. Rivet was accurate - small drywall patch
 const cExtract1: ExtractionResult = {
   tradeContexts: ['drywall_repair'], assemblyCandidate: 'SMALL_DRYWALL_PATCH', assemblyConfidence: 0.90,
   tasks: [
@@ -627,7 +627,7 @@ const cRun1 = buildRun(cPipe1, { createdAt: '2026-08-15T10:00:00Z', workId: 2001
 const cQuote1 = Math.round(cPipe1.economicJob.evaluatedPrice);
 const cOutcome1 = makeOutcome(cRun1.id, { laborHours: 1.6, materialCost: 28, procurementHours: 0.5, revenue: cQuote1, returnTrips: 0, quotedPrice: cQuote1 }, '2026-08-16T17:00:00Z');
 
-// B. Human correction was better — TV mount above fireplace
+// B. Human correction was better - TV mount above fireplace
 const cExtract2: ExtractionResult = {
   tradeContexts: ['tv_wall_mounting'], assemblyCandidate: 'TV_MOUNT_ABOVE_FIREPLACE', assemblyConfidence: 0.85,
   tasks: [
@@ -647,7 +647,7 @@ const cAdj2: AdjustmentEntry[] = [
 ];
 const cOutcome2 = makeOutcome(cRun2.id, { laborHours: 3.2, materialCost: 55, procurementHours: 0.75, revenue: 380, returnTrips: 0, quotedPrice: 380 }, '2026-08-19T16:00:00Z');
 
-// C. Human correction was worse — fence post reset
+// C. Human correction was worse - fence post reset
 const cExtract3: ExtractionResult = {
   tradeContexts: ['fence_repair'], assemblyCandidate: 'FENCE_POST_RESET', assemblyConfidence: 0.90,
   tasks: [
@@ -660,13 +660,13 @@ const cExtract3: ExtractionResult = {
 };
 const cPipe3 = runPipeline(cExtract3, 10);
 const cRun3 = buildRun(cPipe3, { createdAt: '2026-08-20T11:00:00Z', workId: 2003, projectFamily: 'fence_repair' });
-// Human over-adjusted — thought ground would be rocky. System was closer.
+// Human over-adjusted - thought ground would be rocky. System was closer.
 const cAdj3: AdjustmentEntry[] = [
   makeAdj(cRun3.id, 'laborHours', cPipe3.economicJob.laborHours.expected, cPipe3.economicJob.laborHours.expected, 5.5, 'SITE_CONDITION_DIFFERENT', '2026-08-20T11:20:00Z', 'Customer says very rocky soil'),
 ];
 const cOutcome3 = makeOutcome(cRun3.id, { laborHours: 3.8, materialCost: 52, procurementHours: 0.5, revenue: 340, returnTrips: 0, quotedPrice: 340 }, '2026-08-21T15:00:00Z');
 
-// D. Both missed — hidden rot discovered after trim removal
+// D. Both missed - hidden rot discovered after trim removal
 const cExtract4: ExtractionResult = {
   tradeContexts: ['finish_carpentry'], assemblyCandidate: null, assemblyConfidence: 0,
   tasks: [
@@ -688,7 +688,7 @@ const cOutcome4 = makeOutcome(cRun4.id, {
   notes: 'Hidden rot discovered after removing trim. Had to replace studs and blocking behind wall. Return trip for materials.',
 }, '2026-08-24T17:00:00Z');
 
-// E. Material estimate miss — deck board replacement
+// E. Material estimate miss - deck board replacement
 const cExtract5: ExtractionResult = {
   tradeContexts: ['deck_repair'], assemblyCandidate: 'DECK_BOARD_REPLACEMENT', assemblyConfidence: 0.86,
   tasks: [
@@ -710,7 +710,7 @@ const cOutcome5 = makeOutcome(cRun5.id, {
   notes: 'Composite decking was $35/board vs expected $20. Total material much higher than estimated.',
 }, '2026-08-26T16:00:00Z');
 
-// F. Return trip miss — drywall paint job needed second visit
+// F. Return trip miss - drywall paint job needed second visit
 const cExtract6: ExtractionResult = {
   tradeContexts: ['drywall_repair'], assemblyCandidate: 'MEDIUM_DRYWALL_PATCH', assemblyConfidence: 0.84,
   tasks: [
@@ -732,7 +732,7 @@ const cOutcome6 = makeOutcome(cRun6.id, {
   notes: 'First coat of mud needed 24h to dry. Had to return next day for second coat, sand, and paint. Rivet underestimated the visits.',
 }, '2026-08-29T15:00:00Z');
 
-// G. Accurate — standard exterior door
+// G. Accurate - standard exterior door
 const cExtract7: ExtractionResult = {
   tradeContexts: ['exterior_door_replacement'], assemblyCandidate: 'STANDARD_EXTERIOR_DOOR', assemblyConfidence: 0.90,
   tasks: [
@@ -750,7 +750,7 @@ const cRun7 = buildRun(cPipe7, { createdAt: '2026-08-30T08:00:00Z', workId: 2007
 const cQuote7 = Math.round(cPipe7.economicJob.evaluatedPrice);
 const cOutcome7 = makeOutcome(cRun7.id, { laborHours: 5.8, materialCost: 118, procurementHours: 0.75, revenue: cQuote7, returnTrips: 0, quotedPrice: cQuote7 }, '2026-08-30T17:00:00Z');
 
-// H. Multiple adjustments — medium drywall with scope change
+// H. Multiple adjustments - medium drywall with scope change
 const cExtract8: ExtractionResult = {
   tradeContexts: ['drywall_repair'], assemblyCandidate: 'MEDIUM_DRYWALL_PATCH', assemblyConfidence: 0.85,
   tasks: [
@@ -767,7 +767,7 @@ const cExtract8: ExtractionResult = {
 };
 const cPipe8 = runPipeline(cExtract8, 7);
 const cRun8 = buildRun(cPipe8, { createdAt: '2026-09-01T09:00:00Z', workId: 2008, projectFamily: 'drywall_repair' });
-// Multiple adjustments — owner adjusted labor, then price, then again after site visit
+// Multiple adjustments - owner adjusted labor, then price, then again after site visit
 const sysLabor8 = cPipe8.economicJob.laborHours.expected;
 const sysPrice8 = cPipe8.economicJob.evaluatedPrice;
 const cAdj8: AdjustmentEntry[] = [
@@ -778,7 +778,7 @@ const cAdj8: AdjustmentEntry[] = [
 const cQuote8 = Math.round(sysPrice8 + 80);
 const cOutcome8 = makeOutcome(cRun8.id, { laborHours: 4.2, materialCost: 48, procurementHours: 0.5, revenue: cQuote8, returnTrips: 0, quotedPrice: cQuote8 }, '2026-09-02T16:00:00Z');
 
-// I. Accurate — TV mount standard
+// I. Accurate - TV mount standard
 const cExtract9: ExtractionResult = {
   tradeContexts: ['tv_wall_mounting'], assemblyCandidate: 'STANDARD_TV_MOUNT', assemblyConfidence: 0.92,
   tasks: [
@@ -795,7 +795,7 @@ const cRun9 = buildRun(cPipe9, { createdAt: '2026-09-02T10:00:00Z', workId: 2009
 const cQuote9 = Math.round(cPipe9.economicJob.evaluatedPrice);
 const cOutcome9 = makeOutcome(cRun9.id, { laborHours: 1.4, materialCost: 38, procurementHours: 0.25, revenue: cQuote9, returnTrips: 0, quotedPrice: cQuote9 }, '2026-09-02T12:00:00Z');
 
-// J. Human adjusted labor + material — fence panel replacement
+// J. Human adjusted labor + material - fence panel replacement
 const cExtract10: ExtractionResult = {
   tradeContexts: ['fence_repair'], assemblyCandidate: 'FENCE_PANEL_REPLACEMENT', assemblyConfidence: 0.82,
   tasks: [
@@ -818,7 +818,7 @@ const cAdj10: AdjustmentEntry[] = [
 ];
 const cOutcome10 = makeOutcome(cRun10.id, { laborHours: 6.5, materialCost: 220, procurementHours: 0.75, revenue: 620, returnTrips: 0, quotedPrice: 620 }, '2026-09-04T15:00:00Z');
 
-// K. Commercial — accurate drywall in apartment
+// K. Commercial - accurate drywall in apartment
 const cExtract11: ExtractionResult = {
   tradeContexts: ['drywall_repair'], assemblyCandidate: 'SMALL_DRYWALL_PATCH', assemblyConfidence: 0.88,
   tasks: [
@@ -836,7 +836,7 @@ const cRun11 = buildRun(cPipe11, { createdAt: '2026-09-04T10:00:00Z', workId: 20
 const cQuote11 = Math.round(cPipe11.economicJob.evaluatedPrice);
 const cOutcome11 = makeOutcome(cRun11.id, { laborHours: 1.5, materialCost: 22, procurementHours: 0.5, revenue: cQuote11, returnTrips: 0, quotedPrice: cQuote11 }, '2026-09-04T13:00:00Z');
 
-// L. Accurate — shelving install
+// L. Accurate - shelving install
 const cExtract12: ExtractionResult = {
   tradeContexts: ['general_handyman'], assemblyCandidate: null, assemblyConfidence: 0,
   tasks: [
@@ -859,47 +859,47 @@ const cOutcome12 = makeOutcome(cRun12.id, { laborHours: 2.2, materialCost: 35, p
 const cDec1 = makeOwnerDecision(cRun1, cPipe1, 'approved', cQuote1, cQuote1, '2026-08-15T10:15:00Z',
   { dayOfWeek: 1, hourOfDay: 10, remainingHours: 32, earnedToDate: 200, jobsDone: 1, queueDepth: 5 });
 
-// B. Approved adjusted — owner raised price on difficult TV mount, Tuesday afternoon
+// B. Approved adjusted - owner raised price on difficult TV mount, Tuesday afternoon
 const cDec2 = makeOwnerDecision(cRun2, cPipe2, 'approved_adjusted', 380, 380, '2026-08-18T09:45:00Z',
   { dayOfWeek: 1, hourOfDay: 9, remainingHours: 28, earnedToDate: 600, jobsDone: 3, queueDepth: 4 });
 
-// C. Approved adjusted — owner raised price on fence post, Wednesday
+// C. Approved adjusted - owner raised price on fence post, Wednesday
 const cDec3 = makeOwnerDecision(cRun3, cPipe3, 'approved_adjusted', 340, 340, '2026-08-20T11:30:00Z',
   { dayOfWeek: 3, hourOfDay: 11, remainingHours: 20, earnedToDate: 1200, jobsDone: 5, queueDepth: 3 });
 
-// D. Approved adjusted — owner bumped slightly for old house trim, Thursday morning
+// D. Approved adjusted - owner bumped slightly for old house trim, Thursday morning
 const cDec4 = makeOwnerDecision(cRun4, cPipe4, 'approved_adjusted', 520, 520, '2026-08-22T08:20:00Z',
   { dayOfWeek: 4, hourOfDay: 8, remainingHours: 14, earnedToDate: 1700, jobsDone: 7, queueDepth: 2 });
 
-// E. Approved adjusted — owner raised for composite materials, Monday
+// E. Approved adjusted - owner raised for composite materials, Monday
 const cDec5 = makeOwnerDecision(cRun5, cPipe5, 'approved_adjusted', 680, 680, '2026-08-25T09:30:00Z',
   { dayOfWeek: 1, hourOfDay: 9, remainingHours: 30, earnedToDate: 400, jobsDone: 2, queueDepth: 4 });
 
-// F. Approved at Rivet price — Wednesday, good capacity
+// F. Approved at Rivet price - Wednesday, good capacity
 const cDec6 = makeOwnerDecision(cRun6, cPipe6, 'approved', cQuote6, cQuote6, '2026-08-27T10:15:00Z',
   { dayOfWeek: 3, hourOfDay: 10, remainingHours: 22, earnedToDate: 1100, jobsDone: 4, queueDepth: 3 });
 
-// G. Approved at Rivet price — Saturday, wrapping up week
+// G. Approved at Rivet price - Saturday, wrapping up week
 const cDec7 = makeOwnerDecision(cRun7, cPipe7, 'approved', cQuote7, cQuote7, '2026-08-30T08:15:00Z',
   { dayOfWeek: 6, hourOfDay: 8, remainingHours: 6, earnedToDate: 2200, jobsDone: 8, queueDepth: 1 });
 
-// H. Approved adjusted (scope change) — Monday, fresh week
+// H. Approved adjusted (scope change) - Monday, fresh week
 const cDec8 = makeOwnerDecision(cRun8, cPipe8, 'approved_adjusted', cQuote8, cQuote8, '2026-09-01T14:10:00Z',
   { dayOfWeek: 1, hourOfDay: 14, remainingHours: 28, earnedToDate: 350, jobsDone: 1, queueDepth: 5 });
 
-// I. Easy take — Tuesday morning
+// I. Easy take - Tuesday morning
 const cDec9 = makeOwnerDecision(cRun9, cPipe9, 'approved', cQuote9, cQuote9, '2026-09-02T10:10:00Z',
   { dayOfWeek: 2, hourOfDay: 10, remainingHours: 26, earnedToDate: 800, jobsDone: 3, queueDepth: 4 });
 
-// J. Approved adjusted — Thursday, capacity getting tight
+// J. Approved adjusted - Thursday, capacity getting tight
 const cDec10 = makeOwnerDecision(cRun10, cPipe10, 'approved_adjusted', 620, 620, '2026-09-03T08:40:00Z',
   { dayOfWeek: 3, hourOfDay: 8, remainingHours: 15, earnedToDate: 1500, jobsDone: 6, queueDepth: 2 });
 
-// K. Commercial — approved at Rivet price, Thursday afternoon
+// K. Commercial - approved at Rivet price, Thursday afternoon
 const cDec11 = makeOwnerDecision(cRun11, cPipe11, 'approved', cQuote11, cQuote11, '2026-09-04T10:10:00Z',
   { dayOfWeek: 4, hourOfDay: 10, remainingHours: 10, earnedToDate: 2000, jobsDone: 8, queueDepth: 1 });
 
-// L. Easy take — Friday morning, almost hit goal
+// L. Easy take - Friday morning, almost hit goal
 const cDec12 = makeOwnerDecision(cRun12, cPipe12, 'approved', cQuote12, cQuote12, '2026-09-05T09:10:00Z',
   { dayOfWeek: 5, hourOfDay: 9, remainingHours: 7, earnedToDate: 2300, jobsDone: 10, queueDepth: 1 });
 
@@ -947,7 +947,7 @@ const completedWorkItems: WorkItem[] = [
     opStatus: 'completed', billingStatus: 'paid', estimationRunId: cRun7.id,
     phone: '(615) 555-0267', email: 'dmorales@email.com', address: '2240 Elliston Pl, Nashville, TN',
   }),
-  buildWorkItem(2008, 'Medium drywall patch — bedroom', cPipe8, {
+  buildWorkItem(2008, 'Medium drywall patch - bedroom', cPipe8, {
     customerName: 'Angela Reeves', location: 'Nashville, TN', travel: '7 min',
     description: cExtract8.rawDescription, photos: PHOTOS.drywall,
     opStatus: 'completed', billingStatus: 'paid', estimationRunId: cRun8.id,
@@ -959,7 +959,7 @@ const completedWorkItems: WorkItem[] = [
     opStatus: 'completed', billingStatus: 'paid', estimationRunId: cRun9.id,
     phone: '(615) 555-0389', email: 'jwhitfield@email.com', address: '637 Fatherland St, Nashville, TN',
   }),
-  buildWorkItem(2010, 'Replace 3 fence panels — back slope', cPipe10, {
+  buildWorkItem(2010, 'Replace 3 fence panels - back slope', cPipe10, {
     customerName: 'Stacy Caldwell', location: 'Nashville, TN', travel: '16 min',
     description: cExtract10.rawDescription, photos: PHOTOS.fence,
     opStatus: 'completed', billingStatus: 'paid', estimationRunId: cRun10.id,

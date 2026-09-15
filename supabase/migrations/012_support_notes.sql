@@ -30,7 +30,7 @@ CREATE POLICY "admin_read_support_notes"
   USING (is_admin());
 
 -- All writes (insert/update/delete) go through service-role Netlify functions
--- and bypass RLS — no client-side write policy needed.
+-- and bypass RLS - no client-side write policy needed.
 
 
 -- ── 2. Extend audit_log event types to include support_note_added ───────────

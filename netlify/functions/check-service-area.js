@@ -21,7 +21,7 @@ export default async function handler(req) {
       const allowed = await checkRateLimit(supabase, ip, 'check-service-area', 300, 30);
       if (!allowed) return errorResponse('Too many requests. Please wait a moment and try again.', 429);
     } catch {
-      // Supabase not configured — skip rate limiting
+      // Supabase not configured - skip rate limiting
     }
 
     let config;

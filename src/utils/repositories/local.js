@@ -1,5 +1,5 @@
 /**
- * localStorage repository — development/demo mode only.
+ * localStorage repository - development/demo mode only.
  *
  * This implementation has known limitations:
  *   - Single-browser only (no cross-device access)
@@ -32,7 +32,7 @@ const local = {
   async signOut() {},
   async getSession() { return { id: 'local-admin', email: 'admin@local' }; },
   onAuthStateChange(callback) {
-    // No-op in local mode — return subscription-like object
+    // No-op in local mode - return subscription-like object
     return { data: { subscription: { unsubscribe() {} } } };
   },
 
@@ -127,7 +127,7 @@ const local = {
   async getTravelCache() { return null; },
   async upsertTravelCache() {},
 
-  // ── Completed bookings & support (stubs for local — requires Supabase) ──
+  // ── Completed bookings & support (stubs for local - requires Supabase) ──
   async searchCompletedBookings() {
     const all = _getBookings().filter(b => b.status === 'completed');
     return { data: all, total: all.length, page: 1, perPage: 25, totalPages: 1 };

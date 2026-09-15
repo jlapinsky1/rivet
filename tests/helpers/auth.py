@@ -1,5 +1,5 @@
 """
-Auth helpers — acquire Supabase JWTs for admin and client test accounts
+Auth helpers - acquire Supabase JWTs for admin and client test accounts
 using the Supabase REST auth API directly (no JS SDK required).
 """
 import os

@@ -1027,7 +1027,7 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
                             <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">
                               Could another day work?
                             </label>
-                            <p className="text-xs text-gray-600 mt-0.5">Optional — helps us schedule you faster.</p>
+                            <p className="text-xs text-gray-600 mt-0.5">Optional - helps us schedule you faster.</p>
                           </div>
                           <div className="grid grid-cols-3 gap-2.5">
                             {backupDates.map(day => {

@@ -1,8 +1,8 @@
 /**
  * Risk flag severity levels:
- *   'info'    — Informational, no action needed
- *   'warning' — Warrants closer review
- *   'blocker' — Must be resolved or overridden before approval/acceptance
+ *   'info'    - Informational, no action needed
+ *   'warning' - Warrants closer review
+ *   'blocker' - Must be resolved or overridden before approval/acceptance
  */
 
 const DIFFICULT_ITEM_KEYWORDS = [
@@ -60,7 +60,7 @@ export function detectRiskFlags(booking, estimate) {
 
   // --- Photo quality ---
   if ((booking.photoCount || 0) === 0) {
-    flags.push({ flag: 'no_photos', severity: 'warning', message: 'No photos provided — estimate based on description only' });
+    flags.push({ flag: 'no_photos', severity: 'warning', message: 'No photos provided - estimate based on description only' });
   } else if ((booking.photoCount || 0) < 3) {
     flags.push({ flag: 'low_photos', severity: 'warning', message: `Only ${booking.photoCount || 0} photo(s) uploaded (minimum 3 recommended)` });
   }
@@ -70,10 +70,10 @@ export function detectRiskFlags(booking, estimate) {
     const aiCount = booking.aiDetectedItems.length;
     const finalCount = booking.detectedItems.length;
     if (finalCount < aiCount - 1) {
-      flags.push({ flag: 'items_removed', severity: 'warning', message: `Customer removed ${aiCount - finalCount} AI-detected item(s) — verify accuracy` });
+      flags.push({ flag: 'items_removed', severity: 'warning', message: `Customer removed ${aiCount - finalCount} AI-detected item(s) - verify accuracy` });
     }
     if (finalCount > aiCount + 2) {
-      flags.push({ flag: 'items_added', severity: 'warning', message: `Customer added ${finalCount - aiCount} item(s) beyond AI detection — may indicate more unseen items` });
+      flags.push({ flag: 'items_added', severity: 'warning', message: `Customer added ${finalCount - aiCount} item(s) beyond AI detection - may indicate more unseen items` });
     }
   }
 
@@ -90,19 +90,19 @@ export function detectRiskFlags(booking, estimate) {
   // --- Difficult items ---
   const foundDifficult = DIFFICULT_ITEM_KEYWORDS.filter(k => allText.includes(k));
   if (foundDifficult.length > 0) {
-    flags.push({ flag: 'difficult_items', severity: 'warning', message: `Difficult items: ${[...new Set(foundDifficult)].join(', ')} — extra labor/equipment may be needed` });
+    flags.push({ flag: 'difficult_items', severity: 'warning', message: `Difficult items: ${[...new Set(foundDifficult)].join(', ')} - extra labor/equipment may be needed` });
   }
 
   // --- Stairs ---
   if (booking.stairs === 'one_flight') {
     flags.push({ flag: 'stairs', severity: 'info', message: 'One flight of stairs' });
   } else if (booking.stairs === 'multiple') {
-    flags.push({ flag: 'stairs_multiple', severity: 'warning', message: 'Multiple flights of stairs — significant extra labor' });
+    flags.push({ flag: 'stairs_multiple', severity: 'warning', message: 'Multiple flights of stairs - significant extra labor' });
   }
 
   // --- Indoor pickup ---
   if (['first_floor', 'upstairs', 'basement'].includes(booking.accessType)) {
-    flags.push({ flag: 'indoor_pickup', severity: 'info', message: 'Indoor pickup — longer load time expected' });
+    flags.push({ flag: 'indoor_pickup', severity: 'info', message: 'Indoor pickup - longer load time expected' });
   }
 
   // --- No elevator on upper/lower floor ---
@@ -113,7 +113,7 @@ export function detectRiskFlags(booking, estimate) {
   // --- Construction debris ---
   const foundConstruction = CONSTRUCTION_KEYWORDS.filter(k => allText.includes(k));
   if (foundConstruction.length > 0) {
-    flags.push({ flag: 'construction_debris', severity: 'warning', message: `Construction/demo debris: ${[...new Set(foundConstruction)].join(', ')} — heavier, special disposal may apply` });
+    flags.push({ flag: 'construction_debris', severity: 'warning', message: `Construction/demo debris: ${[...new Set(foundConstruction)].join(', ')} - heavier, special disposal may apply` });
   }
 
   // --- BLOCKER: Hazardous materials ---
@@ -132,7 +132,7 @@ export function detectRiskFlags(booking, estimate) {
     flags.push({ flag: 'no_quantity', severity: 'warning', message: 'Customer did not specify quantity' });
   }
   if (booking.quantity === 'Whole house / cleanout') {
-    flags.push({ flag: 'large_job', severity: 'warning', message: 'Whole house cleanout — consider on-site estimate' });
+    flags.push({ flag: 'large_job', severity: 'warning', message: 'Whole house cleanout - consider on-site estimate' });
   }
 
   // --- Hidden items in description ---
@@ -143,7 +143,7 @@ export function detectRiskFlags(booking, estimate) {
 
   // --- No item info at all (and no photos to compensate) ---
   if ((!booking.detectedItems || booking.detectedItems.length === 0) && !booking.description && (booking.photoCount || 0) === 0) {
-    flags.push({ flag: 'no_item_info', severity: 'warning', message: 'No item list, description, or photos — contact customer for details' });
+    flags.push({ flag: 'no_item_info', severity: 'warning', message: 'No item list, description, or photos - contact customer for details' });
   }
 
   // --- Weight risk from estimate ---
@@ -158,7 +158,7 @@ export function detectRiskFlags(booking, estimate) {
       flags.push({
         flag: 'critical_missing_inputs',
         severity: 'blocker',
-        message: `${financialMissing.length} pricing inputs missing — estimate unreliable`,
+        message: `${financialMissing.length} pricing inputs missing - estimate unreliable`,
       });
     } else if (financialMissing.length > 0) {
       for (const m of financialMissing) {
@@ -185,7 +185,7 @@ export function checkPriceFlags(adminPrice, estimate, settings) {
   if (estimate) {
     const margin = (price - estimate.estimatedDirectCost) / price;
     if (margin < 0.50) {
-      flags.push({ flag: 'very_low_margin', severity: 'blocker', message: `Price yields only ${(margin * 100).toFixed(0)}% margin — below safe threshold (50%)` });
+      flags.push({ flag: 'very_low_margin', severity: 'blocker', message: `Price yields only ${(margin * 100).toFixed(0)}% margin - below safe threshold (50%)` });
     } else if (margin < 0.60) {
       flags.push({ flag: 'low_margin', severity: 'warning', message: `Price yields ${(margin * 100).toFixed(0)}% margin (target: 70%+)` });
     } else if (margin < 0.70) {
@@ -238,7 +238,7 @@ export function calculateConfidence(booking, flags) {
     else if (f.severity === 'info') { score -= 3; }
   }
 
-  // Zero photos penalty (stronger than per-warning deduction — intentionally degrades confidence)
+  // Zero photos penalty (stronger than per-warning deduction - intentionally degrades confidence)
   if ((booking.photoCount || 0) === 0) {
     score -= 15;
   } else if ((booking.photoCount || 0) >= 6) {

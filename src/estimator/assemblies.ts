@@ -1,8 +1,8 @@
 import type { Assembly } from './types';
 
-// Validated assemblies — reframed from the original 5 job families.
+// Validated assemblies - reframed from the original 5 job families.
 // Each assembly carries a direct labor/material range (MVP).
-// Component mappings are conceptual — assemblies don't need to sum components yet.
+// Component mappings are conceptual - assemblies don't need to sum components yet.
 // All marked needs_domain_validation.
 
 export const ASSEMBLIES: Record<string, Assembly> = {

@@ -1,10 +1,10 @@
 /**
- * Seed script — inserts estimation runs, adjustments, and outcomes into Supabase.
+ * Seed script - inserts estimation runs, adjustments, and outcomes into Supabase.
  *
  * Run via: npx tsx src/demo/seedSupabase.ts
  *
  * This uses the same persistence layer as the real app.
- * Safe to run multiple times — will log errors on duplicate IDs.
+ * Safe to run multiple times - will log errors on duplicate IDs.
  */
 
 import { demoEstimationRuns, demoAdjustments, demoOutcomes } from './seed';

@@ -65,7 +65,7 @@ export default async function handler(req) {
     const propertyLabel = [
       job.properties.name,
       job.unit ? `Unit ${job.unit}` : null,
-    ].filter(Boolean).join(' — ');
+    ].filter(Boolean).join(' - ');
 
     const emailResult = await sendDeclineEmail({
       to: clientEmail,

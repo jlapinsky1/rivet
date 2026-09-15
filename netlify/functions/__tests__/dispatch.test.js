@@ -490,7 +490,7 @@ describe('dispatch-complete', () => {
     expect(status).toBe(400);
   });
 
-  it('13. finalAmountCents from client body is ignored — reads from DB approved_quote', async () => {
+  it('13. finalAmountCents from client body is ignored - reads from DB approved_quote', async () => {
     const res = await handler(makePost({ ...VALID_BODY, finalAmountCents: 99999 }));
     await parse(res);
     // runCompleteJob should have been called with 25000 (250.00 * 100), not 99999
@@ -515,7 +515,7 @@ describe('dispatch-complete', () => {
     const { status, body } = await parse(res);
     expect(status).toBe(200);
     expect(body.idempotent).toBe(true);
-    // runCompleteJob is called once — it handles idempotency internally
+    // runCompleteJob is called once - it handles idempotency internally
     expect(runCompleteJobMock).toHaveBeenCalledTimes(1);
   });
 

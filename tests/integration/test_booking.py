@@ -1,5 +1,5 @@
 """
-Residential booking submission — comprehensive validation and server enforcement.
+Residential booking submission - comprehensive validation and server enforcement.
 Smoke tests marked with @pytest.mark.smoke for fast CI gate.
 """
 import uuid
@@ -29,7 +29,7 @@ def test_booking_response_has_booking_id(api, test_upload_session, test_run_id, 
 
 @pytest.mark.smoke
 def test_server_blocks_out_of_zone_zip(api, test_upload_session, test_run_id, test_service_area, out_of_zone_zip):
-    """Bypass the frontend — POST directly with an out-of-zone ZIP."""
+    """Bypass the frontend - POST directly with an out-of-zone ZIP."""
     payload = make_booking(test_upload_session, test_run_id, zip=out_of_zone_zip,
                             fullAddress=f"123 Test St, New York, NY {out_of_zone_zip}")
     r = api.post("/api/create-booking", json=payload)

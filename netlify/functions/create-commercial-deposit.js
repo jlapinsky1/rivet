@@ -84,7 +84,7 @@ export default async function handler(req) {
           });
         }
       } catch {
-        // PI not found — create a new one
+        // PI not found - create a new one
       }
     }
 

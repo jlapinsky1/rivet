@@ -61,7 +61,7 @@ end;
 $$;
 
 
--- ── 4. booking_photos — add kind column ─────────────────────────────────────
+-- ── 4. booking_photos - add kind column ─────────────────────────────────────
 
 alter table booking_photos
   add column if not exists kind text not null default 'before'

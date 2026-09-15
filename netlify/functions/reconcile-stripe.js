@@ -110,7 +110,7 @@ export default async function handler(req) {
         expected: bookingId,
         got: invoice.metadata?.booking_id,
       });
-      // Do not modify anything — mismatch could indicate a data integrity problem
+      // Do not modify anything - mismatch could indicate a data integrity problem
       return jsonResponse({ mismatches, actions });
     }
 

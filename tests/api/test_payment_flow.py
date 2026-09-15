@@ -51,7 +51,7 @@ def _approve_quote(api, admin_headers, booking_id, price=400):
 # ── Deposit calculation ──────────────────────────────────────────────────────
 
 def test_deposit_is_floor_half_of_invoice_total(api, test_upload_session, test_run_id, test_service_area, admin_headers):
-    """Deposit must be Math.floor(total / 2) — never rounded up."""
+    """Deposit must be Math.floor(total / 2) - never rounded up."""
     if not _stripe_configured():
         pytest.skip("Stripe not configured")
 
@@ -134,7 +134,7 @@ def test_fewer_than_3_confirmations_rejected(api, test_upload_session, test_run_
 
 
 def test_client_cannot_supply_deposit_amount(api, test_upload_session, test_run_id, test_service_area, admin_headers):
-    """Sending depositCents in the request body must have no effect — server calculates it."""
+    """Sending depositCents in the request body must have no effect - server calculates it."""
     if not _stripe_configured():
         pytest.skip("Stripe not configured")
 
@@ -149,7 +149,7 @@ def test_client_cannot_supply_deposit_amount(api, test_upload_session, test_run_
         "startTime": "08:00",
         "endTime": "12:00",
         "confirmations": ["c1", "c2", "c3"],
-        "depositCents": 1,  # attacker supplying their own amount — must be ignored
+        "depositCents": 1,  # attacker supplying their own amount - must be ignored
     })
     if r.status_code == 503:
         pytest.skip("Stripe not available")

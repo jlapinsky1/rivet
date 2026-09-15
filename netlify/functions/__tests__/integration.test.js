@@ -759,7 +759,7 @@ describe('Quote token lifecycle', () => {
   });
 
   it('supersedes old tokens when a new quote is approved', async () => {
-    // Approve a v2 — the mock RPC revokes old tokens
+    // Approve a v2 - the mock RPC revokes old tokens
     mockSupabase._db.bookings[0].status = 'pending_review';
     const res = await approveQuote(makeRequest('POST', {
       bookingId,
@@ -996,7 +996,7 @@ describe('Job completion', () => {
     });
   });
 
-  // Helper — builds a valid completion body using the current bookingId.
+  // Helper - builds a valid completion body using the current bookingId.
   function validBody() {
     return {
       bookingId,
@@ -1025,10 +1025,10 @@ describe('Job completion', () => {
   });
 
   it('rejects duplicate completion', async () => {
-    // First completion — succeeds, sets booking.status = 'completed'
+    // First completion - succeeds, sets booking.status = 'completed'
     await completeJob(makeRequest('POST', validBody(), { authorization: 'Bearer valid-admin-token' }));
 
-    // Second attempt — booking is now 'completed'
+    // Second attempt - booking is now 'completed'
     const res = await completeJob(makeRequest('POST', validBody(), { authorization: 'Bearer valid-admin-token' }));
     const { status, body } = await parseResponse(res);
     expect(status).toBe(409);
@@ -1052,7 +1052,7 @@ describe('Storage access control', () => {
     // Verified in SQL: insert into storage.buckets ... public = false
     // No anon/public RLS policies exist for storage.objects
     // Only admin_read_storage policy for authenticated + is_admin()
-    expect(true).toBe(true); // Structural verification — tested in migration
+    expect(true).toBe(true); // Structural verification - tested in migration
   });
 
   it('no storage upload policy for anonymous users exists', () => {

@@ -22,7 +22,7 @@ async function sendQuoteEmail({ contactName, email, propertyName, unit, estimate
     body: JSON.stringify({
       from: `Squatterz <${fromEmail}>`,
       to: [email],
-      subject: `Your estimate is ready — ${propertyName}${unit ? ` Unit ${unit}` : ''}`,
+      subject: `Your estimate is ready - ${propertyName}${unit ? ` Unit ${unit}` : ''}`,
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0a0f0d;color:#fff;border-radius:12px;">
           <div style="text-align:center;margin-bottom:24px;">
@@ -31,7 +31,7 @@ async function sendQuoteEmail({ contactName, email, propertyName, unit, estimate
           </div>
           <h1 style="font-size:20px;font-weight:900;margin:0 0 8px;text-align:center;">Your estimate is ready, ${firstName}!</h1>
           <p style="color:rgba(255,255,255,0.55);font-size:14px;line-height:1.6;margin:0 0 8px;text-align:center;">
-            For: <strong style="color:#fff;">${propertyName}</strong>${unit ? ` — Unit ${unit}` : ''}
+            For: <strong style="color:#fff;">${propertyName}</strong>${unit ? ` - Unit ${unit}` : ''}
           </p>
           <div style="background:#111;border:1px solid #222;border-radius:10px;padding:20px;margin:24px 0;text-align:center;">
             <div style="color:rgba(255,255,255,0.4);font-size:12px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.1em;">Total estimate</div>
@@ -131,7 +131,7 @@ export default async function handler(req) {
         customer: customerId,
         collection_method: 'send_invoice',
         days_until_due: 30,
-        description: `Commercial junk removal — ${job.properties.name}${job.unit ? ` Unit ${job.unit}` : ''}`,
+        description: `Commercial junk removal - ${job.properties.name}${job.unit ? ` Unit ${job.unit}` : ''}`,
         metadata: {
           job_id: jobId,
           environment: process.env.NODE_ENV || 'production',
@@ -145,7 +145,7 @@ export default async function handler(req) {
       invoice: invoice.id,
       amount: estimateCents,
       currency: 'usd',
-      description: `Commercial junk removal — ${job.properties.name}${job.unit ? ` Unit ${job.unit}` : ''} (${job.properties.address})`,
+      description: `Commercial junk removal - ${job.properties.name}${job.unit ? ` Unit ${job.unit}` : ''} (${job.properties.address})`,
     });
 
     await stripe.invoices.finalizeInvoice(invoice.id);

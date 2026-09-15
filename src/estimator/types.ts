@@ -275,7 +275,7 @@ export type EconomicJob = {
   contributionPerLaborHour: Range;
   contributionPerCapacityHour: number;
 
-  // Owner-adjusted (analytical only — not used in acceptance thresholds)
+  // Owner-adjusted (analytical only - not used in acceptance thresholds)
   ownerAdjustedProfit: Range;
   ownerAdjustedPerHour: Range;
 
@@ -343,7 +343,7 @@ export type OwnerAction = 'approved' | 'approved_adjusted' | 'declined' | 'revie
  *
  * Example: Rivet said Pass on a $180 job. Owner took it anyway because it was
  * Thursday, he only needed $400 to hit his weekly goal, and he had 6 hours left.
- * Without this context, the feedback record just says "owner overrode Rivet" —
+ * Without this context, the feedback record just says "owner overrode Rivet" -
  * with it, we can learn "owners rationally override Pass when goal is nearly met."
  */
 export type DecisionSnapshot = {

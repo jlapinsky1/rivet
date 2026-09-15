@@ -7,7 +7,7 @@ import {
 import { CUSTOMER_TERMS } from '../utils/quoteSnapshot';
 import { getRepo } from '../utils/repository';
 
-// Stripe publishable key — safe to expose (server secret key is never here)
+// Stripe publishable key - safe to expose (server secret key is never here)
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 // ── Payment form (must be inside <Elements>) ──────────────────────────────
@@ -40,7 +40,7 @@ function PaymentForm({ token, depositCents, onPaymentSubmitted, onPaymentError }
       onPaymentError(msg);
       setProcessing(false);
     } else {
-      // Payment submitted — no redirect means confirmPayment resolved without redirect
+      // Payment submitted - no redirect means confirmPayment resolved without redirect
       onPaymentSubmitted();
     }
   }
@@ -106,7 +106,7 @@ export default function ApprovedQuote() {
         } else if (status === 'scheduled' || status === 'completed' || data?.booking?.deposit_confirmed_at) {
           setPageState('already_scheduled');
         } else if (searchParams.get('deposit_return') === '1') {
-          // Returning from a 3DS redirect — start polling immediately
+          // Returning from a 3DS redirect - start polling immediately
           setPageState('payment_submitted');
           startPolling();
         } else {
@@ -141,7 +141,7 @@ export default function ApprovedQuote() {
 
       if (attempts >= maxAttempts) {
         stopPolling();
-        setPageState('payment_submitted'); // stays in "processing" state — check email
+        setPageState('payment_submitted'); // stays in "processing" state - check email
       }
     }, 3000);
   }
@@ -193,7 +193,7 @@ export default function ApprovedQuote() {
       if (!res.ok) {
         const msg = data.error || 'Unable to set up payment. Please try again.';
         if (res.status === 409) {
-          // Slot taken — go back to quote view so they can pick another slot
+          // Slot taken - go back to quote view so they can pick another slot
           setPageState('quote_view');
           setError(msg);
         } else {
@@ -224,7 +224,7 @@ export default function ApprovedQuote() {
 
   function handlePaymentError(msg) {
     setError(msg);
-    // Stay in payment_entry so user can retry — slot is still reserved
+    // Stay in payment_entry so user can retry - slot is still reserved
     setPageState('payment_entry');
   }
 
@@ -445,7 +445,7 @@ export default function ApprovedQuote() {
           </div>
         </div>
 
-        {/* Time slot selection — only shown before payment entry */}
+        {/* Time slot selection - only shown before payment entry */}
         {!showPayment && availableSlots.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm border p-5">
             <h3 className="font-bold text-gray-800 mb-3">Choose your pickup time</h3>
@@ -474,7 +474,7 @@ export default function ApprovedQuote() {
           </div>
         )}
 
-        {/* Confirmations — only shown before payment entry */}
+        {/* Confirmations - only shown before payment entry */}
         {!showPayment && !isExpired && (
           <div className="bg-white rounded-2xl shadow-sm border p-5">
             <h3 className="font-bold text-gray-800 mb-3">Before you continue</h3>

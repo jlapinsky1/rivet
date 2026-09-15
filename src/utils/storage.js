@@ -80,7 +80,7 @@ export function getSettings() {
 }
 
 /**
- * Async settings loader — call once on app init to prime the cache from DB.
+ * Async settings loader - call once on app init to prime the cache from DB.
  * Returns the merged settings (DB > defaults).
  */
 export async function loadSettingsFromDB(repo) {

@@ -59,7 +59,7 @@ const FAQ = [
   },
   {
     q: "Can you provide documentation for our records?",
-    a: "Yes. Every job includes before-and-after photos, an itemized removal list, and completion notes — useful for property records, insurance purposes, or tenant dispute documentation.",
+    a: "Yes. Every job includes before-and-after photos, an itemized removal list, and completion notes - useful for property records, insurance purposes, or tenant dispute documentation.",
   },
   {
     q: "Do you serve my area?",
@@ -143,7 +143,7 @@ export default function EvictionCleanup() {
           <div className="bg-white/[0.03] border border-white/8 rounded-2xl p-8">
             <h2 className="text-2xl font-black mb-2">What We Remove</h2>
             <p className="text-white/50 text-sm mb-6">
-              Former tenants leave behind a wide range of items. We handle all of it — no sorting, no partial loads.
+              Former tenants leave behind a wide range of items. We handle all of it - no sorting, no partial loads.
             </p>
             <ul className="grid md:grid-cols-2 gap-3">
               {ITEMS_HANDLED.map((item) => (
@@ -163,7 +163,7 @@ export default function EvictionCleanup() {
         <section className="max-w-4xl mx-auto px-5 mb-16">
           <h2 className="text-2xl font-black mb-2">What You Receive</h2>
           <p className="text-white/50 text-sm mb-6">
-            Documentation matters after an eviction — for insurance, property records, and potential tenant disputes. Every job includes:
+            Documentation matters after an eviction - for insurance, property records, and potential tenant disputes. Every job includes:
           </p>
           <div className="grid md:grid-cols-2 gap-4">
             {DOC_ITEMS.map((item) => (
@@ -189,7 +189,7 @@ export default function EvictionCleanup() {
               <div className="border-t border-white/8 pt-6">
                 <h3 className="font-bold text-white mb-2">How do you handle access to the property?</h3>
                 <p className="text-white/55 text-sm leading-relaxed">
-                  Access details are included in your work order submission — lockbox codes, gate codes, or key pickup arrangements. We keep that information confidential and return or dispose of temporary access as you specify.
+                  Access details are included in your work order submission - lockbox codes, gate codes, or key pickup arrangements. We keep that information confidential and return or dispose of temporary access as you specify.
                 </p>
               </div>
               <div className="border-t border-white/8 pt-6">

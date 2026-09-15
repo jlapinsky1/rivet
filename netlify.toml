@@ -23,13 +23,13 @@
   to = "/b/squatterz"
   status = 301
 
-# SPA fallback — must be last
+# SPA fallback - must be last
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-# Private routes — noindex so crawlers don't index authenticated content.
+# Private routes - noindex so crawlers don't index authenticated content.
 [[headers]]
   for = "/admin/*"
   [headers.values]
@@ -50,14 +50,14 @@
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
 
-# Embed script — allow cross-origin loading from any client site
+# Embed script - allow cross-origin loading from any client site
 [[headers]]
   for = "/embed.js"
   [headers.values]
     Access-Control-Allow-Origin = "*"
     Cache-Control = "public, max-age=3600"
 
-# Quote request form — allow iframe embedding from any origin (client websites)
+# Quote request form - allow iframe embedding from any origin (client websites)
 [[headers]]
   for = "/request/*"
   [headers.values]

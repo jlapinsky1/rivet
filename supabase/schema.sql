@@ -1,4 +1,4 @@
--- Rivet schema — DEV ONLY (no RLS)
+-- Rivet schema - DEV ONLY (no RLS)
 -- Run this in the Supabase SQL Editor.
 
 -- ─── Estimation Runs (immutable) ───

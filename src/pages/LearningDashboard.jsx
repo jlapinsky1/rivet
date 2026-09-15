@@ -7,12 +7,12 @@ import { generateCalibrationSuggestions } from '../utils/calibrationEngine';
 import { computeMetrics } from '../utils/varianceAnalysis';
 
 function fmt(n, decimals = 0) {
-  if (n == null) return '—';
+  if (n == null) return '-';
   return Number(n).toFixed(decimals);
 }
 
 function pct(n) {
-  if (n == null) return '—';
+  if (n == null) return '-';
   return (n * 100).toFixed(0) + '%';
 }
 
@@ -170,7 +170,7 @@ function CalibrationPanel({ suggestions, onDecision }) {
             <div className="font-medium text-gray-800">
               {VARIANCE_FIELDS[s.metric]?.label || s.metric}
               {s.dimensionValue !== 'all' && (
-                <span className="text-gray-500 font-normal"> — {s.dimensionValue}</span>
+                <span className="text-gray-500 font-normal"> - {s.dimensionValue}</span>
               )}
             </div>
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${CONFIDENCE_BADGE[s.confidence]}`}>
@@ -242,7 +242,7 @@ function CalibrationHistory({ records }) {
                 {r.owner_decision}
               </td>
               <td className="py-2 text-right text-gray-400">
-                {r.decided_at ? new Date(r.decided_at).toLocaleDateString() : '—'}
+                {r.decided_at ? new Date(r.decided_at).toLocaleDateString() : '-'}
               </td>
             </tr>
           ))}

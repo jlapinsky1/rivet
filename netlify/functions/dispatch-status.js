@@ -4,7 +4,7 @@
  * Advances a booking through the dispatch status sequence.
  * Enforces deposit confirmation and before-photo requirements.
  * Idempotent: returns success if the booking is already in targetStatus.
- * Notification events are queued by the DB trigger — not inserted here.
+ * Notification events are queued by the DB trigger - not inserted here.
  *
  * Valid transitions:
  *   scheduled   → en_route    (deposit required)

@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Brand — dark forest green / near-black
+        // Brand - dark forest green / near-black
         forest: {
           50: '#f0f5f1',
           100: '#dce8e1',
@@ -33,13 +33,13 @@ export default {
           200: '#ede9e0',
           300: '#e0dbd0',
         },
-        // Amber — restrained
+        // Amber - restrained
         amber: {
           400: '#fbbf24',
           500: '#f59e0b',
           600: '#d97706',
         },
-        // Red — restrained
+        // Red - restrained
         rust: {
           400: '#f87171',
           500: '#ef4444',

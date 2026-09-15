@@ -2,9 +2,9 @@ import type { Recommendation, WorkSource, OperationalStatus, BillingStatus, Work
 import { ArrowRight, Clock3, MapPin, Zap } from 'lucide-react';
 
 export function recCopy(rec: Recommendation, rate?: string) {
-  if (rec === 'take') return { label: 'Take this job', sentence: rate ? `Worth about ${rate} to you — good profit and a smart use of your remaining time.` : 'Good profit and a smart use of your remaining time.' };
+  if (rec === 'take') return { label: 'Take this job', sentence: rate ? `Worth about ${rate} to you - good profit and a smart use of your remaining time.` : 'Good profit and a smart use of your remaining time.' };
   if (rec === 'review') return { label: 'Review this job', sentence: 'Could be worth it, but a few details need a closer look before you commit.' };
-  return { label: 'Pass on this job', sentence: 'Too much time and travel for the expected profit — your hours are better spent elsewhere.' };
+  return { label: 'Pass on this job', sentence: 'Too much time and travel for the expected profit - your hours are better spent elsewhere.' };
 }
 
 export function recIcon(rec: Recommendation) {

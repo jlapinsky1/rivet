@@ -4,7 +4,7 @@
  * Registers a crew or issue photo in booking_photos after the client has
  * successfully PUT the file to the signed upload URL.
  *
- * Returns { success, photoId } — never returns the storage path.
+ * Returns { success, photoId } - never returns the storage path.
  */
 
 import { getServiceClient, verifyAdmin, jsonResponse, errorResponse } from './_shared/supabase.js';
@@ -38,7 +38,7 @@ export default async function handler(req) {
       return errorResponse(`Invalid kind '${kind}'. Allowed: before, after, issue`);
     }
 
-    // Path injection guard — all crew photos must live under completions/{bookingId}/
+    // Path injection guard - all crew photos must live under completions/{bookingId}/
     const validPathPrefix = `completions/${bookingId}/`;
     if (!storagePath.startsWith(validPathPrefix)) {
       return errorResponse('Invalid storage path', 422);
@@ -92,7 +92,7 @@ export default async function handler(req) {
       return errorResponse('Failed to save photo record', 500);
     }
 
-    // Return photoId only — never return storage_path
+    // Return photoId only - never return storage_path
     return jsonResponse({ success: true, photoId: photo.id });
 
   } catch (e) {

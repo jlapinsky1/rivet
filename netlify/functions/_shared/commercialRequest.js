@@ -82,7 +82,7 @@ export async function sendCommercialJobEmails({
         body: JSON.stringify({
           from: `Squatterz <${fromEmail}>`,
           to: [clientEmail],
-          subject: `Request received — ${shortId}`,
+          subject: `Request received - ${shortId}`,
           html: `
             <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0a0f0d;color:#fff;border-radius:12px;">
               <div style="text-align:center;margin-bottom:24px;">
@@ -130,8 +130,8 @@ export async function sendCommercialJobEmails({
           from: `Squatterz <${fromEmail}>`,
           to: [adminEmail],
           subject: isNewAccount
-            ? `New commercial account + estimate request ${shortId} — ${client.company_name || client.contact_name}`
-            : `New commercial estimate request ${shortId} — ${property.name}`,
+            ? `New commercial account + estimate request ${shortId} - ${client.company_name || client.contact_name}`
+            : `New commercial estimate request ${shortId} - ${property.name}`,
           html: `
             <div style="font-family:sans-serif;max-width:520px;padding:24px;">
               <h2>${isNewAccount ? 'New Commercial Account + Estimate Request' : 'New Commercial Estimate Request'}</h2>
@@ -140,7 +140,7 @@ export async function sendCommercialJobEmails({
               <p><strong>Email:</strong> ${clientEmail || 'N/A'}</p>
               <p><strong>Phone:</strong> ${client.phone || 'N/A'}</p>
               <hr>
-              <p><strong>Property:</strong> ${property.name} — ${property.address}</p>
+              <p><strong>Property:</strong> ${property.name} - ${property.address}</p>
               <p><strong>Job Reference:</strong> ${shortId}</p>
               ${unit ? `<p><strong>Unit / Location:</strong> ${unit}</p>` : ''}
               ${description ? `<p><strong>Description:</strong> ${description}</p>` : ''}

@@ -7,8 +7,8 @@
  * Travel time assumes an average speed of 30 mph (typical suburban/rural mix).
  *
  * Requires env vars:
- *   SHOP_LAT  — latitude of the shop / home base
- *   SHOP_LNG  — longitude of the shop / home base
+ *   SHOP_LAT  - latitude of the shop / home base
+ *   SHOP_LNG  - longitude of the shop / home base
  *
  * Called fire-and-forget from create-booking.js and on-demand from the admin UI.
  */
@@ -51,7 +51,7 @@ export default async function handler(req) {
 
     if (bookingErr || !booking) return errorResponse('Booking not found', 404);
 
-    // Already geocoded — return cached values
+    // Already geocoded - return cached values
     if (booking.geocoding_status === 'success') {
       const { data: row } = await supabase
         .from('bookings')

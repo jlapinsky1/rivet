@@ -130,13 +130,13 @@ export default async function handler(req) {
             body: JSON.stringify({
               from: `Squatterz <${fromEmail}>`,
               to: [adminEmail],
-              subject: `New commercial job request ${shortId} — ${property.name}`,
+              subject: `New commercial job request ${shortId} - ${property.name}`,
               html: `
                 <div style="font-family:sans-serif;max-width:520px;padding:24px;">
                   <h2>New Commercial Job Request</h2>
                   <p><strong>Job:</strong> ${shortId}</p>
                   <p><strong>Client:</strong> ${client.company_name || client.contact_name || 'Unknown'}</p>
-                  <p><strong>Property:</strong> ${property.name} — ${property.address}</p>
+                  <p><strong>Property:</strong> ${property.name} - ${property.address}</p>
                   ${unit ? `<p><strong>Unit:</strong> ${unit}</p>` : ''}
                   ${description ? `<p><strong>Description:</strong> ${description}</p>` : ''}
                   ${preferredDate ? `<p><strong>Preferred Date:</strong> ${new Date(preferredDate).toLocaleDateString()}</p>` : ''}
@@ -158,7 +158,7 @@ export default async function handler(req) {
             body: JSON.stringify({
               from: `Squatterz <${fromEmail}>`,
               to: [clientEmail],
-              subject: `Request received — ${shortId}`,
+              subject: `Request received - ${shortId}`,
               html: `
                 <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0a0f0d;color:#fff;border-radius:12px;">
                   <div style="text-align:center;margin-bottom:24px;">

@@ -143,7 +143,7 @@ async function handleResendFinalLink(supabase, bookingId, admin) {
     amountRemainingCents = invoice.amount_remaining;
   } catch (stripeErr) {
     console.error('Failed to load invoice for resend:', stripeErr.message, { bookingId });
-    // Non-fatal — still send the email without the amount
+    // Non-fatal - still send the email without the amount
   }
 
   // Send email
@@ -205,7 +205,7 @@ async function handleReconcile(supabase, bookingId, admin, req) {
   if (invoice.metadata?.booking_id !== bookingId) {
     mismatches.push({
       field: 'invoice.metadata.booking_id',
-      issue: 'Mismatch — cannot reconcile safely',
+      issue: 'Mismatch - cannot reconcile safely',
       expected: bookingId,
       got: invoice.metadata?.booking_id,
     });

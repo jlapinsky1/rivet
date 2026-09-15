@@ -72,7 +72,7 @@ def test_full_quote_lifecycle(api, test_upload_session, test_run_id, test_servic
     assert "booking" in quote_data
 
     # 4. Customer initiates payment via create-deposit-payment
-    #    (replaces old accept-quote — slot reservation + PI creation in one call)
+    #    (replaces old accept-quote - slot reservation + PI creation in one call)
     deposit_r = api.post("/api/create-deposit-payment", json={
         "token": raw_token,
         "resourceId": "truck-1",
@@ -106,7 +106,7 @@ def test_invalid_token_rejected(api):
     assert r.status_code == 400
     body = r.json()
     assert "error" in body
-    # Generic message — does not reveal token existence
+    # Generic message - does not reveal token existence
     assert body["error"] == "Unable to process this request"
 
 

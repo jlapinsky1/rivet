@@ -126,7 +126,7 @@ export async function loadServiceAreaConfig() {
       return _cache;
     }
 
-    // First run: nothing stored yet — seed from env vars
+    // First run: nothing stored yet - seed from env vars
     const migrated = buildFromEnv();
     try {
       await store.set(CONFIG_KEY, JSON.stringify(migrated));
@@ -210,12 +210,12 @@ export function evaluateZip(zip, config) {
     const zipCoords = getZipCoords(z);
 
     if (!centerCoords) {
-      // Center ZIP not in database — fail open so valid customers aren't blocked
+      // Center ZIP not in database - fail open so valid customers aren't blocked
       console.warn(`[serviceArea] Center ZIP ${centerZip} not found in database`);
       return { serviceable: true, reason: 'unconfigured' };
     }
     if (!zipCoords) {
-      // Customer ZIP not in database — fail open
+      // Customer ZIP not in database - fail open
       return { serviceable: true, reason: 'unknown_zip' };
     }
 

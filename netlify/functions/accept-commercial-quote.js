@@ -47,7 +47,7 @@ export default async function handler(req) {
 
     if (job.status !== 'quote_sent') {
       if (['awaiting_payment', 'scheduled', 'in_progress', 'completed'].includes(job.status)) {
-        // Already accepted — idempotent
+        // Already accepted - idempotent
         return jsonResponse({ jobId: job.id, alreadyAccepted: true });
       }
       return errorResponse('This quote cannot be accepted in its current state', 409);

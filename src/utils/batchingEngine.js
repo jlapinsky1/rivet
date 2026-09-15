@@ -1,5 +1,5 @@
 /**
- * Batching engine — capacity compatibility checks and batch suggestions.
+ * Batching engine - capacity compatibility checks and batch suggestions.
  * Modest implementation for Phase 4.
  */
 

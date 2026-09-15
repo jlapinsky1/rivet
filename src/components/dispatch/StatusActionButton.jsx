@@ -13,7 +13,7 @@ const STATUS_CONFIG = {
  * @param {string} props.status
  * @param {boolean} props.depositConfirmed
  * @param {number} props.crewBeforePhotoCount
- * @param {function} props.onAction  — called when action is confirmed
+ * @param {function} props.onAction  - called when action is confirmed
  * @param {boolean} [props.loading]
  */
 export default function StatusActionButton({ status, depositConfirmed, crewBeforePhotoCount, onAction, loading }) {

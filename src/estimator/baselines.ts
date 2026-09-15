@@ -1,6 +1,6 @@
 import type { HandymanJobFamily, FamilyBaseline } from './types';
 
-// All baseline numbers are NEEDS_VALIDATION — assumed from industry averages,
+// All baseline numbers are NEEDS_VALIDATION - assumed from industry averages,
 // not validated with real handyman data. Do not treat as ground truth.
 
 export const BASELINES: Record<HandymanJobFamily, FamilyBaseline> = {
@@ -28,7 +28,7 @@ export const BASELINES: Record<HandymanJobFamily, FamilyBaseline> = {
     rules: [
       {
         code: 'TRIM_REPLACEMENT',
-        description: 'Trim replacement likely — adds finishing work',
+        description: 'Trim replacement likely - adds finishing work',
         factKey: 'trimReplacementLikely',
         match: true,
         deltaHoursExpected: 0.75,
@@ -38,7 +38,7 @@ export const BASELINES: Record<HandymanJobFamily, FamilyBaseline> = {
       },
       {
         code: 'FRAME_DAMAGE',
-        description: 'Visible frame damage — structural repair needed',
+        description: 'Visible frame damage - structural repair needed',
         factKey: 'frameDamageVisible',
         match: true,
         deltaHoursExpected: 1.5,
@@ -50,7 +50,7 @@ export const BASELINES: Record<HandymanJobFamily, FamilyBaseline> = {
       },
       {
         code: 'CUSTOMER_SUPPLIES_DOOR',
-        description: 'Customer supplies door — reduced material cost, compatibility risk',
+        description: 'Customer supplies door - reduced material cost, compatibility risk',
         factKey: 'customerSuppliesDoor',
         match: true,
         deltaMaterialExpected: -80,
@@ -60,7 +60,7 @@ export const BASELINES: Record<HandymanJobFamily, FamilyBaseline> = {
       },
       {
         code: 'BRICK_VENEER_ADJACENT',
-        description: 'Door frame adjacent to brick — careful cutting needed',
+        description: 'Door frame adjacent to brick - careful cutting needed',
         factKey: 'brickVeneerAdjacent',
         match: true,
         deltaHoursExpected: 0.5,
@@ -303,7 +303,7 @@ export const BASELINES: Record<HandymanJobFamily, FamilyBaseline> = {
       },
       {
         code: 'CUSTOMER_SUPPLIES_MOUNT',
-        description: 'Customer supplies mount bracket — reduced material, compatibility risk',
+        description: 'Customer supplies mount bracket - reduced material, compatibility risk',
         factKey: 'customerSuppliesMount',
         match: true,
         deltaMaterialExpected: -25,
