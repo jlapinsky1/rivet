@@ -16,9 +16,9 @@ import './marketing.css';
 function LandingPage() {
   return (
     <main>
-      <WeeklySection />
-      <OnboardingSection />
       <Hero />
+      <OnboardingSection />
+      <WeeklySection />
       <ProblemSection />
       <HowItWorks />
       <DecisionEngine />
