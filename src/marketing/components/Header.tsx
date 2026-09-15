@@ -171,13 +171,13 @@ function Logo() {
     <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
       <rect width="28" height="28" rx="7" fill="#142a20" />
       <path
-        d="M9 8.5L9 19.5M9 8.5L16.5 8.5M9 14L14.5 14"
+        d="M9 8.5L9 19.5M9 8.5L14.5 8.5Q18.5 8.5 18.5 11.25Q18.5 14 14.5 14L9 14M14 14L19 19.5"
         stroke="#10b981"
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx="19.5" cy="19.5" r="2" fill="#34d39e" />
+      <circle cx="21" cy="19.5" r="2" fill="#34d39e" />
     </svg>
   );
 }
