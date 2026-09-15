@@ -17,8 +17,8 @@ function LandingPage() {
   return (
     <main>
       <Hero />
-      <OnboardingSection />
       <WeeklySection />
+      <OnboardingSection />
       <ProblemSection />
       <HowItWorks />
       <DecisionEngine />
