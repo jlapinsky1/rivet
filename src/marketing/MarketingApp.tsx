@@ -19,6 +19,7 @@ function LandingPage() {
       <Hero />
       <WeeklySection />
       <OnboardingSection />
+      <FinalCTA />
       <ProblemSection />
       <HowItWorks />
       <DecisionEngine />
@@ -26,7 +27,6 @@ function LandingPage() {
       <ServiceBusinesses />
       <CommercialSection />
       <PhilosophySection />
-      <FinalCTA />
     </main>
   );
 }
