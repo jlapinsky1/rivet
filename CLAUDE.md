@@ -8,6 +8,7 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full system design.
 - **Test**: `npm test` (vitest)
 - **Sim**: `npm run sim` (Mason week clocks → `docs/SIMULATION.md`)
 - **Mason SQL**: `npm run seed:sql` → `supabase/refresh-mason-production.sql`
+- **Tune report**: `npm run tune-report -- --demo` (or live last 7 days). Monday 14:00 UTC: `weekly-tuning-report` emails `TUNING_REPORT_EMAIL`
 - **Typecheck**: `npm run typecheck`
 - **Build**: `npm run build`
 - **Dev**: `npm run dev` (Vite) / `netlify dev` (with Functions)
@@ -58,7 +59,7 @@ src/admin/useWorkItems.ts   — Work items hook used by admin dashboard (also Su
 src/estimator/              — Pipeline + weekContext, truckCopy, simulate, applyLiveRecommendations
 src/estimator/__tests__     — estimator / decision / pipeline / week / sim tests
 src/admin/DecisionLab.tsx   — Internal evaluation page (Settings > Decision Lab, access-gated)
-src/admin/WorkDetailDrawer.tsx — Price editing + adjustment logging + owner decision recording (>5% requires reason code)
+src/admin/WorkDetailDrawer.tsx — Price editing + adjustment logging + owner decision recording (rec misses ask why)
 src/demo/seed.ts            — Mason Home Services seed data (runs real pipeline, used by tests)
 src/demo/customers.ts       — 13 residential + 2 commercial customers (test reference data)
 netlify/functions/extract.ts — Server-side Claude API

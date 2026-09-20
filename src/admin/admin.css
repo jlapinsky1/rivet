@@ -513,6 +513,27 @@ img { display: block; max-width: 100%; }
   font: 800 24px 'Manrope', sans-serif; background: transparent;
 }
 .price-input span:last-child { font-size: 11px; font-weight: 600; }
+.reason-picker {
+  margin-top: 12px; padding: 14px;
+  border: 1px solid var(--border-medium); border-radius: var(--radius-sm);
+  background: var(--bg-muted, var(--bg-surface));
+}
+.reason-picker p { margin: 0 0 10px; font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.reason-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.reason-option {
+  border: 1px solid var(--border-medium); border-radius: 999px;
+  background: var(--bg-surface); color: var(--text-secondary);
+  padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.reason-option:hover { border-color: var(--brand); color: var(--brand); }
+.reason-picker-back {
+  margin-top: 10px; border: 0; background: transparent;
+  color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.action-reason-picker {
+  margin: 0; padding: 14px 28px;
+  border-top: 1px solid var(--border-light);
+}
 .price-impact {
   display: flex; gap: 10px; align-items: flex-start;
   margin-top: 12px; padding: 13px 14px; border-radius: var(--radius-sm);

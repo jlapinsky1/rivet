@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "sim": "npx tsx scripts/simulate-handyman.ts",
-    "seed:sql": "npx tsx supabase/generate-seed-sql.ts"
+    "seed:sql": "npx tsx supabase/generate-seed-sql.ts",
+    "tune-report": "npx tsx scripts/tuning-report.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",

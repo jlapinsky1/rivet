@@ -13,3 +13,5 @@ alwaysApply: true
 - Monday / midweek / Friday exist only in `npm run sim`. App code never special-cases weekday names.
 - Demo and real accounts share the same code. Mason refresh SQL is `supabase/refresh-mason-production.sql` (that business_id only).
 - After engine tunes: `npm run sim` then regenerate seed SQL with `npx tsx supabase/generate-seed-sql.ts`.
+- Rec misses must land on `owner_decisions.reason_code`. Pass they take, Send they decline, and Look first they close all ask why. Small price moves log too-high / too-low from direction.
+- Weekly miss write-up: `npm run tune-report`. Scheduled function `weekly-tuning-report` (Mondays). Tune from the report — do not invent hours.

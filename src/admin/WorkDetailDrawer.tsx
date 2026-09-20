@@ -3,6 +3,8 @@ import type { WorkItem } from './types';
 import type { ReasonCode } from '../estimator/types';
 import type { OwnerAction, DecisionSnapshot } from '../estimator/types';
 import { createAdjustmentEntry, saveAdjustment, saveOwnerDecision } from '../estimator/persistence';
+import { priceMoveReason, recReasonPrompt } from '../estimator/decisionFeedback';
+import { useAuth } from '../lib/AuthProvider';
 import { useWorkItemsContext } from './WorkItemsContext';
 import { useGoalData } from './useGoalData';
 import { useSettings } from './useSettings';
@@ -13,16 +15,16 @@ import { buildEstimate } from '../utils/estimateBuilder';
 import { getSettings } from '../utils/storage';
 import { CUSTOMER_TERMS } from '../utils/quoteSnapshot';
 
-const REASON_CODE_LABELS: Record<ReasonCode, string> = {
-  SYSTEM_TOO_LOW: 'System estimate too low',
-  SYSTEM_TOO_HIGH: 'System estimate too high',
-  SCOPE_CHANGED: 'Scope changed',
-  NEW_CUSTOMER_INFO: 'New customer info',
-  OWNER_EXPERIENCE: 'My experience',
-  MATERIAL_COST_DIFFERENT: 'Material cost different',
-  SITE_CONDITION_DIFFERENT: 'Site condition different',
-  OTHER: 'Other',
-};
+const PRICE_REASON_LABELS: { code: ReasonCode; label: string }[] = [
+  { code: 'SYSTEM_TOO_LOW', label: 'System estimate too low' },
+  { code: 'SYSTEM_TOO_HIGH', label: 'System estimate too high' },
+  { code: 'SCOPE_CHANGED', label: 'Scope changed' },
+  { code: 'NEW_CUSTOMER_INFO', label: 'New customer info' },
+  { code: 'OWNER_EXPERIENCE', label: 'My experience' },
+  { code: 'MATERIAL_COST_DIFFERENT', label: 'Material cost different' },
+  { code: 'SITE_CONDITION_DIFFERENT', label: 'Site condition different' },
+  { code: 'OTHER', label: 'Other' },
+];
 
 type DrawerProps = {
   item: WorkItem;
@@ -36,9 +38,14 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   const [showReasonPicker, setShowReasonPicker] = useState(false);
   const [pendingPrice, setPendingPrice] = useState<number | null>(null);
   const previousPriceRef = useRef(item.price);
+  const [actionPrompt, setActionPrompt] = useState<null | { intent: 'approve' | 'decline' }>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+
+  const { business, user } = useAuth();
+  const businessId = business?.businessId ?? 'default';
+  const userId = user?.id ?? 'owner';
 
   // Context for decision snapshot (captures "it was Thursday, 15h left, needed $1k")
   const { workItems } = useWorkItemsContext();
@@ -75,27 +82,44 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
     action: OwnerAction,
     ownerPrice: number | null,
     quotedPrice: number | null,
+    reasonCode?: ReasonCode,
   ) => {
-    if (!item.estimationRunId) return; // no estimation run to link to
+    if (!item.estimationRunId) return;
     try {
       await saveOwnerDecision({
         id: crypto.randomUUID(),
         estimationRunId: item.estimationRunId,
-        businessId: 'default', // will be overridden by RLS context in production
-        userId: 'owner',
+        businessId,
+        userId,
         rivetRecommendation: item.recommendation,
         ownerAction: action,
-        rivetPrice: item.price,
+        rivetPrice: item.suggestedPrice ?? item.price,
         ownerPrice,
         quotedPrice,
+        reasonCode,
         decisionSnapshot: buildDecisionSnapshot(),
         decidedAt: new Date().toISOString(),
       });
     } catch (err) {
       console.error('Failed to record owner decision:', err);
-      // Non-fatal - don't block the user's action
     }
-  }, [item, buildDecisionSnapshot]);
+  }, [item, buildDecisionSnapshot, businessId, userId]);
+
+  const logPriceAdjustment = useCallback((newPrice: number, reasonCode: ReasonCode) => {
+    if (!item.estimationRunId || newPrice === previousPriceRef.current) return;
+    const entry = createAdjustmentEntry({
+      estimationRunId: item.estimationRunId,
+      businessId,
+      userId,
+      field: 'price',
+      systemValue: item.price,
+      previousValue: previousPriceRef.current,
+      newValue: newPrice,
+      reasonCode,
+    });
+    saveAdjustment(entry).catch(console.error);
+    previousPriceRef.current = newPrice;
+  }, [item.estimationRunId, item.price, businessId, userId]);
 
   const estimatedProfit = price - item.costs;
   const hourlyRate = item.hoursNum > 0 ? Math.round(estimatedProfit / item.hoursNum) : 0;
@@ -105,18 +129,26 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   const copy = recCopy(item.recommendation, item.rate, item.suggestedPrice, item.price, item.lookFirst, item.walkAwayPrice);
 
   const ctaLabel = isCommercial
-    ? item.recommendation === 'pass' ? 'Decline Work Order' : `Accept Work Order - $${price.toLocaleString()}`
-    : item.recommendation === 'pass' ? 'Pass on job'
-      : item.recommendation === 'take_at_price' ? `Create Quote - $${price.toLocaleString()}`
-      : `Create Quote - $${price.toLocaleString()}`;
+    ? `Accept Work Order - $${price.toLocaleString()}`
+    : `Create Quote - $${price.toLocaleString()}`;
 
-  async function handleApprove() {
-    if (item.recommendation === 'pass') {
-      await recordOwnerDecision('reviewed_later', null, null);
-      onClose();
+  function requestApprove() {
+    if (recReasonPrompt(item.recommendation, 'approve')) {
+      setActionPrompt({ intent: 'approve' });
       return;
     }
+    void executeApprove();
+  }
 
+  function requestDecline() {
+    if (recReasonPrompt(item.recommendation, 'decline')) {
+      setActionPrompt({ intent: 'decline' });
+      return;
+    }
+    void executeDecline();
+  }
+
+  async function executeApprove(reasonCode?: ReasonCode) {
     setActionLoading(true);
     setActionError(null);
     try {
@@ -158,7 +190,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
 
       // Record the owner's decision with full situational context
       const action: OwnerAction = price !== item.price ? 'approved_adjusted' : 'approved';
-      await recordOwnerDecision(action, price, price);
+      await recordOwnerDecision(action, price, price, reasonCode);
 
       setActionSuccess(isCommercial ? 'Work order accepted' : 'Quote created and sent');
       setTimeout(() => {
@@ -172,13 +204,13 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
     }
   }
 
-  async function handleDecline() {
+  async function executeDecline(reasonCode?: ReasonCode) {
     setActionLoading(true);
     setActionError(null);
     try {
       const repo = await getRepo();
       await repo.updateBooking(item.id, { status: 'declined' });
-      await recordOwnerDecision('declined', null, null);
+      await recordOwnerDecision('declined', null, null, reasonCode);
       setActionSuccess('Job declined');
       setTimeout(() => {
         onClose();
@@ -190,6 +222,8 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
       setActionLoading(false);
     }
   }
+
+  const pendingRecPrompt = actionPrompt ? recReasonPrompt(item.recommendation, actionPrompt.intent) : null;
 
   return (
     <div className="drawer-backdrop" onMouseDown={onClose}>
@@ -293,26 +327,17 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
                 const newPrice = Number(e.target.value);
                 const prev = previousPriceRef.current;
                 const changePercent = prev > 0 ? Math.abs(newPrice - prev) / prev : 0;
+                const inferred = priceMoveReason(item.price, newPrice);
 
                 setPrice(newPrice);
 
-                if (item.estimationRunId && changePercent > 0.05) {
+                if (!item.estimationRunId || newPrice === prev || !inferred) return;
+
+                if (changePercent > 0.05) {
                   setPendingPrice(newPrice);
                   setShowReasonPicker(true);
-                } else if (item.estimationRunId && newPrice !== prev) {
-                  // Small change (<= 5%): log automatically as OWNER_EXPERIENCE
-                  const entry = createAdjustmentEntry({
-                    estimationRunId: item.estimationRunId,
-                    businessId: 'default',
-                    userId: 'owner',
-                    field: 'price',
-                    systemValue: item.price,
-                    previousValue: prev,
-                    newValue: newPrice,
-                    reasonCode: 'OWNER_EXPERIENCE',
-                  });
-                  saveAdjustment(entry).catch(console.error);
-                  previousPriceRef.current = newPrice;
+                } else {
+                  logPriceAdjustment(newPrice, inferred);
                 }
               }} />
               <span>USD</span>
@@ -321,24 +346,13 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
               <div className="reason-picker">
                 <p>Why are you changing the price?</p>
                 <div className="reason-options">
-                  {(Object.keys(REASON_CODE_LABELS) as ReasonCode[]).map((code) => (
+                  {PRICE_REASON_LABELS.map(({ code, label }) => (
                     <button key={code} className="reason-option" onClick={() => {
-                      const entry = createAdjustmentEntry({
-                        estimationRunId: item.estimationRunId!,
-                        businessId: 'default',
-                        userId: 'owner',
-                        field: 'price',
-                        systemValue: item.price,
-                        previousValue: previousPriceRef.current,
-                        newValue: pendingPrice,
-                        reasonCode: code,
-                      });
-                      saveAdjustment(entry).catch(console.error);
-                      previousPriceRef.current = pendingPrice;
+                      logPriceAdjustment(pendingPrice, code);
                       setShowReasonPicker(false);
                       setPendingPrice(null);
                     }}>
-                      {REASON_CODE_LABELS[code]}
+                      {label}
                     </button>
                   ))}
                 </div>
@@ -415,15 +429,41 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
           <div className="drawer-action-feedback success">{actionSuccess}</div>
         )}
 
+        {pendingRecPrompt && actionPrompt && (
+          <div className="reason-picker action-reason-picker">
+            <p>{pendingRecPrompt.title}</p>
+            <div className="reason-options">
+              {pendingRecPrompt.options.map(({ code, label }) => (
+                <button
+                  key={code}
+                  className="reason-option"
+                  disabled={actionLoading}
+                  onClick={() => {
+                    const intent = actionPrompt.intent;
+                    setActionPrompt(null);
+                    if (intent === 'approve') void executeApprove(code);
+                    else void executeDecline(code);
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button className="reason-picker-back" type="button" onClick={() => setActionPrompt(null)} disabled={actionLoading}>
+              Back
+            </button>
+          </div>
+        )}
+
         <div className="drawer-actions">
-          <button className="btn-secondary" onClick={handleDecline} disabled={actionLoading}>
+          <button className="btn-secondary" onClick={requestDecline} disabled={actionLoading || !!actionPrompt}>
             Decline
           </button>
-          <button className={`btn-primary-cta ${item.recommendation}`} onClick={handleApprove} disabled={actionLoading}>
+          <button className={`btn-primary-cta ${item.recommendation}`} onClick={requestApprove} disabled={actionLoading || !!actionPrompt}>
             {actionLoading ? (
               <><Loader2 size={17} className="spin" /> Processing...</>
             ) : (
-              <>{ctaLabel}{item.recommendation === 'take' && <ArrowRight size={17} />}</>
+              <>{ctaLabel}<ArrowRight size={17} /></>
             )}
           </button>
         </div>

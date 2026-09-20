@@ -91,6 +91,8 @@ src/
     truckCopy.ts      — Truck labels: Send $X, Look first: {thing}, Pass
     simulate.ts       — Monday / midweek / Friday replay (npm run sim)
     applyLiveRecommendations.ts — Recompute pending recs from live week clock
+    decisionFeedback.ts — When a rec miss needs a reason
+    tuningReport.ts   — Weekly miss rollup (`npm run tune-report`)
     diagnostics.ts    — Decision Lab analysis helpers (summarizeDecisionLab)
     persistence.ts    — Supabase persistence: estimation runs, adjustments, outcomes, owner decisions, feedback record builder
     index.ts          — Barrel export
@@ -430,12 +432,14 @@ Derived: accuracy metrics   → rivet vs human error on labor and price, who was
 
 | User Action | Where | What's Recorded |
 |-------------|-------|-----------------|
-| Owner clicks "Create Quote" (take) | `WorkDetailDrawer.handleApprove` | `approved` or `approved_adjusted` + snapshot |
-| Owner clicks "Keep reviewing" (review/pass) | `WorkDetailDrawer.handleApprove` | `reviewed_later` + snapshot |
-| Owner clicks "Decline" | `WorkDetailDrawer.handleDecline` | `declined` + snapshot |
-| Owner changes price < 5% | `WorkDetailDrawer` price input | Auto-logged adjustment (OWNER_EXPERIENCE) |
-| Owner changes price >= 5% | `WorkDetailDrawer` reason picker | Adjustment with explicit reason code |
+| Owner quotes a Send job at our number | `WorkDetailDrawer` Create Quote | `approved` + snapshot (agree — no extra reason) |
+| Owner quotes a Look first job | `WorkDetailDrawer` reason then Create Quote | `approved` / `approved_adjusted` + `REC_LOOK_FIRST_CLEAR` or `REC_SHOULD_HAVE_SENT` |
+| Owner quotes a Pass job | `WorkDetailDrawer` reason then Create Quote | `approved` / `approved_adjusted` + `REC_OVERRIDE_PASS` (we missed) |
+| Owner declines a Send / Look first | `WorkDetailDrawer` reason then Decline | `declined` + `REC_SHOULD_HAVE_PASSED` or `REC_DONT_WANT_CUSTOMER` |
+| Owner declines a Pass | `WorkDetailDrawer` Decline | `declined` + snapshot (agree — no extra reason) |
+| Owner changes price any amount | `WorkDetailDrawer` price input | `SYSTEM_TOO_HIGH` / `SYSTEM_TOO_LOW` from direction; >5% still asks why |
 | Job completed | `complete-job.js` / `dispatch-complete.js` | actual_outcomes with quotedPrice |
+| Monday 14:00 UTC | `weekly-tuning-report` | Miss rollup email to `TUNING_REPORT_EMAIL` (or function log) |
 
 ---
 

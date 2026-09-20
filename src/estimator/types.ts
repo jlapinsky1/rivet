@@ -29,6 +29,11 @@ export type ReasonCode =
   | 'OWNER_EXPERIENCE'
   | 'MATERIAL_COST_DIFFERENT'
   | 'SITE_CONDITION_DIFFERENT'
+  | 'REC_SHOULD_HAVE_PASSED'
+  | 'REC_DONT_WANT_CUSTOMER'
+  | 'REC_LOOK_FIRST_CLEAR'
+  | 'REC_SHOULD_HAVE_SENT'
+  | 'REC_OVERRIDE_PASS'
   | 'OTHER';
 
 export type Recommendation = 'take' | 'take_at_price' | 'review' | 'pass';

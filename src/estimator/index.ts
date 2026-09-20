@@ -66,6 +66,12 @@ export { estimateHandymanJob, applyCalibration, refreshEconomicJobForContext } f
 export { deriveRecommendation, walkAwayFromFloors } from './decision';
 export type { DecisionResult } from './decision';
 
+export { priceMoveReason, recReasonPrompt, isRecDisagreement } from './decisionFeedback';
+export type { RecReasonPrompt, RecReasonOption } from './decisionFeedback';
+
+export { buildTuningReport, renderTuningReportMarkdown, weekWindow } from './tuningReport';
+export type { TuningEvent, TuningReport } from './tuningReport';
+
 export { truckHeadline, truckSentence, truckSendPrice } from './truckCopy';
 
 export { buildDecisionContext, parseTravelMiles, startOfLocalWeek, isInLocalWeek } from './weekContext';
