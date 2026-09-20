@@ -55,16 +55,17 @@ export default async function handler(req: Request) {
 
     const { data: siblingItems } = await supabase
       .from('work_items')
-      .select('op_status, profit, hours_num')
+      .select('op_status, profit, hours_num, created_at')
       .eq('business_id', businessId);
 
     const settings = (business?.settings || {}) as Record<string, unknown>;
     const config = economicsFromSettings(settings, businessId);
     const ctx = buildDecisionContext(
-      (siblingItems || []).map((row: { op_status: string; profit: number; hours_num: number }) => ({
+      (siblingItems || []).map((row: { op_status: string; profit: number; hours_num: number; created_at?: string }) => ({
         opStatus: row.op_status,
         profit: row.profit,
         hoursNum: row.hours_num,
+        createdAt: row.created_at,
       })),
       { weeklyGoal: config.weeklyEarningsGoal, weeklyHours: config.weeklyCapacityHours },
     );

@@ -54,7 +54,9 @@ export type WorkItem = {
   scope?: string;
   serviceType: string;
   estimationRunId?: string;
-  /** When false, completed/scheduled work does not move this week's earned $ or hours left. */
+  createdAt?: string;
+  completedAt?: string;
+  /** When false, this job does not move this week's earned $ or hours left. */
   countsTowardCurrentWeek?: boolean;
 };
 

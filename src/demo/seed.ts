@@ -166,6 +166,8 @@ function buildWorkItem(
     scope?: string;
     serviceType?: string;
     estimationRunId?: string;
+    createdAt?: string;
+    completedAt?: string;
     countsTowardCurrentWeek?: boolean;
   },
 ): WorkItem {
@@ -221,6 +223,8 @@ function buildWorkItem(
     scope: opts.scope,
     serviceType: opts.serviceType ?? 'Handyman',
     estimationRunId: opts.estimationRunId,
+    createdAt: opts.createdAt,
+    completedAt: opts.completedAt,
     countsTowardCurrentWeek: opts.countsTowardCurrentWeek,
   };
 }
@@ -993,13 +997,12 @@ const completedRuns: EstimationRun[] = [
   cRun1, cRun2, cRun3, cRun4, cRun5, cRun6, cRun7, cRun8, cRun9, cRun10, cRun11, cRun12,
 ];
 
-for (const run of pendingRuns) {
-  const item = pendingWorkItems.find(w => w.id === run.workId);
-  if (item) item.estimationRunId = run.id;
-}
-
-for (const item of completedWorkItems) {
-  item.countsTowardCurrentWeek = false;
+for (const run of [...pendingRuns, ...completedRuns]) {
+  const item = [...pendingWorkItems, ...completedWorkItems].find(w => w.id === run.workId);
+  if (!item) continue;
+  item.estimationRunId = run.id;
+  item.createdAt = run.createdAt;
+  if (item.opStatus === 'completed') item.completedAt = run.createdAt;
 }
 
 const allAdjustments: AdjustmentEntry[] = [

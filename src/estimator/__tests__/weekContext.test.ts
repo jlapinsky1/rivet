@@ -46,6 +46,28 @@ describe('buildDecisionContext', () => {
     expect(ctx.requiredContributionPerCapacityHour).toBe(70);
   });
 
+  it('ignores completed jobs from a prior week when they have a date', () => {
+    const now = new Date('2026-09-16T15:00:00');
+    const ctx = buildDecisionContext([
+      { opStatus: 'completed', profit: 2000, hoursNum: 20, createdAt: '2026-08-15T10:00:00Z' },
+      { opStatus: 'completed', profit: 400, hoursNum: 5, createdAt: '2026-09-15T10:00:00Z' },
+      { opStatus: 'scheduled', profit: 300, hoursNum: 4 },
+    ], { weeklyGoal: 2500, weeklyHours: 35, now });
+
+    expect(ctx.weeklyEarningsToDate).toBe(700);
+    expect(ctx.remainingCapacityHours).toBe(26);
+  });
+
+  it('prefers completedAt over createdAt for the week cut', () => {
+    const now = new Date('2026-09-16T15:00:00');
+    const ctx = buildDecisionContext([
+      { opStatus: 'completed', profit: 500, hoursNum: 6, createdAt: '2026-08-01T10:00:00Z', completedAt: '2026-09-15T18:00:00Z' },
+    ], { weeklyGoal: 2500, weeklyHours: 35, now });
+
+    expect(ctx.weeklyEarningsToDate).toBe(500);
+    expect(ctx.remainingCapacityHours).toBe(29);
+  });
+
   it('prefers capacityHours over hoursNum when present', () => {
     const ctx = buildDecisionContext([
       { opStatus: 'scheduled', profit: 300, hoursNum: 2, capacityHours: 4 },

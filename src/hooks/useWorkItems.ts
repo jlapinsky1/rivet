@@ -43,6 +43,8 @@ function mapRow(row: Record<string, unknown>): WorkItem {
     scope: (row.scope as string) ?? undefined,
     serviceType: row.service_type as string,
     estimationRunId: (row.estimation_run_id as string) ?? undefined,
+    createdAt: (row.created_at as string) ?? undefined,
+    completedAt: (row.completed_at as string) ?? undefined,
   };
 }
 

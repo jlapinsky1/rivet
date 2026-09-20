@@ -18,6 +18,8 @@ export type LiveRecItem = {
   walkAwayPrice?: number;
   lookFirst?: string;
   countsTowardCurrentWeek?: boolean;
+  createdAt?: string;
+  completedAt?: string;
 };
 
 export function applyLiveRecommendations<T extends LiveRecItem>(
@@ -33,6 +35,8 @@ export function applyLiveRecommendations<T extends LiveRecItem>(
       profit: i.profit,
       hoursNum: i.hoursNum,
       countsTowardCurrentWeek: i.countsTowardCurrentWeek,
+      createdAt: i.createdAt,
+      completedAt: i.completedAt,
     })),
     { weeklyGoal: config.weeklyEarningsGoal, weeklyHours: config.weeklyCapacityHours },
   );

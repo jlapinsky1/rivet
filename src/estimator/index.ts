@@ -68,7 +68,7 @@ export type { DecisionResult } from './decision';
 
 export { truckHeadline, truckSentence, truckSendPrice } from './truckCopy';
 
-export { buildDecisionContext, parseTravelMiles } from './weekContext';
+export { buildDecisionContext, parseTravelMiles, startOfLocalWeek, isInLocalWeek } from './weekContext';
 export type { WeekContextJob, WeekContextSettings } from './weekContext';
 
 export { applyLiveRecommendations } from './applyLiveRecommendations';
