@@ -493,7 +493,7 @@ describe('labor-hour vs capacity-hour economics', () => {
     expect(recommendation).toBe('take_at_price');
   });
 
-  it('large gap + scarce remaining week → Pass', () => {
+  it('large gap + scarce remaining week → Send the week ask, not Pass', () => {
     const job = makeJob({
       confidence: 0.85,
       riskFlags: [],
@@ -517,8 +517,9 @@ describe('labor-hour vs capacity-hour economics', () => {
       pipelineHours: 0,
       requiredContributionPerCapacityHour: 100,
     };
-    const { recommendation } = deriveRecommendation(gapJob, config, scarceContext);
-    expect(recommendation).toBe('pass');
+    const { recommendation, suggestedPrice } = deriveRecommendation(gapJob, config, scarceContext);
+    expect(recommendation).toBe('take_at_price');
+    expect(suggestedPrice).toBe(Math.round(gapJob.minimumAcceptablePrice));
   });
 
   it('low confidence + pricing gap → Review, not Take at price', () => {

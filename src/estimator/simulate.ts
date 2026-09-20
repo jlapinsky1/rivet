@@ -9,7 +9,7 @@ import type {
 } from './types';
 import { deriveRecommendation } from './decision';
 import { refreshEconomicJobForContext } from './estimator';
-import { truckSentence } from './truckCopy';
+import { truckHeadline, truckSentence } from './truckCopy';
 
 export type SoloHandymanBudget = {
   weeklyGoal: number;
@@ -57,6 +57,7 @@ export type SimulatedJobRow = {
   firstReason: string;
   lookFirst: string | null;
   truck: string;
+  truckLine: string;
   walkAwayPrice: number | null;
   ownerAction: string | null;
   ownerQuoted: number | null;
@@ -176,7 +177,8 @@ export function runSimulation(
         firstReason: decision.reasons[0]?.text ?? '',
         lookFirst: decision.lookFirst ?? null,
         walkAwayPrice: decision.walkAwayPrice ?? null,
-        truck: truckSentence(decision.recommendation, Math.round(live.evaluatedPrice), decision.suggestedPrice, decision.lookFirst, decision.walkAwayPrice),
+        truck: truckHeadline(decision.recommendation, Math.round(live.evaluatedPrice), decision.suggestedPrice, decision.lookFirst),
+        truckLine: truckSentence(decision.recommendation, Math.round(live.evaluatedPrice), decision.suggestedPrice, decision.lookFirst, decision.walkAwayPrice),
         ownerAction: owner?.ownerAction ?? null,
         ownerQuoted: owner?.quotedPrice ?? outcome?.quotedPrice ?? null,
         rivetPriceThen: owner ? Math.round(owner.rivetPrice) : null,
@@ -239,18 +241,19 @@ export function renderSimulationMarkdown(report: SimulationReport): string {
   for (const sc of report.scenarios) {
     ln(`## ${sc.scenario.label}`);
     ln('');
-    ln(`Earned $${sc.context.weeklyEarningsToDate} · ${sc.context.remainingCapacityHours}h left · **$${sc.context.requiredContributionPerCapacityHour}** needed per schedule hour`);
+    const sendCount = sc.mix.take + sc.mix.take_at_price;
+    ln(`Earned $${sc.context.weeklyEarningsToDate} · ${sc.context.remainingCapacityHours}h left`);
     ln('');
-    ln(`| Take | Take at price | Review | Pass |`);
-    ln(`| ---: | ---: | ---: | ---: |`);
-    ln(`| ${sc.mix.take} | ${sc.mix.take_at_price} | ${sc.mix.review} | ${sc.mix.pass} |`);
+    ln(`| Send | Look first | Pass |`);
+    ln(`| ---: | ---: | ---: |`);
+    ln(`| ${sendCount} | ${sc.mix.review} | ${sc.mix.pass} |`);
     ln('');
-    ln('| ID | Title | Truck | Owner sent | Override | Feel? |');
-    ln('| --- | --- | --- | ---: | --- | --- |');
+    ln('| ID | Title | Truck | If they push | Owner sent | Feel? |');
+    ln('| --- | --- | --- | ---: | ---: | --- |');
     for (const job of sc.jobs) {
       const owner = job.ownerQuoted != null ? `$${job.ownerQuoted}` : '—';
-      const note = (job.overrideNote || '').replace(/\|/g, '/');
-      ln(`| ${job.id} | ${job.title} | **${job.truck}** | ${owner} | ${note || '—'} | |`);
+      const low = job.walkAwayPrice != null ? `$${job.walkAwayPrice}` : '—';
+      ln(`| ${job.id} | ${job.title} | **${job.truck}** | ${low} | ${owner} | |`);
     }
     ln('');
   }
@@ -262,8 +265,15 @@ export function renderSimulationMarkdown(report: SimulationReport): string {
   } else {
     ln('| ID | Title | Monday | Midweek | Friday |');
     ln('| --- | --- | --- | --- | --- |');
+    const byScenario = (id: WeekScenarioId) => report.scenarios.find(s => s.scenario.id === id);
+    const mondayJobs = byScenario('monday')?.jobs ?? [];
+    const midweekJobs = byScenario('midweek')?.jobs ?? [];
+    const fridayJobs = byScenario('friday')?.jobs ?? [];
     for (const row of report.recChanges) {
-      ln(`| ${row.id} | ${row.title} | ${row.monday} | ${row.midweek} | ${row.friday} |`);
+      const m = mondayJobs.find(j => j.id === row.id);
+      const mid = midweekJobs.find(j => j.id === row.id);
+      const f = fridayJobs.find(j => j.id === row.id);
+      ln(`| ${row.id} | ${row.title} | ${m?.truck ?? row.monday} | ${mid?.truck ?? row.midweek} | ${f?.truck ?? row.friday} |`);
     }
   }
   ln('');

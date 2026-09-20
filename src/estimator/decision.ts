@@ -29,8 +29,6 @@ export function walkAwayFromFloors(job: EconomicJob): number {
   ));
 }
 
-const GAP_BAND_LARGE = 0.25;
-const SCARCE_CAPACITY_RATIO = 0.30;
 
 function lookFirstFor(job: EconomicJob, lowConfidence: boolean): string | null {
   if (job.riskFlags.includes('hidden_water_damage')) return 'How far the water went';
@@ -88,16 +86,9 @@ export function deriveRecommendation(
   const sendPrice = Math.round(job.minimumAcceptablePrice);
 
   const hasContext = context.remainingCapacityHours > 0;
-  const capacityRatio = hasContext && config.weeklyCapacityHours > 0
-    ? context.remainingCapacityHours / config.weeklyCapacityHours
-    : 1;
-  const scarce = hasContext && capacityRatio < SCARCE_CAPACITY_RATIO;
   const doesNotFit = hasContext && job.capacityHours > context.remainingCapacityHours;
 
   const pricingGap = job.minimumAcceptablePrice - job.evaluatedPrice;
-  const gapPercent = job.minimumAcceptablePrice > 0 && pricingGap > 0
-    ? pricingGap / job.minimumAcceptablePrice
-    : 0;
 
   if (doesNotFit) {
     reasons.push({ icon: 'x', text: `Job needs ~${job.capacityHours.toFixed(1)}h of schedule time but only ${context.remainingCapacityHours.toFixed(1)}h available this week` });
@@ -105,15 +96,9 @@ export function deriveRecommendation(
   }
 
   if (pricingGap > 0 && !forcePass) {
-    if (scarce && gapPercent > GAP_BAND_LARGE) {
-      reasons.push({ icon: 'x',
-        text: `This week is tight — even sending $${sendPrice} (current quote ~$${Math.round(job.evaluatedPrice)}) is a poor use of the ${context.remainingCapacityHours.toFixed(1)}h left` });
-      forcePass = true;
-    } else {
-      reasons.push({ icon: 'caution',
-        text: `Send $${sendPrice} instead of ~$${Math.round(job.evaluatedPrice)} to cover on-site time, travel, and this week's earnings pace` });
-      reprice = true;
-    }
+    reasons.push({ icon: 'caution',
+      text: `Send $${sendPrice} instead of ~$${Math.round(job.evaluatedPrice)} to cover on-site time, travel, and this week's earnings pace` });
+    reprice = true;
   } else if (pricingGap <= 0) {
     const quoteStr = Math.round(job.evaluatedPrice);
     const minStr = Math.round(job.minimumAcceptablePrice);

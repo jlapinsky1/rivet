@@ -43,7 +43,7 @@ describe('week simulation', () => {
     const monday = report.scenarios.find(s => s.scenario.id === 'monday')!.jobs[0];
     const friday = report.scenarios.find(s => s.scenario.id === 'friday')!.jobs[0];
     expect(['take', 'take_at_price']).toContain(monday.recommendation);
-    expect(['take_at_price', 'pass', 'review']).toContain(friday.recommendation);
+    expect(friday.recommendation).toBe('take_at_price');
     expect(report.recChanges.some(r => r.id === 'tv') || monday.recommendation !== friday.recommendation).toBe(true);
   });
 });
