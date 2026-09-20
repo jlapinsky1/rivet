@@ -1,6 +1,6 @@
 # Rivet — System Architecture
 
-> Last updated: 2026-09-20 | Handyman Send / Look first / Pass + Mason week clock
+> Last updated: 2026-09-20 | Handyman Send / Look first / Pass, week clock, rec-miss logging, weekly tune report
 
 This document describes the full system architecture for **Rivet** — a multi-tenant operations and profitability platform for service businesses. *Better jobs. Better margins.*
 
@@ -198,6 +198,8 @@ The codebase prefers explicit code over clever abstractions. Two verticals use a
 junk-removal-quoter/
 ├── netlify/
 │   ├── functions/                    # ~50 serverless API endpoints
+│   │   ├── process-handyman-booking.ts
+│   │   ├── weekly-tuning-report.ts   #   Monday 14:00 UTC miss rollup
 │   │   ├── _shared/                  # Shared server utilities
 │   │   │   ├── supabase.js           #   Auth, DB client, helpers
 │   │   │   ├── stripe.js             #   Stripe client, price math
@@ -219,14 +221,22 @@ junk-removal-quoter/
 │   │   ├── RivetApp.tsx              #   Auth gate (login screen + session check)
 │   │   ├── RivetDashboard.tsx        #   Dashboard shell (sidebar, topbar, routing)
 │   │   ├── screens.tsx               #   Home, Work, Schedule, Customers, Reports, Settings
-│   │   ├── WorkDetailDrawer.tsx      #   Job detail slide-over with approve/decline actions
+│   │   ├── WorkDetailDrawer.tsx      #   Quote / decline + rec-miss reasons
 │   │   ├── components.tsx            #   Shared UI (MetricCard, RecPill, WorkRow, etc.)
 │   │   ├── types.ts                  #   WorkItem, Company, Customer types + mock data
 │   │   ├── WorkItemsContext.tsx      #   React context for shared work item data
-│   │   ├── useWorkItems.ts           #   Hook: fetches bookings → decision engine → WorkItem
-│   │   ├── useGoalData.ts            #   Hook: goal progress, weekly metrics, pace
+│   │   ├── useWorkItems.ts           #   Hook: tenant work items + live recs
+│   │   ├── useGoalData.ts            #   Hook: this-week earnings, hours left, pace
 │   │   ├── useSettings.ts            #   Hook: read/write business settings (DB + localStorage)
 │   │   └── admin.css                 #   Custom CSS design system (1000+ lines, CSS vars)
+│   ├── estimator/                    # Handyman estimate + Send / Look first / Pass
+│   │   ├── estimator.ts              #   Hours/materials (AI never returns these)
+│   │   ├── decision.ts               #   Rec + walk-away
+│   │   ├── weekContext.ts            #   Live Monday–Sunday clock
+│   │   ├── truckCopy.ts              #   Truck labels
+│   │   ├── decisionFeedback.ts       #   When a miss must ask why
+│   │   ├── tuningReport.ts           #   Weekly miss rollup
+│   │   └── applyLiveRecommendations.ts
 │   ├── components/                   # React components (legacy + shared)
 │   │   ├── commercial/               #   Commercial marketing chrome
 │   │   └── ...
@@ -243,9 +253,9 @@ junk-removal-quoter/
 │   │   ├── repositories/
 │   │   │   └── supabaseRepo.js       #   Data access layer (RLS-protected)
 │   │   ├── __tests__/                #   Unit tests (vitest)
-│   │   ├── goalEngine.js             #   Goal tracking calculations
-│   │   ├── decisionEngine.js         #   Take/Review/Pass recommendations
-│   │   ├── decisionRules.js          #   Decision rule definitions
+│   │   ├── goalEngine.js             #   Goal tracking (junk / bookings)
+│   │   ├── decisionEngine.js         #   Junk Take/Review/Pass (not handyman)
+│   │   ├── decisionRules.js          #   Junk decision rule definitions
 │   │   ├── quoteFormConfig.js        #   Form config defaults, merge, locked values
 │   │   ├── estimateBuilder.js        #   Junk removal cost estimation
 │   │   ├── calibrationEngine.js      #   Estimate accuracy learning
@@ -255,10 +265,13 @@ junk-removal-quoter/
 │   └── main.jsx                      # Entry point
 │
 ├── supabase/
-│   └── migrations/                   # Sequential SQL migrations (001-020)
-│       ├── 001_initial.sql           #   Core tables
-│       ├── ...
-│       └── 020_multi_tenant.sql      #   Multi-tenant foundation
+│   ├── migrations/                   # Sequential SQL migrations (001–023)
+│   │   ├── 020_multi_tenant.sql
+│   │   ├── 021_handyman_tenant_tables.sql
+│   │   ├── 022_feedback_loop.sql     #   owner_decisions
+│   │   └── 023_work_item_completed_at.sql
+│   ├── refresh-mason-production.sql  # Mason-only wipe + current engine inserts
+│   └── generate-seed-sql.ts
 │
 ├── tests/                            # Python regression tests (pytest)
 │   ├── integration/                  #   E2E tests against live server
@@ -271,10 +284,13 @@ junk-removal-quoter/
 │   ├── DATABASE.md                   #   Schema reference
 │   ├── AUTHENTICATION.md             #   Auth flows and token types
 │   ├── API_REFERENCE.md              #   Endpoint documentation
-│   └── CONTRIBUTING.md               #   Developer/agent onboarding
+│   ├── CONTRIBUTING.md               #   Developer/agent onboarding
+│   ├── SIMULATION.md                 #   Mason week-clock replay (`npm run sim`)
+│   └── MASON_FEEL_REAL.md            #   Stored vs live rec snapshot
 │
+├── ARCHITECTURE.md                   # Handyman estimator + feedback loop (authoritative)
 ├── README.md                         # Quick start, env vars, test commands
-├── PLATFORM.md                       # Operational platform (goals, decisions, calibration)
+├── PLATFORM.md                       # Junk/ops platform (goals, Stripe); see handyman note
 └── LAUNCH_CHECKLIST.md               # Pre-launch verification
 ```
 
@@ -392,6 +408,9 @@ The operator truck UI does **not** show Take / Review jargon. It shows **Send $a
 - Pending jobs recompute at display time (`applyLiveRecommendations`).
 - Handyman intake: `process-handyman-booking` → extract stub → estimate → work_items + estimation_runs. Junk removal path is unchanged.
 - Refresh Mason demo data: `supabase/refresh-mason-production.sql` (Mason `business_id` only).
+- Rec misses write `owner_decisions.reason_code` (`REC_OVERRIDE_PASS`, `REC_SHOULD_HAVE_PASSED`, `REC_DONT_WANT_CUSTOMER`, `REC_LOOK_FIRST_CLEAR`, `REC_SHOULD_HAVE_SENT`).
+- Weekly write-up: `npm run tune-report` / Monday `weekly-tuning-report` → `TUNING_REPORT_EMAIL`.
+- Junk removal still uses `src/utils/decisionEngine.js` (Take / Review / Pass). Do not mix the two.
 
 ## Related Documentation
 
@@ -402,5 +421,7 @@ The operator truck UI does **not** show Take / Review jargon. It shows **Send $a
 | [AUTHENTICATION.md](./AUTHENTICATION.md) | Auth flows, token types, business membership model |
 | [API_REFERENCE.md](./API_REFERENCE.md) | Every API endpoint with auth, params, responses |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | Developer and AI agent onboarding guide |
-| [../PLATFORM.md](../PLATFORM.md) | Operational platform: goal engine, decision engine, calibration, Stripe workflow |
+| [../ARCHITECTURE.md](../ARCHITECTURE.md) | Handyman estimator, week clock, feedback loop, Mason seed |
+| [SIMULATION.md](./SIMULATION.md) | Latest `npm run sim` week clocks |
+| [../PLATFORM.md](../PLATFORM.md) | Junk/ops: goal engine, junk decision engine, calibration, Stripe |
 | [../README.md](../README.md) | Quick start, environment variables, test commands |

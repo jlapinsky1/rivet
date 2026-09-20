@@ -32,9 +32,10 @@ This guide provides everything you need to understand, navigate, and safely modi
 | Data access layer | `src/utils/repositories/supabaseRepo.js` |
 | Business logic (client-side) | `src/utils/` (goalEngine, decisionEngine, estimateBuilder, etc.) |
 | Settings | `src/utils/storage.js` (DB-first, localStorage fallback) |
-| Database migrations | `supabase/migrations/` (001–020) |
+| Database migrations | `supabase/migrations/` (001–023) |
+| Handyman estimator | `src/estimator/` (Send / Look first / Pass — not `decisionEngine.js`) |
 | Integration tests | `netlify/functions/__tests__/integration.test.js` |
-| Unit tests | `src/utils/__tests__/` |
+| Unit tests | `src/utils/__tests__/`, `src/estimator/__tests__/` |
 | Python E2E tests | `tests/` |
 | Documentation | `docs/` |
 
@@ -49,7 +50,9 @@ This guide provides everything you need to understand, navigate, and safely modi
 | `integration.test.js` | Mock Supabase integration tests | Any API endpoint change |
 | `src/admin/screens.tsx` | All Rivet admin screens (Home, Work, Schedule, etc.) | Changing the operator dashboard UI |
 | `src/admin/useWorkItems.ts` | Booking → WorkItem normalization + decision engine | Changing how jobs appear in the admin UI |
-| `src/admin/WorkDetailDrawer.tsx` | Job detail slide-over with approve/decline | Changing job actions or detail display |
+| `src/admin/WorkDetailDrawer.tsx` | Quote / decline + rec-miss reasons | Changing job actions or logging |
+| `src/estimator/decision.ts` | Handyman Send / Look first / Pass | Changing take/pass math |
+| `src/estimator/tuningReport.ts` | Weekly miss rollup | Changing the Monday report |
 | `src/admin/admin.css` | Rivet design system (CSS variables, all UI styles) | Changing visual design |
 
 ---
@@ -206,6 +209,8 @@ if (existing) {
 ```bash
 npm test              # All JS tests (vitest, single pass)
 npm run test:watch    # Watch mode
+npm run sim           # Mason week clocks
+npm run tune-report -- --demo
 
 # Specific test files
 npx vitest run netlify/functions/__tests__/integration.test.js
@@ -358,7 +363,7 @@ Phase 3 will add self-service onboarding.
 | **Operator** | A business owner or team member who uses the admin dashboard. |
 | **Booking** | A residential job request from an end customer. |
 | **Job** | A commercial work order from a property manager (commercial portal). |
-| **Decision engine** | Client-side system that evaluates jobs and recommends Take/Review/Pass. |
+| **Decision engine** | Junk: `decisionEngine.js` (Take/Review/Pass). Handyman: `src/estimator/decision.ts` (Send / Look first / Pass). |
 | **Goal engine** | Client-side system that tracks financial progress against targets. |
 | **Estimator** | Vertical-specific module that calculates costs, prices, and profit for a job. |
 | **EconomicJob** | Standardized output shape from any estimator — the common currency for the decision engine. |

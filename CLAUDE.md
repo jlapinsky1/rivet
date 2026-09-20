@@ -37,8 +37,10 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full system design.
 - Week clock is live from this Monday–Sunday: completed (`completed_at` else `created_at`) + scheduled/in_progress/approved. Quoted / needs_review do not count. Not hardcoded to weekday names.
 - Replay after engine changes: `npm run sim`. Refresh Mason in prod: `supabase/refresh-mason-production.sql` (Mason `business_id` only).
 - Confidence and risk reasons are always preserved on PASS recommendations (economics don't hide estimation uncertainty)
-- Feedback loop captures 4 parts every time: Rivet's estimate → human adjustments → owner decision (with situational snapshot) → actual outcome
+- Feedback loop captures 4 parts every time: Rivet's estimate → human adjustments → owner decision (with situational snapshot + reason_code) → actual outcome
+- Rec misses must be logged: Pass they take (`REC_OVERRIDE_PASS`), Send they decline (`REC_SHOULD_HAVE_PASSED` / `REC_DONT_WANT_CUSTOMER`), Look first they close (`REC_LOOK_FIRST_CLEAR` / `REC_SHOULD_HAVE_SENT`). Price moves log too-high / too-low from direction.
 - `OwnerDecision.decisionSnapshot` captures time/capacity/financial/queue context at decision time (not estimation time)
+- Weekly miss write-up: `npm run tune-report`. Scheduled `weekly-tuning-report` emails `TUNING_REPORT_EMAIL`. Tune from the report — do not invent hours.
 - Calibration only from completed-job actuals, never from human estimate edits
 - Unknown `jobFamily` → always Review, never auto-Pass
 - Estimation runs are immutable, adjustments are append-only
@@ -56,8 +58,9 @@ src/hooks/useWorkItems.ts   — Tenant-scoped work items from Supabase
 src/hooks/useCustomers.ts   — Tenant-scoped customers/companies from Supabase
 src/admin/RivetApp.tsx      — Login + dashboard entry (mounted at /login route)
 src/admin/useWorkItems.ts   — Work items hook used by admin dashboard (also Supabase-backed)
-src/estimator/              — Pipeline + weekContext, truckCopy, simulate, applyLiveRecommendations
-src/estimator/__tests__     — estimator / decision / pipeline / week / sim tests
+src/estimator/              — Pipeline + weekContext, truckCopy, simulate, applyLiveRecommendations, decisionFeedback, tuningReport
+src/estimator/__tests__     — estimator / decision / pipeline / week / sim / feedback / tuning
+netlify/functions/weekly-tuning-report.ts — Monday miss rollup (email if TUNING_REPORT_EMAIL)
 src/admin/DecisionLab.tsx   — Internal evaluation page (Settings > Decision Lab, access-gated)
 src/admin/WorkDetailDrawer.tsx — Price editing + adjustment logging + owner decision recording (rec misses ask why)
 src/demo/seed.ts            — Mason Home Services seed data (runs real pipeline, used by tests)

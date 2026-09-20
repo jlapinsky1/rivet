@@ -1,6 +1,6 @@
 # Rivet — Database Schema Reference
 
-> Last updated: 2026-09-20 | Migrations 001–023
+> Last updated: 2026-09-20 | Migrations 001–023 · handyman estimation + owner_decisions reasons
 
 This document is the authoritative reference for all database tables, their relationships, and migration history. The database is PostgreSQL hosted on Supabase with Row-Level Security (RLS) enabled on all tables.
 
@@ -10,6 +10,7 @@ This document is the authoritative reference for all database tables, their rela
 
 - [Entity Relationship Overview](#entity-relationship-overview)
 - [Multi-Tenant Core](#multi-tenant-core)
+- [Handyman estimation & feedback](#handyman-estimation--feedback)
 - [Booking Lifecycle](#booking-lifecycle)
 - [Quote & Payment](#quote--payment)
 - [Completion & Dispatch](#completion--dispatch)
@@ -98,6 +99,33 @@ Week clock: completed jobs count only if `completed_at` (else `created_at`) is i
 
 **Unique:** `(business_id, user_id)`
 **Indexes:** `user_id`, `business_id`
+
+---
+
+## Handyman estimation & feedback
+
+Tables from `supabase/schema.sql` + `022_feedback_loop.sql`. Scoped by `business_id`. `recommendation` on runs/items is internal (`take` | `take_at_price` | `review` | `pass`); the truck shows Send / Look first / Pass.
+
+### `estimation_runs` (immutable)
+
+Intake snapshot: extraction, baseline, economic_job, decision_context, recommendation, reasons, confidence. Pending jobs still recompute live recs in the UI; this row does not change.
+
+### `adjustment_entries` (append-only)
+
+Price / hours / material edits. Small price moves use `SYSTEM_TOO_HIGH` / `SYSTEM_TOO_LOW` from direction.
+
+### `owner_decisions` (append-only)
+
+| Column | Description |
+|--------|-------------|
+| `rivet_recommendation` | Rec at click time (`take`, `take_at_price`, `review`, `pass`) |
+| `owner_action` | `approved`, `approved_adjusted`, `declined`, `reviewed_later` |
+| `reason_code` | Rec-miss or price why (`REC_OVERRIDE_PASS`, `REC_SHOULD_HAVE_PASSED`, `REC_DONT_WANT_CUSTOMER`, `REC_LOOK_FIRST_CLEAR`, `REC_SHOULD_HAVE_SENT`, `SYSTEM_TOO_HIGH`, `SYSTEM_TOO_LOW`, …) |
+| `decision_snapshot` | Week clock + queue at decision time (not estimate time) |
+
+### `actual_outcomes`
+
+Completed-job actuals. Calibration uses these only — never human edits.
 
 ---
 
@@ -492,5 +520,5 @@ These functions run with elevated privileges and enforce their own authorization
 | 019 | `019_normalize_status.sql` | Normalize job status values |
 | **020** | **`020_multi_tenant.sql`** | **Multi-tenant foundation: businesses, memberships, business_id on 17 tables, RLS policies, function updates** |
 | 021 | `021_handyman_tenant_tables.sql` | work_items, customers, companies, properties + RLS |
-| 022 | `022_feedback_loop.sql` | owner_decisions, quoted_price on actual_outcomes |
+| 022 | `022_feedback_loop.sql` | owner_decisions (incl. reason_code), quoted_price on actual_outcomes |
 | 023 | `023_work_item_completed_at.sql` | work_items.completed_at + updated_at, trigger on status change |

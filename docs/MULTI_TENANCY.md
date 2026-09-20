@@ -1,6 +1,6 @@
 # Rivet — Multi-Tenancy Design
 
-> Last updated: 2026-09-08 | Migration: `020_multi_tenant.sql`
+> Last updated: 2026-09-20 | Migrations 020–023 (tenant core + handyman work_items / feedback)
 
 This document describes Rivet's multi-tenant architecture that allows multiple independent businesses to use the platform safely. Each business is a **tenant** with complete data isolation.
 
@@ -123,6 +123,17 @@ Every table below has `business_id uuid NOT NULL REFERENCES businesses(id)` with
 | `quote_tokens` | Token-based quote access | `bookings.id` |
 | `slot_reservations` | Time slot bookings | `bookings.id` |
 | `quote_acceptances` | Customer quote acceptance records | `bookings.id` |
+
+### Handyman
+| Table | Purpose | Parent FK |
+|-------|---------|-----------|
+| `work_items` | Operator jobs (UUID `business_id` + RLS) | — |
+| `estimation_runs` | Immutable intake snapshot (`business_id` text) | — |
+| `adjustment_entries` | Price/hours edits | `estimation_runs.id` |
+| `owner_decisions` | Take/decline + rec-miss `reason_code` | `estimation_runs.id` |
+| `actual_outcomes` | Completed-job actuals (calibration only) | `estimation_runs.id` |
+
+Customers / companies / properties for handyman live in `021_handyman_tenant_tables.sql` (also `business_id` + RLS).
 
 ### Completion & Payment
 | Table | Purpose | Parent FK |

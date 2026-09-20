@@ -1,9 +1,10 @@
 # Mason feel-real recs
 
+**Snapshot.** Current week clocks: `npm run sim` → `docs/SIMULATION.md`. Quote vs rec feel in the app: change price / Create Quote / Decline (reasons on `owner_decisions`). Weekly miss write-up: `npm run tune-report`.
+
 Generated: 2026-09-20T21:30:22.655Z
 
 Every row was produced by `estimateHandymanJob` → `applyCalibration` → `deriveRecommendation`.
-Use the **Feel?** column: Agree / Too high / Too low / Wrong call.
 
 ## 1. Stored intake recs (frozen Tuesday week clock)
 

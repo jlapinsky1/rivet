@@ -367,7 +367,7 @@ Component-level calibration is not implemented for MVP.
 
 ## Persistence & Feedback Loop: `src/estimator/persistence.ts`
 
-**DEV-ONLY until RLS is implemented.**
+`work_items` are UUID + RLS. Estimation / feedback tables are `business_id`-scoped (`schema.sql` + 022).
 
 ### 4 Tables (append-only / immutable)
 
@@ -375,7 +375,7 @@ Component-level calibration is not implemented for MVP.
 |-------|---------|------------|
 | `estimation_runs` | Rivet's original estimate (immutable) | extraction, economic_job, recommendation, confidence, decision_context, reasons |
 | `adjustment_entries` | What the handyman changed (append-only) | field, systemValue → newValue, reasonCode |
-| `owner_decisions` | What the owner decided + situational context | ownerAction, rivetPrice, ownerPrice, quotedPrice, **decision_snapshot** (JSONB) |
+| `owner_decisions` | What the owner decided + situational context | rivetRecommendation, ownerAction, rivetPrice, ownerPrice, quotedPrice, **reason_code**, **decision_snapshot** (JSONB) |
 | `actual_outcomes` | What actually happened | actualLaborHours, actualMaterialCost, finalRevenue, **quotedPrice**, returnTrips |
 
 ### DecisionSnapshot (JSONB on owner_decisions)
@@ -479,15 +479,28 @@ Business config: ownerOpportunityRate $75, helperRate $30, mileage $0.70, materi
 
 ## UI Integration: `src/admin/WorkDetailDrawer.tsx`
 
-Price changes > 5% require a reason code. Small changes auto-log as `OWNER_EXPERIENCE`.
+Truck CTAs are **Create Quote** and **Decline**. Pass jobs can still be quoted (that is the override).
 
-Every owner action (approve, decline, review/pass) records an `OwnerDecision` with a full `DecisionSnapshot` capturing time, capacity, financial context, and queue state at decision time. This is fire-and-forget — failures don't block the user's action.
+| They do | We write |
+|---------|----------|
+| Send + quote at our number | `approved` — agree, no extra reason |
+| Look first + quote | `approved` / `approved_adjusted` + `REC_LOOK_FIRST_CLEAR` or `REC_SHOULD_HAVE_SENT` |
+| Pass + quote | `approved` / `approved_adjusted` + `REC_OVERRIDE_PASS` (we missed) |
+| Decline a Send / Look first | `declined` + `REC_SHOULD_HAVE_PASSED` or `REC_DONT_WANT_CUSTOMER` |
+| Decline a Pass | `declined` — agree, no extra reason |
+| Any price move | `SYSTEM_TOO_HIGH` / `SYSTEM_TOO_LOW` from direction; >5% still asks why |
+
+`reason_code` lives on `owner_decisions`. Weekly rollup: `npm run tune-report` and `weekly-tuning-report` (Monday 14:00 UTC).
+
+Every action also stores a `DecisionSnapshot` (time, capacity, financials, queue). Save failures do not block the quote.
 
 ---
 
-## Tests (92 estimator tests)
+## Tests
 
-### `src/estimator/__tests__/estimator.test.ts` (52 tests)
+Estimator / decision / pipeline / week / sim / live recs / truck copy / decisionFeedback / tuningReport. Run `npm test`.
+
+### `src/estimator/__tests__/estimator.test.ts`
 
 - Assembly invariants (15+ assemblies, valid ranges, trade contexts, validation status)
 - Component invariants (20+ components, valid baselines, carpentry components present)
@@ -503,7 +516,7 @@ Every owner action (approve, decline, review/pass) records an `OwnerDecision` wi
 - **Risk flag & confidence dedup**: flags deduplicated, water_damage + extent_of_water_damage no double-penalty
 - **Numeric normalization**: money ≤2 decimals, hours ≤2 decimals
 
-### `src/estimator/__tests__/decision.test.ts` (25 tests)
+### `src/estimator/__tests__/decision.test.ts`
 
 - Static thresholds: good job → Take, low contributionPerLaborHour → Pass, low margin → Pass, low profit → Pass
 - Review / Look first: named risk or photos unclear — not conservative low-end hours
@@ -513,13 +526,21 @@ Every owner action (approve, decline, review/pass) records an `OwnerDecision` wi
 - **Pricing gap**: Send the week-ask (take_at_price), do not Pass solely because Friday is tight
 - Walk-away is the no-week-pace floor
 
-### `src/estimator/__tests__/pipeline.test.ts` (13 tests)
+### `src/estimator/__tests__/pipeline.test.ts`
 
 - Assembly path E2E: small drywall patch, exterior door with water damage, TV mount, calibration scaling
 - Component path E2E: weird custom job (dog-chewed balusters), mixed carpentry+plumbing, fence with posts, unknown job
 - Shared overhead: multiple components don't multiply setup/cleanup
 - Adjustment logging: systemValue preserved, timestamps
 - Service type regression: all Handyman, no Junk Removal
+
+### Other estimator tests
+
+- `weekContext.test.ts` — this-week completed vs booked; quoted does not count
+- `simulate.test.ts` / `truckCopy.test.ts` — Monday/midweek/Friday clocks and truck labels
+- `decisionFeedback.test.ts` — when a rec miss must ask why
+- `tuningReport.test.ts` — weekly miss rollup and suggested tunes
+- `liveRecommendations.test.ts` — pending jobs recompute from the live week clock
 
 ---
 

@@ -1,5 +1,7 @@
 # Rivet — Profitability & Operations Platform
 
+> **Verticals:** This file is the **junk removal / bookings** ops platform (`src/utils/decisionEngine.js`, Stripe, commercial). **Handyman** recs are **Send $ask / Look first / Pass** in `src/estimator/` — see [ARCHITECTURE.md](./ARCHITECTURE.md). Do not apply Take/Review copy or junk hard-rules to Mason.
+
 This document covers the operational platform powering Rivet. It answers four questions every job should pass through:
 
 1. **Am I on pace to hit my financial goal?**
@@ -235,7 +237,9 @@ The system compares `% of goal achieved` against `% of time elapsed`:
 
 ## Phase 2: Decision Engine
 
-This is the core of the platform. When you open a pending job request, the decision engine evaluates it and gives you a clear **Take**, **Review**, or **Pass** recommendation with a 0-100 score.
+**Junk removal** (this section): when you open a pending booking, `src/utils/decisionEngine.js` gives **Take**, **Review**, or **Pass** with a 0–100 score.
+
+**Handyman:** `src/estimator/decision.ts` + truck copy. Misses log on `owner_decisions.reason_code`. Weekly rollup: `npm run tune-report`.
 
 ### Three Rule Tiers
 
@@ -689,7 +693,7 @@ Customer submits booking request
   │  Admin opens request │
   │                       │
   │  Decision Engine runs │◄── Goal pace context
-  │  Take / Review / Pass │◄── Job rating, margin, profit
+  │  Take / Review / Pass │◄── Junk engine (handyman: Send / Look first / Pass)
   │                       │◄── Capacity, travel, confidence
   │  Nearby jobs shown    │◄── Route context (geocoded)
   │  Batch suggestions    │◄── Batching engine

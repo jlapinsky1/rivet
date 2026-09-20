@@ -1,6 +1,6 @@
 # Rivet — API Reference
 
-> Last updated: 2026-09-08
+> Last updated: 2026-09-20 | Includes handyman intake + Monday tuning report
 
 All API endpoints are Netlify Functions (serverless, ES modules). Each function exports a default `handler(req)` and a `config` object specifying the URL path.
 
@@ -14,6 +14,7 @@ All API endpoints are Netlify Functions (serverless, ES modules). Each function 
 - [Token-Based Endpoints](#token-based-endpoints)
 - [Dispatch Endpoints](#dispatch-endpoints)
 - [Commercial Portal Endpoints](#commercial-portal-endpoints)
+- [Handyman & scheduled](#handyman--scheduled)
 - [Stripe Webhook](#stripe-webhook)
 - [Test-Only Endpoints](#test-only-endpoints)
 
@@ -357,6 +358,25 @@ All dispatch endpoints use booking-scoped dispatch tokens.
 | `/api/update-commercial-job` | POST | Update status, scheduled date, notes |
 | `/api/complete-commercial-job` | POST | Complete job, send completion packet |
 | `/api/decline-commercial-job` | POST | Decline a commercial job |
+
+---
+
+## Handyman & scheduled
+
+### `POST /api/process-handyman-booking`
+
+Handyman intake: extract stub → estimate → `work_items` + `estimation_runs`. Junk `create-booking` is unchanged. Auth: service / internal after booking create.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `bookingId` | string | Yes | Source booking |
+| `businessId` | uuid | Yes | Tenant |
+
+**Response:** work item + estimation run ids.
+
+### `weekly-tuning-report` (schedule `0 14 * * 1`)
+
+Monday 14:00 UTC. Reads last 7 days of `owner_decisions`, builds the miss rollup. Emails `TUNING_REPORT_EMAIL` via Resend when `RESEND_API_KEY` is set; otherwise logs the markdown. No JWT (cron).
 
 ---
 

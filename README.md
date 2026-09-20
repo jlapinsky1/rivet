@@ -6,6 +6,7 @@ A multi-tenant SaaS platform for service businesses — residential booking flow
 
 > **Documentation:** See [`docs/`](./docs/) for comprehensive architecture documentation:
 > - [Architecture Overview](./docs/ARCHITECTURE.md) — system design, tech stack, directory structure
+> - [Handyman estimator](./ARCHITECTURE.md) — Send / Look first / Pass, week clock, feedback loop, Mason seed
 > - [Multi-Tenancy](./docs/MULTI_TENANCY.md) — tenant isolation, RLS, business membership auth
 > - [Database Schema](./docs/DATABASE.md) — all tables, columns, relationships, migrations
 > - [Authentication](./docs/AUTHENTICATION.md) — auth flows, token types, security model
@@ -67,6 +68,7 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
 SHOP_LAT=                    # shop/home-base latitude — enables real travel time
 SHOP_LNG=                    # shop/home-base longitude — enables real travel time
 ADMIN_EMAIL=                 # admin notification address for new commercial job requests
+TUNING_REPORT_EMAIL=         # optional — Monday miss report from weekly-tuning-report
 VITE_GA4_MEASUREMENT_ID=     # optional — if unset, GA4 is skipped at build time
 VITE_GOOGLE_MAPS_API_KEY=   # optional
 TURNSTILE_SECRET_KEY=        # optional
@@ -87,6 +89,9 @@ stripe listen --forward-to localhost:8888/api/stripe-webhook
 ```bash
 npm test           # single pass (vitest run)
 npm run test:watch # watch mode
+npm run sim        # Mason week clocks → docs/SIMULATION.md
+npm run seed:sql   # Mason refresh SQL
+npm run tune-report -- --demo   # miss rollup from seed (or live last 7 days)
 ```
 
 The JS test suite covers business-logic utilities (goal engine, decision engine, calibration, route scoring, date logic, service area, variance analysis, etc.) plus commercial onboarding handlers in `src/tests/onboarding.test.js`. The Python suite generates JUnit XML only — no JS coverage tool is configured.
