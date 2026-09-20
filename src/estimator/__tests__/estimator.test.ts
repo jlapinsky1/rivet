@@ -368,8 +368,9 @@ describe('EconomicJob', () => {
     expect(rangeValid(job.estimatedQuoteRange)).toBe(true);
   });
 
-  it('recommendedQuote equals estimatedQuoteRange.expected', () => {
-    expect(job.recommendedQuote).toBe(job.estimatedQuoteRange.expected);
+  it('recommendedQuote is at least the market estimate and the job price floor', () => {
+    expect(job.recommendedQuote).toBeGreaterThanOrEqual(job.estimatedQuoteRange.expected);
+    expect(job.recommendedQuote).toBeGreaterThanOrEqual(defaultConfig.minimumJobPrice);
   });
 
   it('evaluatedPrice equals recommendedQuote', () => {
@@ -510,8 +511,9 @@ describe('Multi-floor pricing', () => {
     expect(job.pricingFloors.weeklyCapacityPace).toBeGreaterThan(job.estimatedQuoteRange.expected);
     // But estimatedQuoteRange should NOT be inflated
     expect(job.estimatedQuoteRange.expected).toBeLessThan(job.minimumAcceptablePrice);
-    // And recommendedQuote should equal the natural estimate, not the floor
-    expect(job.recommendedQuote).toBe(job.estimatedQuoteRange.expected);
+    // recommendedQuote is not raised to the week-pace floor
+    expect(job.recommendedQuote).toBeLessThan(job.minimumAcceptablePrice);
+    expect(job.recommendedQuote).toBeGreaterThanOrEqual(job.estimatedQuoteRange.expected);
   });
 
   it('pricingFloors.binding identifies the winning floor', () => {

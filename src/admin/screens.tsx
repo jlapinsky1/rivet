@@ -203,7 +203,7 @@ export function WorkScreen({ onOpenItem }: { onOpenItem: (item: WorkItem) => voi
                 <span>${item.profit} profit</span>
                 <small>{item.rate} · {item.hours}</small>
               </div>
-              <div className="work-list-rec"><RecPill rec={item.recommendation} compact /></div>
+              <div className="work-list-rec"><RecPill rec={item.recommendation} compact sendPrice={item.suggestedPrice ?? item.price} lookFirst={item.lookFirst} /></div>
               <StatusBadge status={item.opStatus} />
               <ChevronRight className="lead-chevron" size={18} />
             </button>
@@ -480,8 +480,10 @@ export function SettingsScreen() {
 
 /* ===== QUOTE FORM SETTINGS ===== */
 function QuoteFormSettings({ settings, onSave }: { settings: any; onSave: (updates: Record<string, any>) => void }) {
-  const qfc = mergeQuoteFormConfig(settings.quoteFormConfig || null, 'junk_removal');
-  const slug = settings.slug || 'your-business';
+  const { business } = useAuth();
+  const formVertical = (settings.vertical || business?.vertical) === 'handyman' ? 'handyman' : 'junk_removal';
+  const qfc = mergeQuoteFormConfig(settings.quoteFormConfig || null, formVertical);
+  const slug = settings.slug || business?.slug || 'your-business';
   const publicUrl = `${window.location.origin}/request/${slug}`;
   const [copied, setCopied] = useState(false);
 

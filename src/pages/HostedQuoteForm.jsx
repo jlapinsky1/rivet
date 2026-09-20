@@ -87,7 +87,8 @@ export default function HostedQuoteForm() {
   }
 
   // Merge saved config with defaults
-  const mergedConfig = mergeQuoteFormConfig(quoteFormConfig, vertical || 'junk_removal');
+  const formVertical = vertical === 'handyman' ? 'handyman' : 'junk_removal';
+  const mergedConfig = mergeQuoteFormConfig(quoteFormConfig, formVertical);
 
   // Set page title
   document.title = `${name} - Request a Quote`;

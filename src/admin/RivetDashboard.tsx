@@ -75,8 +75,9 @@ function MobileBottomNav({ active, setActive }: { active: string; setActive: (la
 }
 
 function DrawerWithRefresh({ item, onClose }: { item: WorkItem; onClose: () => void }) {
-  const { refresh } = useWorkItemsContext();
-  return <WorkDetailDrawer item={item} onClose={onClose} onActionComplete={refresh} />;
+  const { refresh, workItems } = useWorkItemsContext();
+  const live = workItems.find(w => w.id === item.id) || item;
+  return <WorkDetailDrawer item={live} onClose={onClose} onActionComplete={refresh} />;
 }
 
 export default function RivetDashboard({ businessName, businessInitials, displayName, onSignOut }: {

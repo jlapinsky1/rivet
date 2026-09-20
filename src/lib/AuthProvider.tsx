@@ -7,6 +7,8 @@ export type BusinessContext = {
   businessId: string;
   businessName: string;
   role: string;
+  vertical?: string;
+  slug?: string;
 };
 
 type AuthState = {
@@ -44,7 +46,7 @@ async function fetchBusinessContext(userId: string): Promise<BusinessContext | n
 
   const { data: biz } = await supabase
     .from('businesses')
-    .select('id, name')
+    .select('id, name, vertical, slug')
     .eq('id', membership.business_id)
     .single();
 
@@ -52,6 +54,8 @@ async function fetchBusinessContext(userId: string): Promise<BusinessContext | n
     businessId: membership.business_id,
     businessName: biz?.name ?? membership.business_id,
     role: membership.role,
+    vertical: biz?.vertical,
+    slug: biz?.slug,
   };
 }
 

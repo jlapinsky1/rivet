@@ -166,6 +166,7 @@ function buildWorkItem(
     scope?: string;
     serviceType?: string;
     estimationRunId?: string;
+    countsTowardCurrentWeek?: boolean;
   },
 ): WorkItem {
   const econ = pipeline.economicJob;
@@ -190,6 +191,9 @@ function buildWorkItem(
     rate: `$${Math.round(rateNum)}/hr`,
     rateNum: Math.round(rateNum),
     recommendation: pipeline.decision.recommendation,
+    suggestedPrice: pipeline.decision.suggestedPrice,
+    walkAwayPrice: pipeline.decision.walkAwayPrice,
+    lookFirst: pipeline.decision.lookFirst,
     confidence: Math.round(econ.confidence * 100),
     description: opts.description,
     price: Math.round(econ.evaluatedPrice),
@@ -217,6 +221,7 @@ function buildWorkItem(
     scope: opts.scope,
     serviceType: opts.serviceType ?? 'Handyman',
     estimationRunId: opts.estimationRunId,
+    countsTowardCurrentWeek: opts.countsTowardCurrentWeek,
   };
 }
 
@@ -987,6 +992,15 @@ const completedWorkItems: WorkItem[] = [
 const completedRuns: EstimationRun[] = [
   cRun1, cRun2, cRun3, cRun4, cRun5, cRun6, cRun7, cRun8, cRun9, cRun10, cRun11, cRun12,
 ];
+
+for (const run of pendingRuns) {
+  const item = pendingWorkItems.find(w => w.id === run.workId);
+  if (item) item.estimationRunId = run.id;
+}
+
+for (const item of completedWorkItems) {
+  item.countsTowardCurrentWeek = false;
+}
 
 const allAdjustments: AdjustmentEntry[] = [
   ...cAdj2, ...cAdj3, ...cAdj4, ...cAdj5, ...cAdj8, ...cAdj10,

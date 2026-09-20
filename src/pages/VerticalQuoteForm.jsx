@@ -15,26 +15,27 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
   const minPhotos = config.steps.photos.minPhotos;
   const accentColor = config.branding.accentColor || '#22c55e';
   const isEmbed = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('embed');
+  const isHandyman = config.layout === 'handyman';
 
   const STEPS = useMemo(() => {
     const steps = [
       { key: 'info', label: 'Your Info', icon: UserIcon, description: 'Tell us where to send your estimate' },
-      { key: 'location', label: 'Pickup Location', icon: PinIcon, description: 'Where should we pick up?' },
+      { key: 'location', label: isHandyman ? 'Job Site' : 'Pickup Location', icon: PinIcon, description: isHandyman ? 'Where is the work?' : 'Where should we pick up?' },
     ];
     if (photosEnabled) {
-      steps.push({ key: 'photos', label: 'Photos', icon: CameraIcon, description: 'Show us what needs to go' });
+      steps.push({ key: 'photos', label: 'Photos', icon: CameraIcon, description: isHandyman ? 'Show us the work area' : 'Show us what needs to go' });
     }
     steps.push(
-      { key: 'details', label: 'Job Details', icon: ClipboardIcon, description: 'Help us send the right crew' },
-      { key: 'schedule', label: 'Pickup Time', icon: CalendarIcon, description: 'When works best for you?' },
+      { key: 'details', label: 'Job Details', icon: ClipboardIcon, description: isHandyman ? 'Describe the work' : 'Help us send the right crew' },
+      { key: 'schedule', label: isHandyman ? 'Preferred Time' : 'Pickup Time', icon: CalendarIcon, description: 'When works best for you?' },
     );
     return steps;
-  }, [photosEnabled]);
+  }, [photosEnabled, isHandyman]);
 
-  const quantityOptions = config.fields.quantity.options;
-  const accessOptions = config.fields.accessType.options;
-  const stairsOptions = config.fields.stairs.options;
-  const elevatorOptions = config.fields.elevator.options;
+  const quantityOptions = config.fields.quantity?.options || [];
+  const accessOptions = config.fields.accessType?.options || [];
+  const stairsOptions = config.fields.stairs?.options || [];
+  const elevatorOptions = config.fields.elevator?.options || [];
   const timePreferences = config.fields.timePreference.options;
   const companionContent = config.companionContent;
 
@@ -127,7 +128,9 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
       case 'info': return form.firstName.trim() && form.phone.trim();
       case 'location': return form.address.trim() && form.city.trim() && form.zip.trim();
       case 'photos': return form.photos.length >= minPhotos;
-      case 'details': return form.quantity;
+      case 'details': return isHandyman || config.fields.quantity?.enabled === false
+        ? form.description.trim().length > 0
+        : !!form.quantity;
       case 'schedule': return form.preferredDate && form.timePreference;
       default: return true;
     }
@@ -879,6 +882,7 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
                 {/* Step: Details */}
                 {STEPS[step]?.key === 'details' && (
                   <div className="space-y-7">
+                    {config.fields.quantity?.enabled !== false && quantityOptions.length > 0 && (
                     <div>
                       <SectionLabel>{config.fields.quantity.label}</SectionLabel>
                       <div className="grid grid-cols-2 gap-2.5">
@@ -899,7 +903,9 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
                         ))}
                       </div>
                     </div>
+                    )}
 
+                    {config.fields.accessType?.enabled !== false && accessOptions.length > 0 && (
                     <div>
                       <SectionLabel>{config.fields.accessType.label}</SectionLabel>
                       <div className="space-y-2">
@@ -921,8 +927,9 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
                         ))}
                       </div>
                     </div>
+                    )}
 
-                    {config.fields.stairs.enabled && (
+                    {config.fields.stairs?.enabled && (
                       <div>
                         <SectionLabel>{config.fields.stairs.label}</SectionLabel>
                         <div className="grid grid-cols-2 gap-2.5">
@@ -942,7 +949,7 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
                       </div>
                     )}
 
-                    {config.fields.elevator.enabled && (form.accessType === 'upstairs' || form.accessType === 'basement') && (
+                    {config.fields.elevator?.enabled && (form.accessType === 'upstairs' || form.accessType === 'basement') && (
                       <div>
                         <SectionLabel>{config.fields.elevator.label}</SectionLabel>
                         <div className="grid grid-cols-2 gap-2.5">
@@ -962,10 +969,10 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
                       </div>
                     )}
 
-                    {config.fields.description.enabled && (
+                    {config.fields.description?.enabled !== false && (
                       <div>
                         <label className="block text-[11px] font-bold text-gray-400 mb-2.5 uppercase tracking-[0.1em]">
-                          {config.fields.description.label} <span className="text-gray-600 font-medium normal-case tracking-normal">(optional)</span>
+                          {config.fields.description.label}{!isHandyman && <span className="text-gray-600 font-medium normal-case tracking-normal"> (optional)</span>}
                         </label>
                         <textarea
                           className="w-full bg-gray-900/60 border border-gray-800/60 rounded-xl px-4 py-3.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-green-500/60 focus-glow transition-all duration-200 resize-none ring-1 ring-white/[0.02]"

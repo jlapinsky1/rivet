@@ -285,6 +285,27 @@ export default async function handler(req) {
       }).catch(err => console.error('Geocode fire-and-forget failed (non-fatal):', err.message));
     }
 
+    // Handyman accounts: score the request through the estimator (non-blocking).
+    try {
+      const { data: bizRow } = await supabase
+        .from('businesses')
+        .select('vertical')
+        .eq('id', businessId)
+        .single();
+      if (bizRow?.vertical === 'handyman') {
+        const site = process.env.URL || process.env.DEPLOY_PRIME_URL || '';
+        if (site) {
+          fetch(`${site}/api/process-handyman-booking`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bookingId: booking.id, businessId }),
+          }).catch(err => console.error('Handyman scoring failed (non-fatal):', err.message));
+        }
+      }
+    } catch (err) {
+      console.error('Handyman vertical check failed (non-fatal):', err.message);
+    }
+
     return jsonResponse({ bookingId: booking.id }, 201);
   } catch (e) {
     console.error('create-booking error:', e);

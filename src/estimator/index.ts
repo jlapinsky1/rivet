@@ -60,11 +60,36 @@ export { extractJobFacts, extractJobFactsStub, EXTRACTION_PROMPT, EXTRACTION_SCH
 export type { ExtractionInput } from './extract';
 
 // ─── Estimator + Calibration ───
-export { estimateHandymanJob, applyCalibration } from './estimator';
+export { estimateHandymanJob, applyCalibration, refreshEconomicJobForContext } from './estimator';
 
 // ─── Decision Engine ───
-export { deriveRecommendation } from './decision';
+export { deriveRecommendation, walkAwayFromFloors } from './decision';
 export type { DecisionResult } from './decision';
+
+export { truckHeadline, truckSentence, truckSendPrice } from './truckCopy';
+
+export { buildDecisionContext, parseTravelMiles } from './weekContext';
+export type { WeekContextJob, WeekContextSettings } from './weekContext';
+
+export { applyLiveRecommendations } from './applyLiveRecommendations';
+export type { LiveRecItem } from './applyLiveRecommendations';
+
+export {
+  MASON_SOLO_BUDGET,
+  contextFromWeekPosition,
+  defaultWeekScenarios,
+  runSimulation,
+  renderSimulationMarkdown,
+  budgetToConfig,
+} from './simulate';
+export type {
+  SoloHandymanBudget,
+  WeekScenario,
+  WeekScenarioId,
+  SimJob,
+  JobFeedback,
+  SimulationReport,
+} from './simulate';
 
 // ─── Diagnostics ───
 export { summarizeDecisionLab } from './diagnostics';

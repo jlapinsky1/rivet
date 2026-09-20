@@ -251,6 +251,7 @@ img { display: block; max-width: 100%; }
   position: relative;
 }
 .hero-accent-bar { height: 5px; background: var(--take); }
+.hero-card.take_at_price .hero-accent-bar { background: var(--take); }
 .hero-card.review .hero-accent-bar { background: var(--review); }
 .hero-card.pass .hero-accent-bar { background: var(--pass); }
 .hero-body { padding: 24px 26px 0; }
@@ -356,8 +357,8 @@ img { display: block; max-width: 100%; }
   border: 1px solid; white-space: nowrap;
 }
 .rec-pill .pill-icon { display: grid; place-items: center; width: 14px; height: 14px; border-radius: 50%; font-size: 10px; color: #fff; }
-.rec-pill.take { color: var(--take-dark); background: var(--take-bg); border-color: var(--take-border); }
-.rec-pill.take .pill-icon { background: var(--take); }
+.rec-pill.take, .rec-pill.take_at_price { color: var(--take-dark); background: var(--take-bg); border-color: var(--take-border); }
+.rec-pill.take .pill-icon, .rec-pill.take_at_price .pill-icon { background: var(--take); }
 .rec-pill.review { color: var(--review-dark); background: var(--review-bg); border-color: var(--review-border); }
 .rec-pill.review .pill-icon { background: var(--review); }
 .rec-pill.pass { color: var(--pass-dark); background: var(--pass-bg); border-color: var(--pass-border); }
@@ -458,6 +459,7 @@ img { display: block; max-width: 100%; }
   background: var(--take-bg); border: 1px solid var(--take-border);
   margin-bottom: 16px;
 }
+.drawer-rec.take_at_price { background: var(--take-bg); border-color: var(--take-border); }
 .drawer-rec.review { background: var(--review-bg); border-color: var(--review-border); }
 .drawer-rec.pass { background: var(--pass-bg); border-color: var(--pass-border); }
 .drawer-rec p { margin: 10px 0 0; color: var(--text-primary); font-size: 13.5px; line-height: 1.5; font-weight: 500; }
@@ -1204,7 +1206,7 @@ img { display: block; max-width: 100%; }
 .lab-rec-badge {
   display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; text-transform: uppercase;
 }
-.lab-rec-badge.take { background: var(--take-bg); color: var(--take-dark); }
+.lab-rec-badge.take, .lab-rec-badge.take_at_price { background: var(--take-bg); color: var(--take-dark); }
 .lab-rec-badge.review { background: var(--review-bg); color: var(--review-dark); }
 .lab-rec-badge.pass { background: var(--pass-bg); color: var(--pass-dark); }
 

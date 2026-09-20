@@ -14,7 +14,8 @@ export const ASSEMBLIES: Record<string, Assembly> = {
     description: 'Standard pre-hung single exterior door replacement',
     tradeContext: 'exterior_door_replacement',
     laborHours: { low: 4, expected: 5.5, high: 8 },
-    materialCost: { low: 60, expected: 110, high: 180 },
+    // Hardware, shims, foam, exterior caulk — not the door slab (usually customer- or special-order).
+    materialCost: { low: 80, expected: 140, high: 220 },
     components: ['remove_existing_material', 'measure_and_layout', 'install_fixture', 'install_board_or_trim', 'seal_or_caulk', 'cleanup'],
     validationStatus: 'needs_domain_validation',
   },
@@ -46,7 +47,8 @@ export const ASSEMBLIES: Record<string, Assembly> = {
     description: 'Small drywall patch (under ~12 inches)',
     tradeContext: 'drywall_repair',
     laborHours: { low: 1, expected: 1.5, high: 2.5 },
-    materialCost: { low: 15, expected: 30, high: 50 },
+    // Quotes are also floored at business minimumJobPrice ($175 Mason default).
+    materialCost: { low: 20, expected: 40, high: 60 },
     components: ['protect_work_area', 'patch_surface', 'tape_and_mud', 'sand_and_finish', 'paint_or_touchup', 'cleanup'],
     validationStatus: 'needs_domain_validation',
   },

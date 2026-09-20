@@ -102,11 +102,13 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   const priceStatus = price >= item.price ? 'take' : price >= item.price * 0.82 ? 'review' : 'pass';
   const priceMessage = priceStatus === 'take' ? 'Recommended price for this job.' : priceStatus === 'review' ? 'Below your target earnings rate.' : 'We recommend passing at this price.';
   const isCommercial = item.source === 'commercial_work_order';
-  const copy = recCopy(item.recommendation, item.rate);
+  const copy = recCopy(item.recommendation, item.rate, item.suggestedPrice, item.price, item.lookFirst, item.walkAwayPrice);
 
   const ctaLabel = isCommercial
     ? item.recommendation === 'pass' ? 'Decline Work Order' : `Accept Work Order - $${price.toLocaleString()}`
-    : item.recommendation === 'pass' ? 'Pass on job' : `Create Quote - $${price.toLocaleString()}`;
+    : item.recommendation === 'pass' ? 'Pass on job'
+      : item.recommendation === 'take_at_price' ? `Create Quote - $${price.toLocaleString()}`
+      : `Create Quote - $${price.toLocaleString()}`;
 
   async function handleApprove() {
     if (item.recommendation === 'pass') {
@@ -248,7 +250,10 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
           <div className="detail-section">
             <div className="section-heading"><h3>Estimate</h3><span>At recommended price</span></div>
             <div className="estimate-breakdown">
-              <div className="estimate-line"><span>Recommended price</span><strong>${item.price.toLocaleString()}</strong></div>
+              <div className="estimate-line"><span>Send this</span><strong>${(item.suggestedPrice ?? item.price).toLocaleString()}</strong></div>
+              {item.walkAwayPrice != null && item.walkAwayPrice < (item.suggestedPrice ?? item.price) && (
+                <div className="estimate-line sub"><span>Don't go below</span><strong>${item.walkAwayPrice.toLocaleString()}</strong></div>
+              )}
               {item.costBreakdown.map((line) => (
                 <div key={line.label} className="estimate-line sub"><span>{line.label}</span><strong>{line.value ?? '-'}</strong></div>
               ))}
@@ -258,7 +263,11 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
             </div>
           </div>
           <div className="detail-section">
-            <div className="section-heading"><h3>{item.recommendation === 'take' ? 'Why we like this job' : item.recommendation === 'review' ? 'Why this needs review' : 'Why we\'d pass'}</h3></div>
+            <div className="section-heading"><h3>{
+              item.recommendation === 'take' || item.recommendation === 'take_at_price' ? 'Why send this number'
+              : item.recommendation === 'review' ? 'What to look at'
+              : 'Why pass'
+            }</h3></div>
             <ul className="reason-list">
               {item.reasons.map((reason, i) => (
                 <li key={i} className={reason.icon === 'caution' ? 'caution' : reason.icon === 'x' ? 'pass' : ''}>
@@ -267,7 +276,11 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
                 </li>
               ))}
             </ul>
-            <p className="confidence-note"><CircleHelp size={16} /> {item.recommendation === 'take' ? 'Labor time is reasonably certain, but material quantities may vary.' : 'Some assumptions need verification before committing.'}</p>
+            <p className="confidence-note"><CircleHelp size={16} /> {
+              item.recommendation === 'review'
+                ? (item.lookFirst ? `Check this before you send a number: ${item.lookFirst}.` : copy.sentence)
+                : copy.sentence
+            }</p>
           </div>
 
           {/* Price editor */}
@@ -385,12 +398,11 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
           </button>
           {showAnalysis && (
             <div className="full-analysis">
-              <div className="analysis-row"><span>Goal pace</span><strong>On track</strong></div>
-              <div className="analysis-row"><span>Opportunity cost</span><strong>Low</strong></div>
-              <div className="analysis-row"><span>Capacity scarcity</span><strong>Moderate</strong></div>
-              <div className="analysis-row"><span>Margin threshold</span><strong>35% minimum</strong></div>
-              <div className="analysis-row"><span>Conservative estimate</span><strong>${Math.round(item.profit * 0.75)} profit</strong></div>
-              <div className="analysis-row"><span>Decision score</span><strong>{item.recommendation === 'take' ? 78 : item.recommendation === 'review' ? 52 : 28} / 100</strong></div>
+              <div className="analysis-row"><span>System quote</span><strong>${item.price.toLocaleString()}</strong></div>
+              {item.suggestedPrice != null && (
+                <div className="analysis-row"><span>Send this week</span><strong>${item.suggestedPrice.toLocaleString()}</strong></div>
+              )}
+              <div className="analysis-row"><span>Confidence</span><strong>{item.confidence}%</strong></div>
             </div>
           )}
         </div>

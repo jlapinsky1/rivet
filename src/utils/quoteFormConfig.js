@@ -139,8 +139,85 @@ function getJunkRemovalDefaults() {
   };
 }
 
+function getHandymanDefaults() {
+  return {
+    published: false,
+    layout: 'handyman',
+    notifications: {
+      emailOnRequest: true,
+      notifyEmail: null,
+    },
+    branding: {
+      tagline: '',
+      logoUrl: null,
+      accentColor: '#22c55e',
+      phone: null,
+      ctaText: 'Request a Quote',
+    },
+    steps: {
+      photos: {
+        enabled: true,
+        minPhotos: 1,
+      },
+    },
+    fields: {
+      quantity: { enabled: false, label: '', options: [] },
+      accessType: { enabled: false, label: '', options: [] },
+      stairs: { enabled: false, label: '', options: [] },
+      elevator: { enabled: false, label: '', options: [] },
+      description: {
+        enabled: true,
+        label: 'What needs to be done?',
+        placeholder: 'Describe the job — for example, patch two holes in drywall, mount a 65" TV, reset fence posts…',
+      },
+      secondChoiceDate: { enabled: true },
+      email: { required: false },
+      timePreference: {
+        label: 'What time works best?',
+        options: [
+          { value: 'morning', label: 'Morning', sub: '8am - 12pm', icon: '\u2600' },
+          { value: 'afternoon', label: 'Afternoon', sub: '12pm - 4pm', icon: '\u{1F324}' },
+          { value: 'flexible', label: 'Flexible', sub: 'Either works for me', icon: '\u{1F44D}' },
+        ],
+      },
+    },
+    companionContent: [
+      {
+        headline: 'No phone calls required.',
+        body: "We'll only use your contact info to send your estimate.",
+        trust: ['Fast response time', 'Your info stays private', 'Reviewed by the owner'],
+      },
+      {
+        headline: 'We service your area.',
+        body: 'Your address helps us estimate travel time and check that we cover your neighborhood.',
+        trust: ['Local handyman', 'Accurate scheduling', 'Travel time counted'],
+      },
+      {
+        headline: 'Better photos, better estimate.',
+        body: 'Clear photos of the work area help us quote accurately before we come out.',
+        trust: ['Reviewed by a real person', 'No hidden fees'],
+      },
+      {
+        headline: 'Tell us about the job.',
+        body: 'A short description is enough. Mention size, materials, and anything unusual.',
+        trust: ['No obligation estimate', 'Fair, transparent pricing'],
+      },
+      {
+        headline: 'Pick the day that works.',
+        body: "Choose a preferred time and we'll confirm after reviewing the request.",
+        trust: ['Flexible scheduling', 'We confirm before we come'],
+      },
+    ],
+    confirmation: {
+      headline: 'Request received!',
+      body: "We'll review the job and send a price shortly.",
+    },
+  };
+}
+
 const VERTICAL_DEFAULTS = {
   junk_removal: getJunkRemovalDefaults,
+  handyman: getHandymanDefaults,
 };
 
 /**
@@ -163,6 +240,7 @@ export function mergeQuoteFormConfig(saved, vertical = 'junk_removal') {
 
   return {
     published: saved.published ?? defaults.published,
+    layout: saved.layout ?? defaults.layout ?? vertical,
 
     notifications: {
       ...defaults.notifications,

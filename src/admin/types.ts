@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { BarChart3, Briefcase, CalendarDays, Home, Users } from 'lucide-react';
 
-export type Recommendation = 'take' | 'review' | 'pass';
+export type Recommendation = 'take' | 'take_at_price' | 'review' | 'pass';
 export type WorkSource = 'customer_request' | 'commercial_work_order' | 'owner_created';
 export type CustomerType = 'individual' | 'organization';
 export type OperationalStatus = 'needs_review' | 'quoted' | 'approved' | 'scheduled' | 'in_progress' | 'completed' | 'declined';
@@ -26,6 +26,10 @@ export type WorkItem = {
   rate: string;
   rateNum: number;
   recommendation: Recommendation;
+  intakeRecommendation?: Recommendation;
+  suggestedPrice?: number;
+  walkAwayPrice?: number;
+  lookFirst?: string;
   confidence: number;
   description: string;
   price: number;
@@ -50,6 +54,8 @@ export type WorkItem = {
   scope?: string;
   serviceType: string;
   estimationRunId?: string;
+  /** When false, completed/scheduled work does not move this week's earned $ or hours left. */
+  countsTowardCurrentWeek?: boolean;
 };
 
 export type Company = {

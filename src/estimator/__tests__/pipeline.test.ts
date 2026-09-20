@@ -31,7 +31,7 @@ describe('Assembly path E2E', () => {
     expect(job.evaluatedPrice).toBeGreaterThan(0);
 
     const decision = deriveRecommendation(job, config, context);
-    expect(['take', 'review', 'pass']).toContain(decision.recommendation);
+    expect(['take', 'take_at_price', 'review', 'pass']).toContain(decision.recommendation);
     expect(decision.reasons.length).toBeGreaterThan(0);
   });
 
@@ -110,7 +110,7 @@ describe('Component path E2E', () => {
 
     const job = applyCalibration(estimate, config, null, 10);
     const decision = deriveRecommendation(job, config, context);
-    expect(['take', 'review', 'pass']).toContain(decision.recommendation);
+    expect(['take', 'take_at_price', 'review', 'pass']).toContain(decision.recommendation);
   });
 
   it('mixed carpentry + plumbing job → component path', () => {
@@ -139,7 +139,7 @@ describe('Component path E2E', () => {
 
     const job = applyCalibration(estimate, config, null, 20);
     const decision = deriveRecommendation(job, config, context);
-    expect(['take', 'review', 'pass']).toContain(decision.recommendation);
+    expect(['take', 'take_at_price', 'review', 'pass']).toContain(decision.recommendation);
   });
 
   it('completely unknown job → low confidence review', () => {

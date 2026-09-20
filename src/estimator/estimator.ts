@@ -513,7 +513,7 @@ export function applyCalibration(
     expected: laborRevenue.expected + totalDirectCost.expected,
     high: laborRevenue.high + totalDirectCost.high,
   };
-  const recommendedQuote = estimatedQuoteRange.expected;
+  const recommendedQuote = Math.max(estimatedQuoteRange.expected, config.minimumJobPrice);
   const evaluatedPrice = recommendedQuote;
 
   // ─── Profit Metrics (at evaluatedPrice) ───
@@ -558,5 +558,45 @@ export function applyCalibration(
     confidence: roundConfidence(estimate.confidence),
     riskFlags: [...new Set(estimate.riskFlags)],
     breakdown: [...estimate.breakdown],
+  };
+}
+
+/** Recalculate the week-pace floor and binding minimum without re-estimating labor. */
+export function refreshEconomicJobForContext(
+  job: EconomicJob,
+  config: BusinessEconomicsConfig,
+  context: DecisionContext,
+): EconomicJob {
+  const expectedDirectCost = job.totalDirectCost.expected;
+  const floors: PricingFloors = {
+    minimumJob: config.minimumJobPrice,
+    margin: job.pricingFloors.margin,
+    absoluteProfit: job.pricingFloors.absoluteProfit,
+    laborProductivity: job.pricingFloors.laborProductivity,
+    weeklyCapacityPace: (context && context.requiredContributionPerCapacityHour > 0)
+      ? expectedDirectCost + (job.capacityHours * context.requiredContributionPerCapacityHour)
+      : 0,
+    binding: 'minimumJob',
+  };
+
+  let maxFloor = 0;
+  for (const [key, value] of Object.entries(floors)) {
+    if (key === 'binding') continue;
+    if ((value as number) > maxFloor) {
+      maxFloor = value as number;
+      floors.binding = key;
+    }
+  }
+
+  floors.minimumJob = roundMoney(floors.minimumJob);
+  floors.margin = roundMoney(floors.margin);
+  floors.absoluteProfit = roundMoney(floors.absoluteProfit);
+  floors.laborProductivity = roundMoney(floors.laborProductivity);
+  floors.weeklyCapacityPace = roundMoney(floors.weeklyCapacityPace);
+
+  return {
+    ...job,
+    minimumAcceptablePrice: roundMoney(maxFloor),
+    pricingFloors: floors,
   };
 }

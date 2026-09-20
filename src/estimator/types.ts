@@ -31,7 +31,7 @@ export type ReasonCode =
   | 'SITE_CONDITION_DIFFERENT'
   | 'OTHER';
 
-export type Recommendation = 'take' | 'review' | 'pass';
+export type Recommendation = 'take' | 'take_at_price' | 'review' | 'pass';
 
 export type ReasonItem = { icon: 'check' | 'caution' | 'x'; text: string };
 

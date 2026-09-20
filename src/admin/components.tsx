@@ -1,14 +1,17 @@
 import type { Recommendation, WorkSource, OperationalStatus, BillingStatus, WorkItem } from './types';
 import { ArrowRight, Clock3, MapPin, Zap } from 'lucide-react';
+import { truckHeadline, truckSentence } from '../estimator/truckCopy';
 
-export function recCopy(rec: Recommendation, rate?: string) {
-  if (rec === 'take') return { label: 'Take this job', sentence: rate ? `Worth about ${rate} to you - good profit and a smart use of your remaining time.` : 'Good profit and a smart use of your remaining time.' };
-  if (rec === 'review') return { label: 'Review this job', sentence: 'Could be worth it, but a few details need a closer look before you commit.' };
-  return { label: 'Pass on this job', sentence: 'Too much time and travel for the expected profit - your hours are better spent elsewhere.' };
+export function recCopy(rec: Recommendation, _rate?: string, suggestedPrice?: number, quote?: number, lookFirst?: string, walkAwayPrice?: number) {
+  const amount = quote ?? suggestedPrice ?? 0;
+  return {
+    label: truckHeadline(rec, amount, suggestedPrice, lookFirst),
+    sentence: truckSentence(rec, amount, suggestedPrice, lookFirst, walkAwayPrice),
+  };
 }
 
 export function recIcon(rec: Recommendation) {
-  return rec === 'take' ? '✓' : rec === 'review' ? '!' : '×';
+  return rec === 'take' || rec === 'take_at_price' ? '✓' : rec === 'review' ? '!' : '×';
 }
 
 export function reasonGlyph(icon: string) {
@@ -49,12 +52,12 @@ export function billingStatusLabel(status: BillingStatus) {
   return labels[status];
 }
 
-export function RecPill({ rec, compact }: { rec: Recommendation; compact?: boolean }) {
-  const copy = recCopy(rec);
+export function RecPill({ rec, compact, sendPrice, lookFirst }: { rec: Recommendation; compact?: boolean; sendPrice?: number; lookFirst?: string }) {
+  const copy = recCopy(rec, undefined, rec === 'take_at_price' ? sendPrice : undefined, sendPrice, lookFirst);
   return (
     <span className={`rec-pill ${rec} ${compact ? 'compact' : ''}`}>
       <span className="pill-icon">{recIcon(rec)}</span>
-      {compact ? copy.label.replace(' this job', '').replace(' on this job', '') : copy.label}
+      {copy.label}
     </span>
   );
 }
@@ -87,7 +90,7 @@ export function MetricCard({ value, label, detail, icon: Icon, accent, progress 
 }
 
 export function WorkRecommendationCard({ item, onView }: { item: WorkItem; onView: () => void }) {
-  const copy = recCopy(item.recommendation, item.rate);
+  const copy = recCopy(item.recommendation, item.rate, item.suggestedPrice, item.price, item.lookFirst, item.walkAwayPrice);
   return (
     <section className={`hero-card ${item.recommendation}`}>
       <div className="hero-accent-bar" />
@@ -163,7 +166,7 @@ export function WorkRow({ item, onClick }: { item: WorkItem; onClick: () => void
         <strong>${item.profit} profit</strong>
         <small>{item.hours} · {item.rate}</small>
       </div>
-      <RecPill rec={item.recommendation} compact />
+      <RecPill rec={item.recommendation} compact sendPrice={item.suggestedPrice ?? item.price} lookFirst={item.lookFirst} />
       <ArrowRight className="lead-chevron" size={18} />
     </button>
   );

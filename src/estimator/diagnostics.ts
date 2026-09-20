@@ -48,7 +48,7 @@ function median(values: number[]): number {
 }
 
 export function summarizeDecisionLab(records: DecisionLabRecord[]): DecisionLabSummary {
-  const recommendations: Record<Recommendation, number> = { take: 0, review: 0, pass: 0 };
+  const recommendations: Record<Recommendation, number> = { take: 0, take_at_price: 0, review: 0, pass: 0 };
   const laborErrors: number[] = [];
   const materialErrors: number[] = [];
   const confidences: number[] = [];

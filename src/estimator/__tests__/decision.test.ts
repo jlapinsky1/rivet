@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { deriveRecommendation } from '../decision';
+import { deriveRecommendation, walkAwayFromFloors } from '../decision';
 import { estimateHandymanJob, applyCalibration } from '../estimator';
 import { ASSEMBLIES } from '../assemblies';
 import type { EconomicJob, BusinessEconomicsConfig, DecisionContext, ExtractionResult, ExtractedTask, Range } from '../types';
@@ -117,7 +117,7 @@ describe('deriveRecommendation - review triggers', () => {
     expect(recommendation).toBe('review');
   });
 
-  it('expected good but high/conservative case bad → Review', () => {
+  it('expected good but conservative low case bad → Send, not Look first', () => {
     const job = makeJob({
       contributionPerLaborHour: { low: 30, expected: 100, high: 150 },
       contributionMargin: range(0.45),
@@ -125,8 +125,22 @@ describe('deriveRecommendation - review triggers', () => {
       confidence: 0.85,
       riskFlags: [],
     });
-    const { recommendation } = deriveRecommendation(job, config, emptyContext);
+    const { recommendation, lookFirst } = deriveRecommendation(job, config, emptyContext);
+    expect(recommendation).toBe('take');
+    expect(lookFirst).toBeUndefined();
+  });
+
+  it('water damage Review names the thing to look at', () => {
+    const job = makeJob({
+      contributionPerLaborHour: range(100),
+      contributionMargin: range(0.45),
+      contributionProfit: range(300),
+      confidence: 0.85,
+      riskFlags: ['hidden_water_damage'],
+    });
+    const { recommendation, lookFirst } = deriveRecommendation(job, config, emptyContext);
     expect(recommendation).toBe('review');
+    expect(lookFirst).toBe('How far the water went');
   });
 
   it('unsupported_task_component risk flag → Review', () => {
@@ -206,7 +220,7 @@ describe('deriveRecommendation - DecisionContext', () => {
       requiredContributionPerCapacityHour: 120,
     };
     const { recommendation, reasons } = deriveRecommendation(job, config, paceContext);
-    expect(recommendation).toBe('review');
+    expect(recommendation).toBe('take');
     expect(reasons.some(r => r.text.includes('pace') || r.text.includes('schedule hour'))).toBe(true);
   });
 
@@ -317,9 +331,13 @@ describe('labor-hour vs capacity-hour economics', () => {
     // The natural quote should be below the capacity pace floor
     expect(job.recommendedQuote).toBeLessThan(job.minimumAcceptablePrice);
     // Decision should flag this gap
-    const { recommendation, reasons } = deriveRecommendation(job, config, highPaceContext);
-    expect(recommendation).toBe('pass');
-    expect(reasons.some(r => r.icon === 'x' && r.text.includes('would need to be about'))).toBe(true);
+    const { recommendation, reasons, suggestedPrice, askPrice, walkAwayPrice } = deriveRecommendation(job, config, highPaceContext);
+    expect(recommendation).toBe('take_at_price');
+    expect(suggestedPrice).toBe(Math.round(job.minimumAcceptablePrice));
+    expect(reasons.some(r => r.text.includes('Send $'))).toBe(true);
+    expect(askPrice).toBe(Math.round(job.minimumAcceptablePrice));
+    expect(walkAwayPrice).toBe(walkAwayFromFloors(job));
+    expect(walkAwayPrice!).toBeLessThan(askPrice!);
   });
 
   it('increasing evaluatedPrice above minimum can change same scope to TAKE', () => {
@@ -360,9 +378,9 @@ describe('labor-hour vs capacity-hour economics', () => {
       contributionPerLaborHour: { low: 80, expected: 100, high: 120 },
       contributionPerCapacityHour: 60,
     };
-    const { recommendation, reasons } = deriveRecommendation(tinyGapJob, config, emptyContext);
-    expect(recommendation).toBe('review');
-    expect(reasons.some(r => r.icon === 'caution' && r.text.includes('2% gap'))).toBe(true);
+    const { recommendation, suggestedPrice } = deriveRecommendation(tinyGapJob, config, emptyContext);
+    expect(recommendation).toBe('take_at_price');
+    expect(suggestedPrice).toBe(Math.round(tinyGapJob.minimumAcceptablePrice));
   });
 
   it('moderate pricing gap (8%) → Review with plenty of capacity', () => {
@@ -389,10 +407,10 @@ describe('labor-hour vs capacity-hour economics', () => {
       requiredContributionPerCapacityHour: 50,
     };
     const { recommendation } = deriveRecommendation(gapJob, config, plentyContext);
-    expect(recommendation).toBe('review');
+    expect(recommendation).toBe('take_at_price');
   });
 
-  it('moderate pricing gap (18%) with plenty of capacity → Review', () => {
+  it('moderate pricing gap (18%) with plenty of capacity → Take at price', () => {
     const job = makeJob({
       confidence: 0.85,
       riskFlags: [],
@@ -416,10 +434,10 @@ describe('labor-hour vs capacity-hour economics', () => {
       requiredContributionPerCapacityHour: 50,
     };
     const { recommendation } = deriveRecommendation(gapJob, config, plentyContext);
-    expect(recommendation).toBe('review');
+    expect(recommendation).toBe('take_at_price');
   });
 
-  it('moderate pricing gap (18%) with very scarce capacity → Pass', () => {
+  it('moderate pricing gap (18%) with very scarce capacity → Take at price', () => {
     const job = makeJob({
       confidence: 0.85,
       riskFlags: [],
@@ -445,10 +463,10 @@ describe('labor-hour vs capacity-hour economics', () => {
       requiredContributionPerCapacityHour: 100,
     };
     const { recommendation } = deriveRecommendation(gapJob, config, scarceContext);
-    expect(recommendation).toBe('pass');
+    expect(recommendation).toBe('take_at_price');
   });
 
-  it('large pricing gap (35%) → Pass regardless of capacity', () => {
+  it('large pricing gap (35%) with plenty of capacity → Take at price', () => {
     const job = makeJob({
       confidence: 0.85,
       riskFlags: [],
@@ -472,10 +490,38 @@ describe('labor-hour vs capacity-hour economics', () => {
       requiredContributionPerCapacityHour: 50,
     };
     const { recommendation } = deriveRecommendation(gapJob, config, plentyContext);
+    expect(recommendation).toBe('take_at_price');
+  });
+
+  it('large gap + scarce remaining week → Pass', () => {
+    const job = makeJob({
+      confidence: 0.85,
+      riskFlags: [],
+      capacityHours: 4,
+    });
+    const minPrice = job.minimumAcceptablePrice;
+    const evalPrice = minPrice * 0.65;
+    const gapJob = {
+      ...job,
+      evaluatedPrice: evalPrice,
+      recommendedQuote: evalPrice,
+      contributionProfit: { low: 50, expected: 80, high: 100 },
+      contributionMargin: { low: 0.2, expected: 0.3, high: 0.4 },
+      contributionPerLaborHour: { low: 80, expected: 100, high: 120 },
+      contributionPerCapacityHour: 25,
+    };
+    const scarceContext: DecisionContext = {
+      weeklyEarningsToDate: 1800,
+      remainingCapacityHours: 8,
+      pipelineValue: 0,
+      pipelineHours: 0,
+      requiredContributionPerCapacityHour: 100,
+    };
+    const { recommendation } = deriveRecommendation(gapJob, config, scarceContext);
     expect(recommendation).toBe('pass');
   });
 
-  it('low confidence reason is still visible on a Pass from pricing gap', () => {
+  it('low confidence + pricing gap → Review, not Take at price', () => {
     const job = makeJob({
       confidence: 0.35,
       riskFlags: ['hidden_water_damage'],
@@ -492,10 +538,8 @@ describe('labor-hour vs capacity-hour economics', () => {
       contributionPerCapacityHour: 25,
     };
     const { recommendation, reasons } = deriveRecommendation(gapJob, config, emptyContext);
-    expect(recommendation).toBe('pass');
-    // Confidence reason should still be present
+    expect(recommendation).toBe('review');
     expect(reasons.some(r => r.icon === 'caution' && r.text.includes('confidence'))).toBe(true);
-    // Risk flag reason should still be present
     expect(reasons.some(r => r.icon === 'caution' && r.text.includes('hidden water damage'))).toBe(true);
   });
 
@@ -518,8 +562,8 @@ describe('labor-hour vs capacity-hour economics', () => {
       requiredContributionPerCapacityHour: 80,
     };
     const { recommendation } = deriveRecommendation(job, config, context25);
-    // rate 50 < required 80 * 0.85 = 68 → forceReview (not forcePass)
-    expect(recommendation).toBe('review');
+    // Price already covers the floor; below-pace is a caution, not Review
+    expect(recommendation).toBe('take');
   });
 
   it('metric consistency - never compares capacity-hour metric against labor-hour threshold', () => {
@@ -551,5 +595,39 @@ describe('labor-hour vs capacity-hour economics', () => {
     expect(reasons.some(r => r.icon === 'x' && r.text.includes('work hour'))).toBe(false);
     // Capacity hour check should flag (40 < 74)
     expect(reasons.some(r => r.text.includes('schedule hour'))).toBe(true);
+  });
+});
+
+import { buildDecisionContext } from '../weekContext';
+import { refreshEconomicJobForContext } from '../estimator';
+
+describe('same job Monday vs Thursday', () => {
+  it('needed rate rises as hours are booked; rec can change from take to take_at_price', () => {
+    const est = estimateHandymanJob(makeAssemblyExtraction('SMALL_DRYWALL_PATCH'));
+    const mondayJobs = [
+      { opStatus: 'completed', profit: 0, hoursNum: 0 },
+    ];
+    const thursdayJobs = [
+      { opStatus: 'completed', profit: 700, hoursNum: 22 },
+      { opStatus: 'scheduled', profit: 200, hoursNum: 6 },
+    ];
+    const mondayCtx = buildDecisionContext(mondayJobs, { weeklyGoal: 2500, weeklyHours: 35 });
+    const thursdayCtx = buildDecisionContext(thursdayJobs, { weeklyGoal: 2500, weeklyHours: 35 });
+
+    expect(mondayCtx.requiredContributionPerCapacityHour).toBeLessThan(thursdayCtx.requiredContributionPerCapacityHour);
+
+    const mondayJob = applyCalibration(est, config, null, 8, mondayCtx);
+    const thursdayJob = refreshEconomicJobForContext(
+      applyCalibration(est, config, null, 8, mondayCtx),
+      config,
+      thursdayCtx,
+    );
+
+    const mondayRec = deriveRecommendation(mondayJob, config, mondayCtx);
+    const thursdayRec = deriveRecommendation(thursdayJob, config, thursdayCtx);
+
+    expect(['take', 'take_at_price']).toContain(mondayRec.recommendation);
+    expect(['take', 'take_at_price', 'pass']).toContain(thursdayRec.recommendation);
+    expect(thursdayJob.minimumAcceptablePrice).toBeGreaterThanOrEqual(mondayJob.minimumAcceptablePrice);
   });
 });
