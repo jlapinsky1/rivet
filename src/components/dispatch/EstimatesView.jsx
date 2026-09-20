@@ -136,7 +136,8 @@ export default function EstimatesView({ user, safeTop }) {
   async function handleAction(item, action) {
     const newStatus = action === 'accept' ? 'approved' : 'declined';
     try {
-      await supabase.from('work_items').update({ op_status: newStatus }).eq('id', item.id);
+      const { workItemStatusFields } = await import('../../utils/workItemStatus');
+      await supabase.from('work_items').update(workItemStatusFields(newStatus)).eq('id', item.id);
 
       if (item.estimationRunId) {
         const { saveOwnerDecision } = await import('../../estimator/persistence');

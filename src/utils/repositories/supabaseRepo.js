@@ -622,15 +622,13 @@ const supabaseRepo = {
 
   async updateDispatchStatus(jobId, targetStatus, idempotencyKey) {
     // Try work_items first (Rivet jobs), fall back to bookings
-    const TIMESTAMP_COL = { en_route: 'en_route_at', arrived: 'arrived_at', in_progress: 'started_at' };
-    const now = new Date().toISOString();
-    const updates = { op_status: targetStatus === 'en_route' ? 'scheduled' : targetStatus, updated_at: now };
-
     // Check if it's a work_item
     const { data: wi } = await supabase.from('work_items').select('id').eq('id', jobId).maybeSingle();
     if (wi) {
       const statusMap = { en_route: 'in_progress', arrived: 'in_progress', in_progress: 'in_progress', scheduled: 'scheduled' };
-      const { error } = await supabase.from('work_items').update({ op_status: statusMap[targetStatus] || targetStatus, updated_at: now }).eq('id', jobId);
+      const nextStatus = statusMap[targetStatus] || targetStatus;
+      const { workItemStatusFields } = await import('../workItemStatus.js');
+      const { error } = await supabase.from('work_items').update(workItemStatusFields(nextStatus)).eq('id', jobId);
       if (error) throw new Error(error.message);
       return { success: true, booking: { id: jobId, status: targetStatus } };
     }
