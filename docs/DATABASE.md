@@ -1,6 +1,6 @@
 # Rivet — Database Schema Reference
 
-> Last updated: 2026-09-08 | Migrations 001–020
+> Last updated: 2026-09-20 | Migrations 001–023
 
 This document is the authoritative reference for all database tables, their relationships, and migration history. The database is PostgreSQL hosted on Supabase with Row-Level Security (RLS) enabled on all tables.
 
@@ -70,6 +70,21 @@ businesses ───────────────────────
 | `created_at` | timestamptz | NOT NULL, default `now()` | |
 
 **Indexes:** `slug`, `owner_user_id`
+
+### `work_items` (handyman)
+
+Tenant jobs for the handyman dashboard. `business_id` UUID + RLS.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `op_status` | text | needs_review, quoted, approved, scheduled, in_progress, completed, declined |
+| `recommendation` | text | Internal: take, take_at_price, review, pass |
+| `created_at` | timestamptz | Lead created |
+| `completed_at` | timestamptz | Set when `op_status` becomes completed; cleared otherwise (trigger in 023) |
+| `updated_at` | timestamptz | |
+| `estimation_run_id` | text | Immutable intake snapshot |
+
+Week clock: completed jobs count only if `completed_at` (else `created_at`) is in the current Monday–Sunday week.
 
 ### `business_memberships`
 
@@ -476,3 +491,6 @@ These functions run with elevated privileges and enforce their own authorization
 | 018 | `018_request_idempotency.sql` | Idempotency key on jobs, email lookup RPC |
 | 019 | `019_normalize_status.sql` | Normalize job status values |
 | **020** | **`020_multi_tenant.sql`** | **Multi-tenant foundation: businesses, memberships, business_id on 17 tables, RLS policies, function updates** |
+| 021 | `021_handyman_tenant_tables.sql` | work_items, customers, companies, properties + RLS |
+| 022 | `022_feedback_loop.sql` | owner_decisions, quoted_price on actual_outcomes |
+| 023 | `023_work_item_completed_at.sql` | work_items.completed_at + updated_at, trigger on status change |

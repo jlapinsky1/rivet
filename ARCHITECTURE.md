@@ -56,7 +56,7 @@ EconomicJob
       ↓
 Universal decision engine
       ↓
-Take / Review / Pass
+Send $ask / Look first / Pass  (internal: take | take_at_price | review | pass)
       ↓
 ┌─────────────────────────────────────────┐
 │         Feedback Loop (4-part)          │
@@ -86,7 +86,11 @@ src/
     baselines.ts      — Legacy baselines (kept for reference)
     extract.ts        — AI extraction client + keyword stub for tests
     estimator.ts      — Dual-path estimator (assembly OR component) + calibration → EconomicJob
-    decision.ts       — Universal decision engine (with DecisionContext)
+    decision.ts       — Universal decision engine (Send / Look first / Pass)
+    weekContext.ts    — This-week earned $, hours left, needed $/schedule hour
+    truckCopy.ts      — Truck labels: Send $X, Look first: {thing}, Pass
+    simulate.ts       — Monday / midweek / Friday replay (npm run sim)
+    applyLiveRecommendations.ts — Recompute pending recs from live week clock
     diagnostics.ts    — Decision Lab analysis helpers (summarizeDecisionLab)
     persistence.ts    — Supabase persistence: estimation runs, adjustments, outcomes, owner decisions, feedback record builder
     index.ts          — Barrel export
@@ -305,34 +309,29 @@ minimumAcceptablePrice = max(
 
 ## Decision Engine: `src/estimator/decision.ts`
 
-Universal — works for any vertical.
+Universal — works for any vertical. Truck copy is **Send $ask**, **Look first: {thing}**, or **Pass**. Internal codes stay `take` | `take_at_price` | `review` | `pass`.
 
-### Static Threshold Checks (labor-hour economics)
-- `contributionPerLaborHour.expected < minimumHourlyRate` → forcePass ("At $X per work hour, below $Y minimum")
-- `contributionMargin.expected < marginFloorPercent` → forcePass
-- `contributionProfit.expected < profitFloorAbsolute` → forcePass
-- Conservative case (`contributionProfit.low`, `contributionPerLaborHour.low`) below thresholds → forceReview
+**Ask vs walk-away**
+- **Ask / Send** = `evaluatedPrice` when it already clears all floors, else `minimumAcceptablePrice` (includes this week's pace).
+- **Walk-away / don't go below** = max of min-job, margin, absolute profit, labor productivity. **Does not include** weekly capacity pace.
+- Conservative low-end hours/profit does **not** force Look first. That math stays off the truck.
 
-### Pricing Gap (graduated tolerance band)
-- `evaluatedPrice >= minimumAcceptablePrice` → positive or caution (within 10% → caution)
-- `gap <= 10%` of minimumAcceptablePrice → forceReview ("barely below target")
-- `gap 10–25%` → forceReview if capacity plentiful, forcePass if capacity < 30% of weekly total ("meaningfully below target")
-- `gap > 25%` → forcePass ("terrible use of remaining capacity")
+**Look first** only when we can name the check (water travel, substrate, structural, photos don't show the job, unrecognized work). Low confidence without a named risk uses "The photos. We can't tell the full job yet."
 
-### Weekly Capacity Pace (capacity-hour economics, graduated severity)
-- `contributionPerCapacityHour >= requiredRate` → positive reason ("earns ~$X per schedule hour, above $Y pace")
-- `contributionPerCapacityHour >= requiredRate × 0.85` → caution, forceReview if capacity < 50%
-- `contributionPerCapacityHour < requiredRate × 0.85` → forceReview (no hard PASS cliff — pricing gap handles scarcity escalation)
+**Pass** only when the job will not fit remaining hours, or expected profit / hourly / margin fail **and** the quote is already at or above the floor (cannot raise the send price). A tight Friday does **not** Pass a clear job just because the week-ask is much higher than the normal quote — it Sends the week-ask and keeps the walk-away.
 
-### Capacity Scarcity
-- `capacityHours > remainingCapacityHours` → forcePass
-- `capacityHours > remainingCapacityHours × 0.5` → caution
+**Week clock** (`weekContext.ts`)
+- Live. Not hardcoded to Monday / midweek / Friday. Those three clocks exist only in `npm run sim`.
+- Earned + committed hours = completed (this calendar week) + scheduled + in_progress + approved.
+- Completed counts only if `completed_at` (else `created_at`) is in the current Monday–Sunday week.
+- Quoted / needs_review do not count.
+- `completed_at` is written on status change (trigger + `workItemStatusFields`).
 
-### Risk Flag Handling
-- `no_tasks_extracted` → forced Review (never auto-Pass)
-- `poor_component_coverage` → forced Review
-- `unsupported_task_component` → noted in reasons (confidence drop handles severity)
-- `hidden_water_damage`, `structural_*`, `unknown_substrate` → forced Review
+**Live display**
+- Pending `needs_review` rows recompute via `applyLiveRecommendations` from the live week clock.
+- Intake snapshot stays on `estimation_runs.decision_context`.
+
+Replay after any tune: `npm run sim` → `docs/SIMULATION.md`. Refresh Mason in production: `supabase/refresh-mason-production.sql`.
 
 ---
 
@@ -448,7 +447,7 @@ Internal-only evaluation page under Settings. Access-gated via `localStorage.riv
 
 **Detail view** (click a row): Full pipeline walkthrough — Input, AI Extraction, Estimator breakdown, Calibration, Economics (including pricing floors, $/work hour, $/schedule hour), Decision (reasons + context), Human Adjustments timeline, Actual Outcome with error calculations.
 
-**Filters**: Customer, trade context, recommendation (Take/Review/Pass), completed vs pending, human-adjusted yes/no, confidence level.
+**Filters**: Customer, trade context, recommendation (Send / Look first / Pass), completed vs pending, human-adjusted yes/no, confidence level.
 
 **Export**: JSON and CSV formats, structured for handing to Claude/ChatGPT/domain experts to diagnose systematic errors. Includes absolute/percent errors for labor and material, winner tracking (human vs rivet), pricing floor traces.
 
@@ -467,7 +466,8 @@ Seeded account that functions identically to a real customer account. No special
 - `src/demo/seedSupabase.ts` pushes estimation runs, adjustments, and outcomes to Supabase
 - Static data imported in `src/admin/types.ts`; pipeline data persisted via Supabase
 - Seed data includes 12 owner decisions with varied situational snapshots (Monday fresh week through Friday nearly-hit-goal, different capacity/earnings states)
-- Regenerate with: `npx tsx supabase/generate-seed-sql.ts` → outputs `supabase/seed-data.sql`
+- Regenerate with: `npx tsx supabase/generate-seed-sql.ts` → `supabase/seed-data.sql` and `supabase/refresh-mason-production.sql`
+- Production refresh is Mason-only (`business_id` `a0000000-0000-0000-0000-000000000001`). Run `023_work_item_completed_at.sql` first if that column is missing.
 
 Business config: ownerOpportunityRate $75, helperRate $30, mileage $0.70, materialMarkup 20%, minimumJobPrice $175, minimumHourlyRate $70, profitFloor $75, marginFloor 35%, confidenceThreshold 0.70, weeklyGoal $2500, weeklyCapacity 35h.
 
@@ -502,12 +502,12 @@ Every owner action (approve, decline, review/pass) records an `OwnerDecision` wi
 ### `src/estimator/__tests__/decision.test.ts` (25 tests)
 
 - Static thresholds: good job → Take, low contributionPerLaborHour → Pass, low margin → Pass, low profit → Pass
-- Review triggers: low confidence, conservative case bad, unsupported components, structural risks, no tasks
-- DecisionContext: scarce capacity → Pass, requiredContributionPerCapacityHour above job rate → Review, goal nearly met → positive reason, zero context degrades gracefully
+- Review / Look first: named risk or photos unclear — not conservative low-end hours
+- DecisionContext: job that does not fit remaining hours → Pass; week-ask above quote → Send that ask
 - Reasons: populated and match recommendation
-- **Labor-hour vs capacity-hour**: same profit different capacity → different assessment, suggestedPrice sanity (no hourly-rate PASS for high-confidence assembly), metric consistency (never compare capacity against labor threshold)
-- **Graduated pricing gap**: 2% gap → Review, 8% gap → Review, 18% gap + plenty capacity → Review, 18% gap + scarce capacity → Pass, 35% gap → Pass, low confidence reason visible on economic PASS
-- **No hard PASS cliff**: below-pace job at 25% remaining capacity → Review (not Pass)
+- **Labor-hour vs capacity-hour**: same profit different capacity → different assessment
+- **Pricing gap**: Send the week-ask (take_at_price), do not Pass solely because Friday is tight
+- Walk-away is the no-week-pace floor
 
 ### `src/estimator/__tests__/pipeline.test.ts` (13 tests)
 

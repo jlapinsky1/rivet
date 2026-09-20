@@ -1,4 +1,9 @@
-# Context Sensitivity Audit — v0.3.1
+# Context Sensitivity Audit — v0.3.1 (historical)
+
+**This file is a snapshot from 2026-09-09. It is not current.**
+
+Current truck copy and week clocks: run `npm run sim` and read `docs/SIMULATION.md`.
+Rules now: Send the week-ask (do not Pass Friday just because the ask is high); Look first only with a named check; week clock is live Monday–Sunday via `completed_at`.
 
 **Date:** 2026-09-09
 **Scope:** 22 Mason Home Services demo jobs re-evaluated under three business-context scenarios

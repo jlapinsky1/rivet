@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "sim": "npx tsx scripts/simulate-handyman.ts"
+    "sim": "npx tsx scripts/simulate-handyman.ts",
+    "seed:sql": "npx tsx supabase/generate-seed-sql.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",

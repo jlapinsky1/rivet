@@ -79,6 +79,7 @@ Pending `needs_review` rows are recomputed. Other statuses keep the stored label
 
 ## How to re-seed Mason in Supabase
 
-1. `npx tsx supabase/generate-seed-sql.ts` (rewrites `supabase/seed-data.sql` from current engine output)
-2. Re-run `supabase/seed-data.sql` against the Mason business after wiping prior Mason work_items / estimation_runs if you need a clean replace.
+1. Apply `supabase/migrations/023_work_item_completed_at.sql` if `completed_at` is missing.
+2. `npx tsx supabase/generate-seed-sql.ts`
+3. Production: run `supabase/refresh-mason-production.sql` (Mason-only wipe + inserts).
 

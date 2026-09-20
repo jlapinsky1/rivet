@@ -1,6 +1,6 @@
 # Handyman week simulation
 
-Generated: 2026-09-20T22:27:26.547Z
+Generated: 2026-09-20T22:36:15.515Z
 
 Solo budget (Mason defaults unless you override `--goal` / `--hours`):
 

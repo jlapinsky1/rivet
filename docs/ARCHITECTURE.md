@@ -1,6 +1,6 @@
 # Rivet — System Architecture
 
-> Last updated: 2026-09-08 | Phase 1 Multi-Tenancy + Rivet Admin UI Complete
+> Last updated: 2026-09-20 | Handyman Send / Look first / Pass + Mason week clock
 
 This document describes the full system architecture for **Rivet** — a multi-tenant operations and profitability platform for service businesses. *Better jobs. Better margins.*
 
@@ -381,6 +381,17 @@ When a tenant disables the photos step (`steps.photos.enabled: false`):
 When `quoteFormConfig.notifications.emailOnRequest` is true, `create-booking.js` sends a fire-and-forget email to the operator via Resend after booking creation. The recipient is `notifications.notifyEmail` or, if null, the business owner's auth email (resolved via `businesses.owner_user_id` → `auth.users`).
 
 ---
+
+## Handyman recommendation engine
+
+The operator truck UI does **not** show Take / Review jargon. It shows **Send $ask**, **Look first: {named check}**, or **Pass**.
+
+- Ask includes this week's pace when the normal quote is too cheap.
+- Walk-away (don't go below) is min job / margin / profit / labor only.
+- Week clock is live from this Monday–Sunday (`completed_at` on finished jobs). Monday / midweek / Friday in `npm run sim` are test clocks only.
+- Pending jobs recompute at display time (`applyLiveRecommendations`).
+- Handyman intake: `process-handyman-booking` → extract stub → estimate → work_items + estimation_runs. Junk removal path is unchanged.
+- Refresh Mason demo data: `supabase/refresh-mason-production.sql` (Mason `business_id` only).
 
 ## Related Documentation
 

@@ -1,0 +1,15 @@
+---
+description: Handyman recommendation and week-clock rules (truck copy, not engine jargon)
+alwaysApply: true
+---
+
+# Handyman recs
+
+- Truck language is **Send $ask**, **Look first: {named check}**, or **Pass**. Never tell a tech "Review at $185" or "conservative hours."
+- **Ask** can include this week's pace. **Walk-away** is min job / margin / profit / labor only — no week pace.
+- Do not Pass a clear job that still fits remaining hours just because Friday is tight. Send the week-ask.
+- Look first only when we can name what to check (water, substrate, structural, photos).
+- Week clock is live from this Monday–Sunday. Completed jobs use `completed_at` (else `created_at`). Scheduled / in_progress / approved always count. Quoted / needs_review do not.
+- Monday / midweek / Friday exist only in `npm run sim`. App code never special-cases weekday names.
+- Demo and real accounts share the same code. Mason refresh SQL is `supabase/refresh-mason-production.sql` (that business_id only).
+- After engine tunes: `npm run sim` then regenerate seed SQL with `npx tsx supabase/generate-seed-sql.ts`.

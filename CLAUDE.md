@@ -5,7 +5,9 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full system design.
 ## Quick Reference
 
 - **Stack**: React 18, TypeScript, Vite 5, Tailwind CSS, Supabase, Netlify Functions
-- **Test**: `npm test` (vitest, 92 estimator tests + others across 3 estimator test files)
+- **Test**: `npm test` (vitest)
+- **Sim**: `npm run sim` (Mason week clocks → `docs/SIMULATION.md`)
+- **Mason SQL**: `npm run seed:sql` → `supabase/refresh-mason-production.sql`
 - **Typecheck**: `npm run typecheck`
 - **Build**: `npm run build`
 - **Dev**: `npm run dev` (Vite) / `netlify dev` (with Functions)
@@ -29,7 +31,10 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full system design.
 - `estimatedQuoteRange` is market-rate pricing (laborHours * targetRate + directCosts) — NOT floored at minimumAcceptablePrice
 - `minimumAcceptablePrice` is a scalar floor = max of all pricing floors (minimumJob, margin, absoluteProfit, laborProductivity, weeklyCapacityPace)
 - `recommendedQuote` = `estimatedQuoteRange.expected` — can be below `minimumAcceptablePrice`
-- When `evaluatedPrice < minimumAcceptablePrice`, the pricing gap is graduated: tiny (<=10%) → Review, moderate (10-25%) → Review or Pass depending on capacity scarcity, large (>25%) → Pass
+- When `evaluatedPrice < minimumAcceptablePrice`, Send the week-ask (`take_at_price`). Walk-away = max of min-job / margin / profit / labor floors (no week pace). Pass only if the job will not fit remaining hours.
+- Truck copy is Send $X, Look first: {named check}, or Pass. Conservative low-end hours never force Look first.
+- Week clock is live from this Monday–Sunday: completed (`completed_at` else `created_at`) + scheduled/in_progress/approved. Quoted / needs_review do not count. Not hardcoded to weekday names.
+- Replay after engine changes: `npm run sim`. Refresh Mason in prod: `supabase/refresh-mason-production.sql` (Mason `business_id` only).
 - Confidence and risk reasons are always preserved on PASS recommendations (economics don't hide estimation uncertainty)
 - Feedback loop captures 4 parts every time: Rivet's estimate → human adjustments → owner decision (with situational snapshot) → actual outcome
 - `OwnerDecision.decisionSnapshot` captures time/capacity/financial/queue context at decision time (not estimation time)
@@ -50,8 +55,8 @@ src/hooks/useWorkItems.ts   — Tenant-scoped work items from Supabase
 src/hooks/useCustomers.ts   — Tenant-scoped customers/companies from Supabase
 src/admin/RivetApp.tsx      — Login + dashboard entry (mounted at /login route)
 src/admin/useWorkItems.ts   — Work items hook used by admin dashboard (also Supabase-backed)
-src/estimator/              — Full pipeline (types, baselines, extract, estimator, decision, diagnostics, persistence)
-src/estimator/__tests__     — 92 tests (estimator: 52, decision: 25, pipeline: 15)
+src/estimator/              — Pipeline + weekContext, truckCopy, simulate, applyLiveRecommendations
+src/estimator/__tests__     — estimator / decision / pipeline / week / sim tests
 src/admin/DecisionLab.tsx   — Internal evaluation page (Settings > Decision Lab, access-gated)
 src/admin/WorkDetailDrawer.tsx — Price editing + adjustment logging + owner decision recording (>5% requires reason code)
 src/demo/seed.ts            — Mason Home Services seed data (runs real pipeline, used by tests)
@@ -59,8 +64,10 @@ src/demo/customers.ts       — 13 residential + 2 commercial customers (test re
 netlify/functions/extract.ts — Server-side Claude API
 supabase/migrations/020_multi_tenant.sql — Multi-tenant foundation (businesses, memberships, RLS)
 supabase/migrations/021_handyman_tenant_tables.sql — work_items, customers, companies, properties
+supabase/migrations/023_work_item_completed_at.sql — completed_at trigger
 supabase/seed-mason-data.sql — Business + membership + customers + companies for demo account
-supabase/seed-data.sql       — Auto-generated estimation runs + work items
+supabase/refresh-mason-production.sql — Mason-only wipe + current engine inserts
+supabase/seed-data.sql       — Inserts only (empty DB)
 supabase/migrations/022_feedback_loop.sql — owner_decisions table + quoted_price on actual_outcomes
 public/embed.js               — Drop-in embeddable quote form (inline + popup modes)
 src/pages/VerticalQuoteForm.jsx — Quote request form (embed-aware via ?embed=1)
@@ -83,9 +90,10 @@ Seeded account treated identically to a real customer. No special code paths.
 1. `supabase/schema.sql` — estimation tables
 2. `supabase/migrations/020_multi_tenant.sql` — businesses, memberships, RLS
 3. `supabase/migrations/021_handyman_tenant_tables.sql` — work_items, customers, companies, properties
-4. `supabase/seed-demo-user.sql` — creates auth user
-5. `supabase/seed-mason-data.sql` — business, membership, customers, companies, properties
-6. `supabase/seed-data.sql` — estimation runs, adjustments, outcomes, work items (regenerate with `npx tsx supabase/generate-seed-sql.ts`)
+4. `supabase/migrations/023_work_item_completed_at.sql` — `completed_at` + trigger
+5. `supabase/seed-demo-user.sql` — creates auth user
+6. `supabase/seed-mason-data.sql` — business, membership, customers, companies, properties
+7. Fresh engine rows: `npx tsx supabase/generate-seed-sql.ts` then `supabase/refresh-mason-production.sql` in production (Mason-only wipe + insert). First-time empty DB can use `supabase/seed-data.sql`.
 
 - Business UUID: `a0000000-0000-0000-0000-000000000001`
 - 22 work items (10 pending + 12 completed) generated through real estimator pipeline

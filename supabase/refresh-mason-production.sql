@@ -3,7 +3,23 @@
 -- Generated at: 2026-09-20T22:36:33.476Z
 -- Runs: 22  Adjustments: 9  Outcomes: 12  Decisions: 12  Work items: 22
 
--- First-time seed: run migrations + seed-demo-user.sql + seed-mason-data.sql FIRST.
+-- PRODUCTION REFRESH: paste this whole file in the Supabase SQL editor.
+-- Requires migration 023 (completed_at) already applied.
+
+-- Mason-only. Does not delete other businesses, customers, or the Mason auth user.
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM businesses WHERE id = 'a0000000-0000-0000-0000-000000000001') THEN
+    RAISE EXCEPTION 'Mason business % not found. Run seed-mason-data.sql first.', 'a0000000-0000-0000-0000-000000000001';
+  END IF;
+END $$;
+
+BEGIN;
+
+DELETE FROM work_items WHERE business_id = 'a0000000-0000-0000-0000-000000000001';
+DELETE FROM owner_decisions WHERE estimation_run_id IN (SELECT id FROM estimation_runs WHERE business_id = 'a0000000-0000-0000-0000-000000000001') OR business_id = 'a0000000-0000-0000-0000-000000000001';
+DELETE FROM actual_outcomes WHERE estimation_run_id IN (SELECT id FROM estimation_runs WHERE business_id = 'a0000000-0000-0000-0000-000000000001');
+DELETE FROM adjustment_entries WHERE business_id = 'a0000000-0000-0000-0000-000000000001' OR estimation_run_id IN (SELECT id FROM estimation_runs WHERE business_id = 'a0000000-0000-0000-0000-000000000001');
+DELETE FROM estimation_runs WHERE business_id = 'a0000000-0000-0000-0000-000000000001';
 
 -- ─── Estimation Runs ───
 
@@ -98,4 +114,6 @@ INSERT INTO work_items (id, business_id, title, source, customer_type, customer_
 INSERT INTO work_items (id, business_id, title, source, customer_type, customer_name, customer_sub, location, travel, profit, hours, hours_num, rate, rate_num, recommendation, confidence, description, price, costs, cost_breakdown, reasons, photos, op_status, billing_status, preferred_date, phone, email, address, customer_notes, company_name, property_name, unit_label, work_order_number, requested_by, requested_by_role, requested_date, scope, service_type, estimation_run_id, created_at, completed_at) OVERRIDING SYSTEM VALUE VALUES (2012, 'a0000000-0000-0000-0000-000000000001', 'Install 3 floating shelves', 'customer_request', 'individual', 'Denise Morales', NULL, 'Nashville, TN', '10 min', 248, '2–5 hrs', 2.95, '$9/hr', 9, 'take', 82, 'Install 3 floating shelves in the office. I bought the shelves already.', 309, 61, '[{"label":"Materials","value":"$47"},{"label":"Travel","value":"$14"}]'::jsonb, '[{"icon":"check","text":"This job is expected to quote around $309 and only needs about $267 to stay on pace"},{"icon":"check","text":"Earns $84 per work hour, meets $70 minimum"},{"icon":"check","text":"Including drive and shop time, it earns $60 per schedule hour (above $29/hr pace)"}]'::jsonb, '["https://images.pexels.com/photos/19109111/pexels-photo-19109111.jpeg?auto=compress&cs=tinysrgb&h=650&w=940","https://images.pexels.com/photos/10117716/pexels-photo-10117716.jpeg?auto=compress&cs=tinysrgb&h=650&w=940"]'::jsonb, 'completed', 'paid', NULL, '(615) 555-0267', 'dmorales@email.com', '2240 Elliston Pl, Nashville, TN', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Handyman', 'demo-run-022', '2026-09-05T09:00:00Z', '2026-09-05T09:00:00Z');
 
 SELECT setval(pg_get_serial_sequence('work_items', 'id'), GREATEST(COALESCE((SELECT MAX(id) FROM work_items), 1), 2012));
+
+COMMIT;
 
