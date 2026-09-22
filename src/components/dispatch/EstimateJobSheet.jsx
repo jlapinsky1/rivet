@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, MapPin, Phone, Mail, CheckCircle2, AlertCircle, TrendingUp, Calendar } from 'lucide-react';
-import { truckHeadline, truckSentence, truckSendPrice } from '../../estimator/truckCopy';
+import { X, MapPin, Phone, Mail, TrendingUp } from 'lucide-react';
+import { truckHeadline, truckSendPrice } from '../../estimator/truckCopy';
 
 function recTone(rec) {
   if (rec === 'pass') return 'bg-red-50 text-red-800';
@@ -8,7 +8,11 @@ function recTone(rec) {
   return 'bg-emerald-50 text-emerald-900';
 }
 
-export default function EstimateJobSheet({ item, weeklyGoal, earnedThisWeek, onClose, onAction }) {
+function isQuote(rec) {
+  return rec === 'take' || rec === 'take_at_price';
+}
+
+export default function EstimateJobSheet({ item, onClose, onAction }) {
   const [visible, setVisible] = useState(false);
   const [acting, setActing] = useState(false);
 
@@ -21,19 +25,38 @@ export default function EstimateJobSheet({ item, weeklyGoal, earnedThisWeek, onC
     setTimeout(onClose, 300);
   }
 
-  async function handleAccept() { setActing(true); await onAction(item, 'accept'); setActing(false); }
-  async function handlePass()   { setActing(true); await onAction(item, 'pass');   setActing(false); }
+  const recommended = truckSendPrice(item.recommendation, item.price, item.suggestedPrice) ?? item.price;
+  const quoting = isQuote(item.recommendation);
+  const [quote, setQuote] = useState(recommended);
 
-  const shownPrice = truckSendPrice(item.recommendation, item.price, item.suggestedPrice) ?? item.price;
-  const headline = truckHeadline(item.recommendation, item.price, item.suggestedPrice, item.lookFirst);
-  const sentence = truckSentence(item.recommendation, item.price, item.suggestedPrice, item.lookFirst, item.walkAwayPrice);
-  const margin = shownPrice > 0 ? Math.round(item.profit / shownPrice * 100) : 0;
-  const jobTargetPct = weeklyGoal > 0 ? Math.round(item.profit / weeklyGoal * 100) : 0;
-  const projectedPct = weeklyGoal > 0 ? Math.min(100, Math.round((earnedThisWeek + item.profit) / weeklyGoal * 100)) : 0;
+  useEffect(() => {
+    setQuote(recommended);
+  }, [item.id, recommended]);
 
-  // Separate positive vs caution reasons
-  const positiveReasons = item.reasons.filter(r => r.icon === 'check');
-  const cautionReasons  = item.reasons.filter(r => r.icon === 'caution' || r.icon === 'x');
+  async function handleAccept() {
+    setActing(true);
+    await onAction(item, 'accept', quoting ? quote : recommended);
+    setActing(false);
+  }
+  async function handlePass() {
+    setActing(true);
+    await onAction(item, 'pass');
+    setActing(false);
+  }
+
+  const floor = item.walkAwayPrice;
+  const underFloor = quoting && floor != null && quote < floor;
+  const headline = quoting
+    ? `Quote at $${Math.round(quote).toLocaleString()}`
+    : truckHeadline(item.recommendation, item.price, item.suggestedPrice, item.lookFirst);
+  const sentence = quoting
+    ? (floor != null && floor < recommended
+      ? `If they push back, $${Math.round(floor).toLocaleString()} is as low as you can go.`
+      : '')
+    : (item.recommendation === 'pass'
+      ? (floor != null ? `If you take it anyway, don't go below $${Math.round(floor).toLocaleString()}.` : 'Skip this one this week.')
+      : (item.lookFirst ? `Don't send a number until you check: ${item.lookFirst}.` : 'Look at the job before you send a number.'));
+  const jobProfit = Math.round(quote - (item.costs || 0));
 
   return (
     <div className="fixed inset-0 z-50" style={{ pointerEvents: visible ? 'auto' : 'none' }}>
@@ -70,54 +93,55 @@ export default function EstimateJobSheet({ item, weeklyGoal, earnedThisWeek, onC
         <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="px-5 pb-4">
 
-            <div className={`rounded-xl px-3.5 py-3 mb-5 ${recTone(item.recommendation)}`}>
-              <p className="text-[16px] font-bold leading-snug">{headline}</p>
-              <p className="text-[13px] mt-1 leading-snug">{sentence}</p>
+            <div className={`rounded-xl px-3.5 py-3 mb-4 ${recTone(item.recommendation)}`}>
+              <p className="text-[18px] font-bold leading-snug">{headline}</p>
+              {sentence && <p className="text-[13px] mt-1 leading-snug">{sentence}</p>}
             </div>
 
-            {/* Key numbers */}
-            <div className="flex gap-2.5 mb-5">
-              <div className="flex-1 bg-gray-50 rounded-xl py-3 px-3.5">
-                <p className="text-[11px] text-gray-400 font-medium">Revenue</p>
-                <p className="text-lg font-bold text-slate-900 mt-0.5">${shownPrice.toLocaleString()}</p>
-              </div>
-              <div className="flex-1 bg-emerald-50 rounded-xl py-3 px-3.5">
-                <p className="text-[11px] text-emerald-600 font-medium">Profit</p>
-                <p className="text-lg font-bold text-emerald-600 mt-0.5">${item.profit.toLocaleString()}</p>
-              </div>
-              <div className="flex-1 bg-gray-50 rounded-xl py-3 px-3.5">
-                <p className="text-[11px] text-gray-400 font-medium">Margin</p>
-                <p className="text-lg font-bold text-slate-900 mt-0.5">{margin}%</p>
-              </div>
-            </div>
-
-            {/* Why this job matters */}
-            {positiveReasons.length > 0 && (
+            {quoting && (
               <div className="mb-5">
-                <h3 className="text-[13px] font-bold text-slate-900 mb-2.5">Why this job matters</h3>
-                <div className="space-y-2">
-                  {positiveReasons.slice(0, 3).map((r, i) => (
-                    <div key={i} className="flex items-start gap-2.5 bg-emerald-50 rounded-xl px-3.5 py-3">
-                      <CheckCircle2 className="w-[18px] h-[18px] text-emerald-500 flex-shrink-0 mt-0.5" />
-                      <p className="text-[13px] text-emerald-800 leading-snug">{r.text}</p>
-                    </div>
-                  ))}
+                <p className="text-[13px] font-bold text-slate-900 mb-2">Your quote</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setQuote(q => Math.max(0, q - 10))}
+                    className="w-12 h-12 rounded-xl bg-gray-100 text-2xl font-semibold text-slate-700 active:bg-gray-200"
+                    aria-label="Lower quote by 10 dollars"
+                  >
+                    −
+                  </button>
+                  <label className="flex-1 flex items-center justify-center bg-gray-50 rounded-xl h-12 px-3">
+                    <span className="text-lg font-bold text-slate-400 mr-0.5">$</span>
+                    <input
+                      inputMode="numeric"
+                      value={quote}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/[^0-9]/g, '');
+                        setQuote(digits === '' ? 0 : Number(digits));
+                      }}
+                      className="w-full bg-transparent text-center text-xl font-bold text-slate-900 outline-none"
+                      aria-label="Quote amount"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setQuote(q => q + 10)}
+                    className="w-12 h-12 rounded-xl bg-gray-100 text-2xl font-semibold text-slate-700 active:bg-gray-200"
+                    aria-label="Raise quote by 10 dollars"
+                  >
+                    +
+                  </button>
                 </div>
-              </div>
-            )}
-
-            {/* Caution reasons */}
-            {cautionReasons.length > 0 && (
-              <div className="mb-5">
-                <h3 className="text-[13px] font-bold text-slate-900 mb-2.5">Things to consider</h3>
-                <div className="space-y-2">
-                  {cautionReasons.slice(0, 3).map((r, i) => (
-                    <div key={i} className="flex items-start gap-2.5 bg-amber-50 rounded-xl px-3.5 py-3">
-                      <AlertCircle className="w-[18px] h-[18px] text-amber-500 flex-shrink-0 mt-0.5" />
-                      <p className="text-[13px] text-amber-800 leading-snug">{r.text}</p>
-                    </div>
-                  ))}
-                </div>
+                {underFloor && (
+                  <p className="text-[13px] text-red-700 mt-2">
+                    ${Math.round(floor).toLocaleString()} is as low as this job should go.
+                  </p>
+                )}
+                {item.costs > 0 && quote > 0 && (
+                  <p className="text-[13px] text-gray-500 mt-2">
+                    About ${jobProfit.toLocaleString()} profit on this job.
+                  </p>
+                )}
               </div>
             )}
 
@@ -194,22 +218,6 @@ export default function EstimateJobSheet({ item, weeklyGoal, earnedThisWeek, onC
               </div>
             )}
 
-            {/* Weekly target widget */}
-            <div className="bg-slate-800 rounded-2xl px-4 py-3.5">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-300 text-[13px] font-medium flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5" /> Weekly target
-                </span>
-                <span className="text-white text-base font-bold">{jobTargetPct}%</span>
-              </div>
-              <div className="h-1.5 bg-gray-600 rounded-full overflow-hidden mb-2">
-                <div className="h-full bg-blue-400 rounded-full" style={{ width: `${projectedPct}%` }} />
-              </div>
-              <p className="text-gray-500 text-[11px]">
-                This job covers {jobTargetPct}% of your ${weeklyGoal.toLocaleString()} goal
-              </p>
-            </div>
-
             <div className="h-3" />
           </div>
         </div>
@@ -231,7 +239,7 @@ export default function EstimateJobSheet({ item, weeklyGoal, earnedThisWeek, onC
             disabled={acting}
             className="flex-1 py-3.5 rounded-xl text-[15px] font-bold text-white bg-emerald-500 active:bg-emerald-600 disabled:opacity-50"
           >
-            {acting ? 'Processing...' : 'Accept'}
+            {acting ? 'Saving...' : (quoting ? `Quote $${Math.round(quote).toLocaleString()}` : 'Accept')}
           </button>
         </div>
       </div>

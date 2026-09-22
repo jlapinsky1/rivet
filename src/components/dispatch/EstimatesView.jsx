@@ -55,6 +55,15 @@ function timeAgo(dateStr) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+function jobCall(item) {
+  if (item.recommendation === 'pass') return 'Pass';
+  if (item.recommendation === 'review') {
+    return truckHeadline(item.recommendation, item.price, item.suggestedPrice, item.lookFirst);
+  }
+  const amount = truckSendPrice(item.recommendation, item.price, item.suggestedPrice) ?? item.price;
+  return `Quote at $${Math.round(amount).toLocaleString()}`;
+}
+
 function recTone(rec) {
   if (rec === 'pass') return 'bg-red-50 text-red-700';
   if (rec === 'review') return 'bg-amber-50 text-amber-800';
@@ -145,14 +154,37 @@ export default function EstimatesView({ user, safeTop }) {
     setTimeout(() => setToast(null), 2500);
   }
 
-  async function handleAction(item, action) {
+  async function handleAction(item, action, quotedPrice) {
     const newStatus = action === 'accept' ? 'approved' : 'declined';
+    const recommended = truckSendPrice(item.recommendation, item.price, item.suggestedPrice) ?? item.price;
+    const price = action === 'accept' ? Math.round(Number(quotedPrice) || recommended) : null;
     try {
       const { workItemStatusFields } = await import('../../utils/workItemStatus');
-      await supabase.from('work_items').update(workItemStatusFields(newStatus)).eq('id', item.id);
+      const patch = workItemStatusFields(newStatus);
+      if (action === 'accept') {
+        patch.price = price;
+        if (item.costs) patch.profit = Math.round(price - item.costs);
+      }
+      await supabase.from('work_items').update(patch).eq('id', item.id);
 
       if (item.estimationRunId) {
-        const { saveOwnerDecision } = await import('../../estimator/persistence');
+        const { saveOwnerDecision, saveAdjustment, createAdjustmentEntry } = await import('../../estimator/persistence');
+        const { priceMoveReason } = await import('../../estimator/decisionFeedback');
+        if (action === 'accept' && price !== recommended && businessId) {
+          const reason = priceMoveReason(recommended, price);
+          if (reason) {
+            await saveAdjustment(createAdjustmentEntry({
+              estimationRunId: item.estimationRunId,
+              businessId,
+              userId: user.id || 'owner',
+              field: 'price',
+              systemValue: recommended,
+              previousValue: recommended,
+              newValue: price,
+              reasonCode: reason,
+            })).catch(err => console.error('Failed to record price change:', err));
+          }
+        }
         const now = new Date();
         const pending = liveItems.filter(w => w.opStatus === 'needs_review' && w.id !== item.id);
         const completed = liveItems.filter(w => w.opStatus === 'completed');
@@ -162,13 +194,13 @@ export default function EstimatesView({ user, safeTop }) {
         await saveOwnerDecision({
           id: crypto.randomUUID(),
           estimationRunId: item.estimationRunId,
-          businessId: 'default',
+          businessId: businessId || 'default',
           userId: user.id || 'owner',
           rivetRecommendation: item.recommendation,
-          ownerAction: action === 'accept' ? 'approved' : 'declined',
-          rivetPrice: item.price,
-          ownerPrice: action === 'accept' ? item.price : null,
-          quotedPrice: action === 'accept' ? item.price : null,
+          ownerAction: action === 'accept' && price !== recommended ? 'approved_adjusted' : action === 'accept' ? 'approved' : 'declined',
+          rivetPrice: recommended,
+          ownerPrice: price,
+          quotedPrice: price,
           decisionSnapshot: {
             dayOfWeek: now.getDay(),
             weekNumber: Math.ceil((now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000)),
@@ -306,7 +338,7 @@ export default function EstimatesView({ user, safeTop }) {
               {tabItems.map(item => {
                 const shownPrice = truckSendPrice(item.recommendation, item.price, item.suggestedPrice) ?? item.price;
                 const margin = shownPrice > 0 ? Math.round(item.profit / shownPrice * 100) : 0;
-                const headline = truckHeadline(item.recommendation, item.price, item.suggestedPrice, item.lookFirst);
+                const headline = jobCall(item);
 
                 return (
                   <button
@@ -357,8 +389,6 @@ export default function EstimatesView({ user, safeTop }) {
       {selectedItem && (
         <EstimateJobSheet
           item={selectedItem}
-          weeklyGoal={weeklyGoal}
-          earnedThisWeek={earnedThisWeek}
           onClose={() => setSelectedItem(null)}
           onAction={handleAction}
         />
