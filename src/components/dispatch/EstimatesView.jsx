@@ -59,6 +59,9 @@ function timeAgo(dateStr) {
 }
 
 function jobCall(item) {
+  if (item.opStatus === 'quoted') {
+    return `Quoted at $${Math.round(item.price).toLocaleString()}`;
+  }
   if (item.recommendation === 'pass') return 'Pass';
   if (item.recommendation === 'review') {
     return truckHeadline(item.recommendation, item.price, item.suggestedPrice, item.lookFirst);
@@ -161,6 +164,7 @@ export default function EstimatesView({ user, safeTop }) {
   }
 
   async function handleAction(item, action, quotedPrice) {
+    if (item.opStatus === 'quoted') return;
     const newStatus = action === 'accept' ? 'quoted' : 'declined';
     const recommended = truckSendPrice(item.recommendation, item.price, item.suggestedPrice) ?? item.price;
     const price = action === 'accept' ? Math.round(Number(quotedPrice) || recommended) : null;

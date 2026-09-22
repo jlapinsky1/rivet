@@ -44,9 +44,10 @@ export default function EstimateJobSheet({ item, onClose, onAction }) {
   }
 
   const recommended = truckSendPrice(item.recommendation, item.price, item.suggestedPrice) ?? item.price;
-  const lookFirst = item.recommendation === 'review';
+  const alreadyQuoted = item.opStatus === 'quoted';
+  const lookFirst = !alreadyQuoted && item.recommendation === 'review';
   const [checked, setChecked] = useState(false);
-  const quoting = isQuote(item.recommendation) || (lookFirst && checked);
+  const quoting = !alreadyQuoted && (isQuote(item.recommendation) || (lookFirst && checked));
   const [quote, setQuote] = useState(recommended);
 
   useEffect(() => {
@@ -75,17 +76,21 @@ export default function EstimateJobSheet({ item, onClose, onAction }) {
 
   const floor = item.walkAwayPrice;
   const underFloor = quoting && floor != null && quote < floor;
-  const headline = quoting
-    ? `Quote at $${Math.round(quote).toLocaleString()}`
-    : truckHeadline(item.recommendation, item.price, item.suggestedPrice, item.lookFirst);
+  const headline = alreadyQuoted
+    ? `Quoted at $${Math.round(item.price).toLocaleString()}`
+    : quoting
+      ? `Quote at $${Math.round(quote).toLocaleString()}`
+      : truckHeadline(item.recommendation, item.price, item.suggestedPrice, item.lookFirst);
   const floorLine = floor != null && floor < recommended
     ? `If they push back, $${Math.round(floor).toLocaleString()} is as low as you can go.`
     : '';
-  const sentence = quoting
-    ? floorLine
-    : (item.recommendation === 'pass'
-      ? (floor != null ? `If you take it anyway, don't go below $${Math.round(floor).toLocaleString()}.` : 'Skip this one this week.')
-      : 'Check that, then set the quote.');
+  const sentence = alreadyQuoted
+    ? 'Waiting on the customer.'
+    : quoting
+      ? floorLine
+      : (item.recommendation === 'pass'
+        ? (floor != null ? `If you take it anyway, don't go below $${Math.round(floor).toLocaleString()}.` : 'Skip this one this week.')
+        : 'Check that, then set the quote.');
   const jobProfit = Math.round(quote - (item.costs || 0));
 
   return (
@@ -126,7 +131,7 @@ export default function EstimateJobSheet({ item, onClose, onAction }) {
         <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="px-5 pb-4">
 
-            <div className={`rounded-xl px-3.5 py-3 mb-4 ${quoting ? recTone('take') : recTone(item.recommendation)}`}>
+            <div className={`rounded-xl px-3.5 py-3 mb-4 ${alreadyQuoted || quoting ? recTone('take') : recTone(item.recommendation)}`}>
               <p className="text-[18px] font-bold leading-snug">{headline}</p>
               {sentence && <p className="text-[13px] mt-1 leading-snug">{sentence}</p>}
               {lookFirst && checked && item.lookFirst && (
@@ -259,6 +264,7 @@ export default function EstimateJobSheet({ item, onClose, onAction }) {
         </div>
 
         {/* Sticky buttons */}
+        {alreadyQuoted ? null : (
         <div
           className="flex-shrink-0 flex gap-3 px-5 pt-3 bg-white border-t border-gray-100"
           style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
@@ -280,6 +286,7 @@ export default function EstimateJobSheet({ item, onClose, onAction }) {
             {acting ? 'Saving...' : (lookFirst && !checked ? 'I checked it' : (quoting ? `Quote $${Math.round(quote).toLocaleString()}` : 'Accept'))}
           </button>
         </div>
+        )}
       </div>
     </div>
   );
