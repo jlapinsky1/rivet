@@ -34,8 +34,35 @@ const DISPATCH_STATUS = {
   approved: 'scheduled',
 };
 
+function photoUrl(entry) {
+  if (typeof entry === 'string') return entry;
+  if (entry?.url) return entry.url;
+  return null;
+}
+
+/** Customer shots are plain URLs. Crew shots are { source: 'crew', kind, url }. */
+export function splitWorkItemPhotos(photos) {
+  const list = Array.isArray(photos) ? photos : [];
+  const customer = [];
+  const before = [];
+  const after = [];
+  list.forEach((entry, i) => {
+    const url = photoUrl(entry);
+    if (!url) return;
+    if (entry && typeof entry === 'object' && entry.source === 'crew') {
+      const shot = { id: `crew-${entry.kind}-${i}`, signedUrl: url, kind: entry.kind };
+      if (entry.kind === 'after') after.push(shot);
+      else before.push(shot);
+      return;
+    }
+    customer.push({ id: `customer-${i}`, signedUrl: url, kind: 'before' });
+  });
+  return { customer, before, after };
+}
+
 /** Detail shape the jobs screen already uses. Work items are not bookings. */
 export function workItemToDispatchJob(w) {
+  const shots = splitWorkItemPhotos(w.photos);
   return {
     id: w.id,
     source: 'work_item',
@@ -63,8 +90,10 @@ export function workItemToDispatchJob(w) {
     arrivedAt: null,
     startedAt: null,
     completedAt: w.completed_at ?? null,
-    customerPhotos: [],
-    crewBeforePhotoCount: 0,
-    crewAfterPhotoCount: 0,
+    customerPhotos: shots.customer,
+    crewBeforePhotos: shots.before,
+    crewAfterPhotos: shots.after,
+    crewBeforePhotoCount: shots.before.length,
+    crewAfterPhotoCount: shots.after.length,
   };
 }

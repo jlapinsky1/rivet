@@ -9,6 +9,8 @@ import CrewPhotoCapture from './CrewPhotoCapture';
 import CompletionForm from './CompletionForm';
 import CompletionReview from './CompletionReview';
 import IssueReportSheet from './IssueReportSheet';
+import WorkItemPhotos from './WorkItemPhotos';
+import JobInvoice from './JobInvoice';
 
 function Skeleton() {
   return (
@@ -51,8 +53,8 @@ export default function DispatchJobDetail({ bookingId, onBack, onJobCompleted })
     };
   }, []);
 
-  async function loadJob() {
-    setLoading(true);
+  async function loadJob(opts) {
+    if (!opts?.quiet) setLoading(true);
     setError(null);
     try {
       const repo = await getRepo();
@@ -99,9 +101,9 @@ export default function DispatchJobDetail({ bookingId, onBack, onJobCompleted })
       setStatusLoading(true);
       try {
         const repo = await getRepo();
-        await repo.updateDispatchStatus(bookingId, 'completed', `${bookingId}-completed`);
+        await repo.completeWorkItem(bookingId);
         await loadJob();
-        showToast('Job done');
+        setView('invoice');
         onJobCompleted?.();
       } catch (err) {
         showToast(err.message || 'Failed to finish job', 'error');
@@ -156,6 +158,10 @@ export default function DispatchJobDetail({ bookingId, onBack, onJobCompleted })
   }
 
   if (!job) return null;
+
+  if (view === 'invoice' && job.source === 'work_item') {
+    return <JobInvoice job={job} onBack={onBack} />;
+  }
 
   // Success screen
   if (view === 'success') {
@@ -220,7 +226,14 @@ export default function DispatchJobDetail({ bookingId, onBack, onJobCompleted })
       <div className="p-4 space-y-4">
         <CustomerContactCard job={job} />
         <PickupDetailsCard   job={job} />
-        {!isWorkItem && <CustomerPhotoGallery photos={job.customerPhotos ?? []} />}
+        <CustomerPhotoGallery photos={job.customerPhotos ?? []} />
+
+        {isWorkItem && job.status !== 'completed' && (
+          <WorkItemPhotos job={job} onUploaded={() => loadJob({ quiet: true })} />
+        )}
+        {isWorkItem && job.status === 'completed' && (
+          <JobInvoice job={job} />
+        )}
 
         {showCrewPhotos && (
           <CrewPhotoCapture

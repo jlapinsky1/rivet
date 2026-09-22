@@ -633,6 +633,43 @@ const supabaseRepo = {
     });
   },
 
+  async saveWorkItemCrewPhoto(jobId, kind, file) {
+    const ctx = await getBusinessContext();
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    const path = `${ctx?.businessId || 'work'}/${jobId}/${kind}/${crypto.randomUUID()}.${ext}`;
+    const { error: uploadErr } = await supabase.storage.from('job-photos').upload(path, file, {
+      contentType: file.type || 'image/jpeg',
+      upsert: false,
+    });
+    if (uploadErr) throw new Error(uploadErr.message);
+    const { data: pub } = supabase.storage.from('job-photos').getPublicUrl(path);
+
+    const { data: row, error } = await supabase.from('work_items').select('photos').eq('id', jobId).single();
+    if (error) throw new Error(error.message);
+    const photos = Array.isArray(row.photos) ? row.photos : [];
+    photos.push({ source: 'crew', kind, url: pub.publicUrl });
+    const { error: saveErr } = await supabase.from('work_items').update({
+      photos,
+      updated_at: new Date().toISOString(),
+    }).eq('id', jobId);
+    if (saveErr) throw new Error(saveErr.message);
+    return { url: pub.publicUrl };
+  },
+
+  async completeWorkItem(jobId) {
+    const { data: row, error } = await supabase.from('work_items').select('photos').eq('id', jobId).single();
+    if (error) throw new Error(error.message);
+    const photos = Array.isArray(row.photos) ? row.photos : [];
+    const crew = photos.filter(p => p && p.source === 'crew');
+    if (!crew.some(p => p.kind === 'before') || !crew.some(p => p.kind === 'after')) {
+      throw new Error('Add a before photo and an after photo first');
+    }
+    const { workItemStatusFields } = await import('../workItemStatus.js');
+    const { error: saveErr } = await supabase.from('work_items').update(workItemStatusFields('completed')).eq('id', jobId);
+    if (saveErr) throw new Error(saveErr.message);
+    return { success: true };
+  },
+
   async getDispatchPhotoUploadUrl(bookingId, fileName, contentType, kind) {
     return adminFetch('/api/dispatch-photo-upload-url', {
       method: 'POST',

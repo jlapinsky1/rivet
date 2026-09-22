@@ -41,6 +41,22 @@ describe('includeOnTodaysBoard', () => {
     expect(job.status).toBe('scheduled');
     expect(job.fullAddress).toBe('12 Oak St');
     expect(job.customerPhotos).toEqual([]);
+    expect(job.crewBeforePhotoCount).toBe(0);
+  });
+
+  it('keeps customer photos separate from crew before and after shots', () => {
+    const job = workItemToDispatchJob({
+      id: 2003,
+      op_status: 'in_progress',
+      photos: [
+        'https://example.com/customer.jpg',
+        { source: 'crew', kind: 'before', url: 'https://example.com/before.jpg' },
+        { source: 'crew', kind: 'after', url: 'https://example.com/after.jpg' },
+      ],
+    });
+    expect(job.customerPhotos.map(p => p.signedUrl)).toEqual(['https://example.com/customer.jpg']);
+    expect(job.crewBeforePhotos.map(p => p.signedUrl)).toEqual(['https://example.com/before.jpg']);
+    expect(job.crewAfterPhotos.map(p => p.signedUrl)).toEqual(['https://example.com/after.jpg']);
   });
 
   it('shows work finished today', () => {
