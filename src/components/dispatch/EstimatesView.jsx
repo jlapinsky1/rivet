@@ -5,6 +5,7 @@ import { useSettings } from '../../admin/useSettings';
 import { useLiveRecommendations } from '../../admin/useLiveRecommendations';
 import { truckHeadline, truckSendPrice } from '../../estimator/truckCopy';
 import EstimateJobSheet from './EstimateJobSheet';
+import { attachCustomerContact } from './customerContact';
 
 function mapRow(row) {
   return {
@@ -41,6 +42,7 @@ function mapRow(row) {
     source: row.source,
     companyName: row.company_name,
     propertyName: row.property_name,
+    unitLabel: row.unit_label,
   };
 }
 
@@ -107,14 +109,16 @@ export default function EstimatesView({ user, safeTop }) {
       if (!mem) throw new Error('No business found');
       setBusinessId(mem.business_id);
 
-      const { data, error: fetchErr } = await supabase
-        .from('work_items')
-        .select('*')
-        .eq('business_id', mem.business_id)
-        .order('created_at', { ascending: false });
+      const [jobs, people, orgs] = await Promise.all([
+        supabase.from('work_items').select('*').eq('business_id', mem.business_id).order('created_at', { ascending: false }),
+        supabase.from('customers').select('name, phone, email, address').eq('business_id', mem.business_id),
+        supabase.from('companies').select('name, phone, email, properties(name, address)').eq('business_id', mem.business_id),
+      ]);
 
-      if (fetchErr) throw new Error(fetchErr.message);
-      setItems((data || []).map(mapRow));
+      if (jobs.error) throw new Error(jobs.error.message);
+      const customers = people.error ? [] : (people.data || []);
+      const companies = orgs.error ? [] : (orgs.data || []);
+      setItems((jobs.data || []).map(row => attachCustomerContact(mapRow(row), customers, companies)));
     } catch (err) {
       setError(err.message || 'Failed to load estimates');
     } finally {
