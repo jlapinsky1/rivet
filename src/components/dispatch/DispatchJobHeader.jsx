@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import StatusActionButton from './StatusActionButton';
 
@@ -26,21 +26,38 @@ export default function DispatchJobHeader({
   onBack,
   onFinishJob,
 }) {
+  const [needPhotos, setNeedPhotos] = useState(false);
+
   if (!job) return null;
 
   const { status, depositConfirmed, appointmentWindow, customerName, fullAddress } = job;
+  const missingCrewPhotos = job.source === 'work_item'
+    && status === 'in_progress'
+    && ((job.crewBeforePhotoCount || 0) < 1 || (job.crewAfterPhotoCount || 0) < 1);
   const statusLabel = STATUS_LABELS[status] ?? status;
   const statusColor = STATUS_COLORS[status] ?? 'bg-gray-100 text-gray-700';
 
   // Short address - first line only
   const shortAddress = fullAddress?.split(',')[0] ?? '';
 
-  function handleAction() {
-    if (status === 'in_progress') {
-      onFinishJob?.();
-    } else {
-      onStatusAction?.(status);
+  function handleAttempt() {
+    if (missingCrewPhotos) {
+      setNeedPhotos(true);
+      return false;
     }
+    setNeedPhotos(false);
+    return true;
+  }
+
+  function handleAction() {
+    if (missingCrewPhotos) {
+      setNeedPhotos(true);
+      throw new Error('Upload pictures to complete the job.');
+    }
+    if (status === 'in_progress') {
+      return onFinishJob?.();
+    }
+    return onStatusAction?.(status);
   }
 
   return (
@@ -69,9 +86,15 @@ export default function DispatchJobHeader({
         status={status}
         depositConfirmed={depositConfirmed}
         crewBeforePhotoCount={crewBeforePhotoCount}
+        onAttempt={handleAttempt}
         onAction={handleAction}
         loading={statusLoading}
       />
+      {needPhotos && (
+        <p className="mt-3 text-sm font-semibold text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-3 text-center">
+          Upload pictures to complete the job.
+        </p>
+      )}
     </div>
   );
 }

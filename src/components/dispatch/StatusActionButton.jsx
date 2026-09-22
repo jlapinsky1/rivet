@@ -18,7 +18,7 @@ const STATUS_CONFIG = {
  * @param {function} props.onAction  - called when action is confirmed
  * @param {boolean} [props.loading]
  */
-export default function StatusActionButton({ status, depositConfirmed, crewBeforePhotoCount, onAction, loading }) {
+export default function StatusActionButton({ status, depositConfirmed, crewBeforePhotoCount, onAttempt, onAction, loading }) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -49,6 +49,7 @@ export default function StatusActionButton({ status, depositConfirmed, crewBefor
 
   function handleClick() {
     if (isBlocked || loading || busy || status === 'completed') return;
+    if (onAttempt && onAttempt() === false) return;
     setError(null);
     setConfirming(true);
   }
@@ -101,7 +102,7 @@ export default function StatusActionButton({ status, depositConfirmed, crewBefor
         >
           <div
             className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl mx-4"
-            style={{ marginBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
+            style={{ marginBottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}
           >
             <p className="text-base font-semibold text-gray-900 mb-4">
               Confirm: {config.label}?
