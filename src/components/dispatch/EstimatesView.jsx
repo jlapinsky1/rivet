@@ -246,12 +246,7 @@ export default function EstimatesView({ user, safeTop }) {
       {/* ── Dark header ── */}
       <div className="bg-slate-900 flex-shrink-0 w-full" style={safeTop}>
         <div className="px-4 pt-3 pb-5">
-          <div className="flex items-start justify-between">
-            <p className="text-blue-400 text-[11px] font-semibold tracking-widest">{dateStr}</p>
-            <span className="text-gray-500 text-[11px] flex items-center gap-1">
-              <span className="text-amber-400">&#10024;</span> AI reviewed
-            </span>
-          </div>
+          <p className="text-blue-400 text-[11px] font-semibold tracking-widest">{dateStr}</p>
           <h1 className="text-white text-2xl font-bold mt-1">
             {greeting}{displayName ? `, ${displayName}` : ''}
           </h1>
