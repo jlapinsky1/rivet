@@ -102,11 +102,9 @@ export default function DispatchJobDetail({ bookingId, onBack, onJobCompleted })
       try {
         const repo = await getRepo();
         await repo.completeWorkItem(bookingId);
-        await loadJob();
+        await loadJob({ quiet: true });
         setView('invoice');
         onJobCompleted?.();
-      } catch (err) {
-        showToast(err.message || 'Failed to finish job', 'error');
       } finally {
         setStatusLoading(false);
       }

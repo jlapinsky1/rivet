@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { bindTap } from './tap';
 
 const STATUS_CONFIG = {
   scheduled:   { label: 'Start Route',  color: 'bg-blue-600 hover:bg-blue-500',  requiresDeposit: true,  requiresBeforePhoto: false },
@@ -18,6 +20,9 @@ const STATUS_CONFIG = {
  */
 export default function StatusActionButton({ status, depositConfirmed, crewBeforePhotoCount, onAction, loading }) {
   const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [box, setBox] = useState(null);
   const config = STATUS_CONFIG[status];
 
   if (!config) return null;
@@ -26,17 +31,44 @@ export default function StatusActionButton({ status, depositConfirmed, crewBefor
   const photoBlocked   = config.requiresBeforePhoto && (crewBeforePhotoCount ?? 0) === 0;
   const isBlocked      = depositBlocked || photoBlocked;
 
+  useEffect(() => {
+    if (!confirming) return undefined;
+    const vv = window.visualViewport;
+    const place = () => {
+      if (!vv) return;
+      setBox({ top: vv.offsetTop, height: vv.height });
+    };
+    place();
+    vv?.addEventListener('resize', place);
+    vv?.addEventListener('scroll', place);
+    return () => {
+      vv?.removeEventListener('resize', place);
+      vv?.removeEventListener('scroll', place);
+    };
+  }, [confirming]);
+
   function handleClick() {
-    if (isBlocked || loading || status === 'completed') return;
+    if (isBlocked || loading || busy || status === 'completed') return;
+    setError(null);
     setConfirming(true);
   }
 
-  function handleConfirm() {
-    setConfirming(false);
-    onAction?.();
+  async function handleConfirm() {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await onAction?.();
+      setConfirming(false);
+    } catch (err) {
+      setError(err.message || 'Could not update the job');
+    } finally {
+      setBusy(false);
+    }
   }
 
   function handleCancel() {
+    if (busy) return;
     setConfirming(false);
   }
 
@@ -62,28 +94,40 @@ export default function StatusActionButton({ status, depositConfirmed, crewBefor
         </p>
       )}
 
-      {confirming && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+      {confirming && createPortal(
+        <div
+          className="fixed left-0 right-0 z-[80] flex items-end justify-center bg-black/50"
+          style={{ top: box?.top ?? 0, height: box?.height ?? '100dvh' }}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl mx-4"
+            style={{ marginBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
+          >
             <p className="text-base font-semibold text-gray-900 mb-4">
               Confirm: {config.label}?
             </p>
+            {error && (
+              <p className="text-sm text-red-700 font-medium mb-4">{error}</p>
+            )}
             <div className="flex gap-3">
               <button
-                onClick={handleCancel}
-                className="flex-1 py-3 rounded-xl border border-gray-300 text-gray-700 font-medium"
+                type="button"
+                {...bindTap(handleCancel)}
+                className="touch-manipulation flex-1 py-3 rounded-xl border border-gray-300 text-gray-700 font-medium"
               >
                 Cancel
               </button>
               <button
-                onClick={handleConfirm}
-                className={`flex-1 py-3 rounded-xl text-white font-bold ${config.color}`}
+                type="button"
+                {...bindTap(handleConfirm)}
+                className={`touch-manipulation flex-1 py-3 rounded-xl text-white font-bold ${config.color}`}
               >
-                Confirm
+                {busy ? 'Saving…' : 'Confirm'}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
