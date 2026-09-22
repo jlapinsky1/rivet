@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Truck } from 'lucide-react';
 import StatusActionButton from './StatusActionButton';
-import { bindTap } from './tap';
+import { useTap } from './tap';
 
 const STATUS_LABELS = {
   scheduled:   'Scheduled',
@@ -29,6 +29,7 @@ const STATUS_BADGE = {
 
 export default function NextJobCard({ job, onStatusAction, onSelectJob, statusLoading }) {
   const [needPhotos, setNeedPhotos] = useState(false);
+  const openJob = useTap(() => onSelectJob?.(job?.id));
 
   if (!job) {
     return (
@@ -132,7 +133,7 @@ export default function NextJobCard({ job, onStatusAction, onSelectJob, statusLo
         {/* View Details */}
         <button
           type="button"
-          {...bindTap(() => onSelectJob?.(id))}
+          {...openJob}
           className="touch-manipulation w-full py-3.5 rounded-2xl border border-gray-200 text-gray-600 font-semibold text-sm active:bg-gray-100 transition-colors"
         >
           View Job Details

@@ -1,5 +1,5 @@
 import React from 'react';
-import { bindTap } from './tap';
+import { useTap } from './tap';
 
 const STATUS_LABELS = {
   scheduled:   'Scheduled',
@@ -33,10 +33,27 @@ export default function TodayJobsList({ jobs, nextJobId, onSelectJob }) {
         const subtitle = job.title ? job.customerName : shortAddress;
 
         return (
-          <button
+          <ScheduleRow
             key={job.id}
+            job={job}
+            onSelectJob={onSelectJob}
+            isCurrent={isCurrent}
+            isCompleted={isCompleted}
+            displayName={displayName}
+            subtitle={subtitle}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function ScheduleRow({ job, onSelectJob, isCurrent, isCompleted, displayName, subtitle }) {
+  const openJob = useTap(() => onSelectJob?.(job.id));
+  return (
+          <button
             type="button"
-            {...bindTap(() => onSelectJob?.(job.id))}
+            {...openJob}
             className={`touch-manipulation w-full text-left rounded-2xl p-4 border transition-colors active:scale-[0.98] ${
               isCurrent
                 ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-400'
@@ -67,8 +84,5 @@ export default function TodayJobsList({ jobs, nextJobId, onSelectJob }) {
               </div>
             </div>
           </button>
-        );
-      })}
-    </div>
   );
 }
