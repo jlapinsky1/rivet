@@ -16,7 +16,7 @@ const appShell = {
   flexDirection: 'column',
   width: '100vw',
   maxWidth: '100%',
-  height: '100dvh',
+  height: 'var(--app-height, 100dvh)',
   maxHeight: '-webkit-fill-available',
   overflow: 'hidden',
   background: '#f3f4f6',
@@ -51,9 +51,25 @@ export default function DispatchPage() {
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
+    const vv = window.visualViewport;
+    const place = () => {
+      const height = vv ? vv.height : window.innerHeight;
+      document.documentElement.style.setProperty('--app-height', `${height}px`);
+      if (vv && vv.offsetTop) window.scrollTo(0, 0);
+    };
+    place();
+    vv?.addEventListener('resize', place);
+    vv?.addEventListener('scroll', place);
+    window.addEventListener('orientationchange', place);
+    const onShow = () => place();
+    window.addEventListener('pageshow', onShow);
     return () => {
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
+      vv?.removeEventListener('resize', place);
+      vv?.removeEventListener('scroll', place);
+      window.removeEventListener('orientationchange', place);
+      window.removeEventListener('pageshow', onShow);
     };
   }, []);
 
@@ -160,22 +176,25 @@ export default function DispatchPage() {
       style={safeBottom}
     >
       <button
+        type="button"
         onClick={onJobs}
-        className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 ${activeView === 'jobs' ? 'text-blue-600' : 'text-gray-400'}`}
+        className={`touch-manipulation flex-1 flex flex-col items-center justify-center gap-1 py-2 ${activeView === 'jobs' ? 'text-blue-600' : 'text-gray-400'}`}
       >
         <Truck className="w-6 h-6" />
         <span className="text-[10px] font-semibold tracking-wide">Jobs</span>
       </button>
       <button
+        type="button"
         onClick={() => { setSelectedJobId(null); setView('estimates'); }}
-        className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 ${activeView === 'estimates' ? 'text-blue-600' : 'text-gray-400'}`}
+        className={`touch-manipulation flex-1 flex flex-col items-center justify-center gap-1 py-2 ${activeView === 'estimates' ? 'text-blue-600' : 'text-gray-400'}`}
       >
         <ClipboardList className="w-6 h-6" />
         <span className="text-[10px] font-semibold tracking-wide">Estimates</span>
       </button>
       <button
+        type="button"
         onClick={handleSignOut}
-        className="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-gray-400"
+        className="touch-manipulation flex-1 flex flex-col items-center justify-center gap-1 py-2 text-gray-400"
       >
         <LogOut className="w-6 h-6" />
         <span className="text-[10px] font-semibold tracking-wide">Sign Out</span>

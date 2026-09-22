@@ -6,6 +6,7 @@ import { useLiveRecommendations } from '../../admin/useLiveRecommendations';
 import { truckHeadline, truckSendPrice } from '../../estimator/truckCopy';
 import EstimateJobSheet from './EstimateJobSheet';
 import { attachCustomerContact } from './customerContact';
+import { bindTap } from './tap';
 
 function mapRow(row) {
   return {
@@ -255,7 +256,7 @@ export default function EstimatesView({ user, safeTop }) {
       </div>
 
       {/* ── Scrollable body ── */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden bg-gray-50" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden bg-gray-50 touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="px-4 pt-4 pb-6 max-w-full">
 
           {/* Revenue target */}
@@ -344,8 +345,9 @@ export default function EstimatesView({ user, safeTop }) {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setSelectedItem(item)}
-                    className="w-full text-left bg-white rounded-2xl shadow-sm overflow-hidden active:scale-[0.98] transition-transform duration-100"
+                    type="button"
+                    {...bindTap(() => setSelectedItem(item))}
+                    className="touch-manipulation w-full text-left bg-white rounded-2xl shadow-sm overflow-hidden active:scale-[0.98] transition-transform duration-100"
                   >
                     <div className="h-[3px] bg-blue-500" />
                     <div className="p-4">

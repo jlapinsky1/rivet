@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, MapPin, Phone, Mail, TrendingUp } from 'lucide-react';
 import { truckHeadline, truckSendPrice } from '../../estimator/truckCopy';
+import { bindTap } from './tap';
 
 function recTone(rec) {
   if (rec === 'pass') return 'bg-red-50 text-red-800';
@@ -15,14 +16,31 @@ function isQuote(rec) {
 export default function EstimateJobSheet({ item, onClose, onAction }) {
   const [visible, setVisible] = useState(false);
   const [acting, setActing] = useState(false);
+  const openedAt = useRef(Date.now());
+
+  const [box, setBox] = useState(null);
 
   useEffect(() => {
-    requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
+    const frame = requestAnimationFrame(() => setVisible(true));
+    const vv = window.visualViewport;
+    const place = () => {
+      if (!vv) return;
+      setBox({ top: vv.offsetTop, height: vv.height });
+    };
+    place();
+    vv?.addEventListener('resize', place);
+    vv?.addEventListener('scroll', place);
+    return () => {
+      cancelAnimationFrame(frame);
+      vv?.removeEventListener('resize', place);
+      vv?.removeEventListener('scroll', place);
+    };
   }, []);
 
   function handleClose() {
-    setVisible(false);
-    setTimeout(onClose, 300);
+    if (Date.now() - openedAt.current < 400) return;
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    onClose();
   }
 
   const recommended = truckSendPrice(item.recommendation, item.price, item.suggestedPrice) ?? item.price;
@@ -37,14 +55,22 @@ export default function EstimateJobSheet({ item, onClose, onAction }) {
   }, [item.id, recommended]);
 
   async function handleAccept() {
+    if (acting) return;
     setActing(true);
-    await onAction(item, 'accept', quoting ? quote : recommended);
-    setActing(false);
+    try {
+      await onAction(item, 'accept', quoting ? quote : recommended);
+    } finally {
+      setActing(false);
+    }
   }
   async function handlePass() {
+    if (acting) return;
     setActing(true);
-    await onAction(item, 'pass');
-    setActing(false);
+    try {
+      await onAction(item, 'pass');
+    } finally {
+      setActing(false);
+    }
   }
 
   const floor = item.walkAwayPrice;
@@ -63,11 +89,14 @@ export default function EstimateJobSheet({ item, onClose, onAction }) {
   const jobProfit = Math.round(quote - (item.costs || 0));
 
   return (
-    <div className="fixed inset-0 z-50" style={{ pointerEvents: visible ? 'auto' : 'none' }}>
+    <div
+      className="fixed inset-x-0 z-50"
+      style={{ top: box ? box.top : 0, height: box ? box.height : '100%' }}
+    >
       {/* Backdrop */}
       <div
-        className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`}
-        onClick={handleClose}
+        className={`absolute inset-0 bg-black/50 transition-opacity duration-200 ${visible ? 'opacity-100' : 'opacity-0'}`}
+        {...bindTap(handleClose)}
       />
 
       {/* Sheet */}
@@ -75,7 +104,7 @@ export default function EstimateJobSheet({ item, onClose, onAction }) {
         className={`absolute bottom-0 left-0 right-0 bg-white rounded-t-[20px] flex flex-col transition-transform duration-300 ease-out ${
           visible ? 'translate-y-0' : 'translate-y-full'
         }`}
-        style={{ maxHeight: '90vh' }}
+        style={{ maxHeight: '100%', paddingTop: 'env(safe-area-inset-top)' }}
       >
         {/* Handle */}
         <div className="flex justify-center pt-2.5 pb-1 flex-shrink-0">
@@ -88,7 +117,7 @@ export default function EstimateJobSheet({ item, onClose, onAction }) {
             <h2 className="text-xl font-bold text-slate-900 leading-tight">{item.title}</h2>
             <p className="text-[13px] text-gray-400 mt-0.5">{item.customerName}</p>
           </div>
-          <button onClick={handleClose} className="w-8 h-8 flex items-center justify-center text-gray-400 -mr-1">
+          <button type="button" {...bindTap(handleClose)} className="touch-manipulation w-11 h-11 flex items-center justify-center text-gray-400 -mr-2" aria-label="Close">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -112,7 +141,7 @@ export default function EstimateJobSheet({ item, onClose, onAction }) {
                   <button
                     type="button"
                     onClick={() => setQuote(q => Math.max(0, q - 10))}
-                    className="w-12 h-12 rounded-xl bg-gray-100 text-2xl font-semibold text-slate-700 active:bg-gray-200"
+                    className="touch-manipulation w-12 h-12 rounded-xl bg-gray-100 text-2xl font-semibold text-slate-700 active:bg-gray-200"
                     aria-label="Lower quote by 10 dollars"
                   >
                     −
@@ -133,7 +162,7 @@ export default function EstimateJobSheet({ item, onClose, onAction }) {
                   <button
                     type="button"
                     onClick={() => setQuote(q => q + 10)}
-                    className="w-12 h-12 rounded-xl bg-gray-100 text-2xl font-semibold text-slate-700 active:bg-gray-200"
+                    className="touch-manipulation w-12 h-12 rounded-xl bg-gray-100 text-2xl font-semibold text-slate-700 active:bg-gray-200"
                     aria-label="Raise quote by 10 dollars"
                   >
                     +
@@ -235,16 +264,18 @@ export default function EstimateJobSheet({ item, onClose, onAction }) {
           style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
         >
           <button
-            onClick={handlePass}
+            type="button"
+            {...bindTap(handlePass)}
             disabled={acting}
-            className="flex-1 py-3.5 rounded-xl text-[15px] font-bold text-slate-600 bg-gray-100 active:bg-gray-200 disabled:opacity-50"
+            className="touch-manipulation flex-1 py-3.5 rounded-xl text-[15px] font-bold text-slate-600 bg-gray-100 active:bg-gray-200 disabled:opacity-50"
           >
             Pass
           </button>
           <button
-            onClick={lookFirst && !checked ? () => setChecked(true) : handleAccept}
+            type="button"
+            {...bindTap(lookFirst && !checked ? () => setChecked(true) : handleAccept)}
             disabled={acting}
-            className="flex-1 py-3.5 rounded-xl text-[15px] font-bold text-white bg-emerald-500 active:bg-emerald-600 disabled:opacity-50"
+            className="touch-manipulation flex-1 py-3.5 rounded-xl text-[15px] font-bold text-white bg-emerald-500 active:bg-emerald-600 disabled:opacity-50"
           >
             {acting ? 'Saving...' : (lookFirst && !checked ? 'I checked it' : (quoting ? `Quote $${Math.round(quote).toLocaleString()}` : 'Accept'))}
           </button>
