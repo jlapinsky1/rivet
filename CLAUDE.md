@@ -98,6 +98,7 @@ Seeded account treated identically to a real customer. No special code paths.
 5. `supabase/seed-demo-user.sql` — creates auth user
 6. `supabase/seed-mason-data.sql` — business, membership, customers, companies, properties
 7. Fresh engine rows: `npx tsx supabase/generate-seed-sql.ts` then `supabase/refresh-mason-production.sql` in production (Mason-only wipe + insert). First-time empty DB can use `supabase/seed-data.sql`.
+8. Open dispatch jobs: `supabase/mason-open-dispatch.sql`. Leave `preferred_date` empty. A date of today drops off Jobs tomorrow and does not become completed. Completed rows only show on the day they were finished.
 
 - Business UUID: `a0000000-0000-0000-0000-000000000001`
 - 22 work items (10 pending + 12 completed) generated through real estimator pipeline

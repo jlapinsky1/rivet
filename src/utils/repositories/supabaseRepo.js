@@ -6,6 +6,7 @@
  */
 
 import { supabase } from '../supabaseClient';
+import { includeOnTodaysBoard } from '../dispatchBoard';
 
 /**
  * Converts a raw Supabase booking row (snake_case) to the camelCase shape
@@ -561,7 +562,7 @@ const supabaseRepo = {
 
       if (workItems) {
         for (const w of workItems) {
-          if (w.preferred_date && w.preferred_date !== todayStr) continue;
+          if (!includeOnTodaysBoard(w, todayStr, BUSINESS_TIMEZONE)) continue;
           jobs.push({
             id: w.id, source: 'work_item', bookingRef: null,
             status: ({ scheduled: 'scheduled', in_progress: 'in_progress', completed: 'completed', approved: 'scheduled' })[w.op_status] || 'scheduled',

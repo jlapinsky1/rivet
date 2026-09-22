@@ -6,6 +6,7 @@
  */
 
 import { getServiceClient, verifyBusinessMember, verifyAdmin, jsonResponse, errorResponse } from './_shared/supabase.js';
+import { includeOnTodaysBoard } from '../../src/utils/dispatchBoard.js';
 
 const BUSINESS_TIMEZONE = process.env.BUSINESS_TIMEZONE || 'America/New_York';
 
@@ -132,7 +133,7 @@ export default async function handler(req) {
         console.error('work_items query error:', wiErr);
       } else if (workItems) {
         for (const w of workItems) {
-          if (w.preferred_date && w.preferred_date !== todayStr) continue;
+          if (!includeOnTodaysBoard(w, todayStr, BUSINESS_TIMEZONE)) continue;
           jobs.push(workItemToDTO(w));
         }
       }
