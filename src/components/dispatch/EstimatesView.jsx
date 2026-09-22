@@ -201,6 +201,7 @@ export default function EstimatesView({ user, safeTop }) {
           businessId: businessId || 'default',
           userId: user.id || 'owner',
           rivetRecommendation: item.recommendation,
+          reasonCode: item.recommendation === 'review' && action === 'accept' ? 'REC_LOOK_FIRST_CLEAR' : undefined,
           ownerAction: action === 'accept' && price !== recommended ? 'approved_adjusted' : action === 'accept' ? 'approved' : 'declined',
           rivetPrice: recommended,
           ownerPrice: price,

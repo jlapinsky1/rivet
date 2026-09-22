@@ -26,11 +26,14 @@ export default function EstimateJobSheet({ item, onClose, onAction }) {
   }
 
   const recommended = truckSendPrice(item.recommendation, item.price, item.suggestedPrice) ?? item.price;
-  const quoting = isQuote(item.recommendation);
+  const lookFirst = item.recommendation === 'review';
+  const [checked, setChecked] = useState(false);
+  const quoting = isQuote(item.recommendation) || (lookFirst && checked);
   const [quote, setQuote] = useState(recommended);
 
   useEffect(() => {
     setQuote(recommended);
+    setChecked(false);
   }, [item.id, recommended]);
 
   async function handleAccept() {
@@ -49,13 +52,14 @@ export default function EstimateJobSheet({ item, onClose, onAction }) {
   const headline = quoting
     ? `Quote at $${Math.round(quote).toLocaleString()}`
     : truckHeadline(item.recommendation, item.price, item.suggestedPrice, item.lookFirst);
+  const floorLine = floor != null && floor < recommended
+    ? `If they push back, $${Math.round(floor).toLocaleString()} is as low as you can go.`
+    : '';
   const sentence = quoting
-    ? (floor != null && floor < recommended
-      ? `If they push back, $${Math.round(floor).toLocaleString()} is as low as you can go.`
-      : '')
+    ? floorLine
     : (item.recommendation === 'pass'
       ? (floor != null ? `If you take it anyway, don't go below $${Math.round(floor).toLocaleString()}.` : 'Skip this one this week.')
-      : (item.lookFirst ? `Don't send a number until you check: ${item.lookFirst}.` : 'Look at the job before you send a number.'));
+      : 'Check that, then set the quote.');
   const jobProfit = Math.round(quote - (item.costs || 0));
 
   return (
@@ -93,9 +97,12 @@ export default function EstimateJobSheet({ item, onClose, onAction }) {
         <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="px-5 pb-4">
 
-            <div className={`rounded-xl px-3.5 py-3 mb-4 ${recTone(item.recommendation)}`}>
+            <div className={`rounded-xl px-3.5 py-3 mb-4 ${quoting ? recTone('take') : recTone(item.recommendation)}`}>
               <p className="text-[18px] font-bold leading-snug">{headline}</p>
               {sentence && <p className="text-[13px] mt-1 leading-snug">{sentence}</p>}
+              {lookFirst && checked && item.lookFirst && (
+                <p className="text-[13px] mt-1 leading-snug">Checked: {item.lookFirst}.</p>
+              )}
             </div>
 
             {quoting && (
@@ -235,11 +242,11 @@ export default function EstimateJobSheet({ item, onClose, onAction }) {
             Pass
           </button>
           <button
-            onClick={handleAccept}
+            onClick={lookFirst && !checked ? () => setChecked(true) : handleAccept}
             disabled={acting}
             className="flex-1 py-3.5 rounded-xl text-[15px] font-bold text-white bg-emerald-500 active:bg-emerald-600 disabled:opacity-50"
           >
-            {acting ? 'Saving...' : (quoting ? `Quote $${Math.round(quote).toLocaleString()}` : 'Accept')}
+            {acting ? 'Saving...' : (lookFirst && !checked ? 'I checked it' : (quoting ? `Quote $${Math.round(quote).toLocaleString()}` : 'Accept'))}
           </button>
         </div>
       </div>
