@@ -7,6 +7,7 @@ import NextJobCard from '../components/dispatch/NextJobCard';
 import TodayJobsList from '../components/dispatch/TodayJobsList';
 import DispatchJobDetail from '../components/dispatch/DispatchJobDetail';
 import EstimatesView from '../components/dispatch/EstimatesView';
+import { bindTap } from '../components/dispatch/tap';
 
 // Use 100dvh (dynamic viewport height) instead of position:fixed + inset:0.
 // iOS Safari's position:fixed breaks after keyboard interactions; dvh adapts
@@ -177,7 +178,7 @@ export default function DispatchPage() {
     >
       <button
         type="button"
-        onClick={onJobs}
+        {...bindTap(onJobs)}
         className={`touch-manipulation flex-1 flex flex-col items-center justify-center gap-1 py-2 ${activeView === 'jobs' ? 'text-blue-600' : 'text-gray-400'}`}
       >
         <Truck className="w-6 h-6" />
@@ -185,7 +186,7 @@ export default function DispatchPage() {
       </button>
       <button
         type="button"
-        onClick={() => { setSelectedJobId(null); setView('estimates'); }}
+        {...bindTap(() => { setSelectedJobId(null); setView('estimates'); })}
         className={`touch-manipulation flex-1 flex flex-col items-center justify-center gap-1 py-2 ${activeView === 'estimates' ? 'text-blue-600' : 'text-gray-400'}`}
       >
         <ClipboardList className="w-6 h-6" />

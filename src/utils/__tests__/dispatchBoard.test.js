@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { includeOnTodaysBoard } from '../dispatchBoard';
+import { includeOnTodaysBoard, workItemToDispatchJob } from '../dispatchBoard';
 
 const today = '2026-09-22';
 const tz = 'America/New_York';
@@ -23,6 +23,24 @@ describe('includeOnTodaysBoard', () => {
       preferred_date: null,
       completed_at: '2026-08-16T17:00:00Z',
     }, today, tz)).toBe(false);
+  });
+
+  it('loads a work item as a dispatch job, not a booking', () => {
+    const job = workItemToDispatchJob({
+      id: 1009,
+      op_status: 'scheduled',
+      customer_name: 'Yolanda Freeman',
+      title: 'Replace 6 rotted deck boards',
+      address: '12 Oak St',
+      phone: '6155550100',
+      description: 'About 6 rotted deck boards',
+      price: 633,
+    });
+    expect(job.id).toBe(1009);
+    expect(job.source).toBe('work_item');
+    expect(job.status).toBe('scheduled');
+    expect(job.fullAddress).toBe('12 Oak St');
+    expect(job.customerPhotos).toEqual([]);
   });
 
   it('shows work finished today', () => {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Truck } from 'lucide-react';
 import StatusActionButton from './StatusActionButton';
+import { bindTap } from './tap';
 
 const STATUS_LABELS = {
   scheduled:   'Scheduled',
@@ -102,8 +103,9 @@ export default function NextJobCard({ job, onStatusAction, onSelectJob, statusLo
 
         {/* View Details */}
         <button
-          onClick={() => onSelectJob?.(id)}
-          className="w-full py-3.5 rounded-2xl border border-gray-200 text-gray-600 font-semibold text-sm active:bg-gray-100 transition-colors"
+          type="button"
+          {...bindTap(() => onSelectJob?.(id))}
+          className="touch-manipulation w-full py-3.5 rounded-2xl border border-gray-200 text-gray-600 font-semibold text-sm active:bg-gray-100 transition-colors"
         >
           View Job Details
         </button>

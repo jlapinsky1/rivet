@@ -26,3 +26,45 @@ export function includeOnTodaysBoard(item, todayStr, timeZone) {
   if (!preferred) return true;
   return preferred <= todayStr;
 }
+
+const DISPATCH_STATUS = {
+  scheduled: 'scheduled',
+  in_progress: 'in_progress',
+  completed: 'completed',
+  approved: 'scheduled',
+};
+
+/** Detail shape the jobs screen already uses. Work items are not bookings. */
+export function workItemToDispatchJob(w) {
+  return {
+    id: w.id,
+    source: 'work_item',
+    bookingRef: null,
+    status: DISPATCH_STATUS[w.op_status] || 'scheduled',
+    depositConfirmed: true,
+    appointmentDate: w.preferred_date ?? null,
+    appointmentWindow: null,
+    scheduledPickup: null,
+    customerName: w.customer_name ?? null,
+    customerPhone: w.phone ?? null,
+    fullAddress: w.address ?? null,
+    accessInstructions: null,
+    quantity: null,
+    accessType: null,
+    stairs: null,
+    elevator: null,
+    description: w.description ?? null,
+    internalJobNotes: w.customer_notes ?? null,
+    title: w.title ?? null,
+    price: w.price ?? null,
+    hours: w.hours ?? null,
+    travel: w.travel ?? null,
+    enRouteAt: null,
+    arrivedAt: null,
+    startedAt: null,
+    completedAt: w.completed_at ?? null,
+    customerPhotos: [],
+    crewBeforePhotoCount: 0,
+    crewAfterPhotoCount: 0,
+  };
+}

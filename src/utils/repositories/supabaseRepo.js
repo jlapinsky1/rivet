@@ -6,7 +6,7 @@
  */
 
 import { supabase } from '../supabaseClient';
-import { includeOnTodaysBoard } from '../dispatchBoard';
+import { includeOnTodaysBoard, workItemToDispatchJob } from '../dispatchBoard';
 
 /**
  * Converts a raw Supabase booking row (snake_case) to the camelCase shape
@@ -563,18 +563,7 @@ const supabaseRepo = {
       if (workItems) {
         for (const w of workItems) {
           if (!includeOnTodaysBoard(w, todayStr, BUSINESS_TIMEZONE)) continue;
-          jobs.push({
-            id: w.id, source: 'work_item', bookingRef: null,
-            status: ({ scheduled: 'scheduled', in_progress: 'in_progress', completed: 'completed', approved: 'scheduled' })[w.op_status] || 'scheduled',
-            depositConfirmed: true,
-            appointmentDate: w.preferred_date ?? null, appointmentWindow: null, scheduledPickup: null,
-            customerName: w.customer_name ?? null, customerPhone: w.phone ?? null,
-            fullAddress: w.address ?? null, accessInstructions: null,
-            quantity: null, accessType: null, stairs: null, elevator: null,
-            description: w.description ?? null, internalJobNotes: w.customer_notes ?? null,
-            title: w.title ?? null, price: w.price ?? null, hours: w.hours ?? null, travel: w.travel ?? null,
-            enRouteAt: null, arrivedAt: null, startedAt: null, completedAt: null,
-          });
+          jobs.push(workItemToDispatchJob(w));
         }
       }
     }
@@ -617,8 +606,11 @@ const supabaseRepo = {
     return { jobs, nextJobId: nextJob?.id ?? null, date: todayStr };
   },
 
-  async getDispatchJob(bookingId) {
-    return adminFetch(`/api/dispatch-job?bookingId=${encodeURIComponent(bookingId)}`);
+  async getDispatchJob(jobId) {
+    const { data: w, error } = await supabase.from('work_items').select('*').eq('id', jobId).maybeSingle();
+    if (error) throw new Error(error.message);
+    if (w) return { job: workItemToDispatchJob(w) };
+    return adminFetch(`/api/dispatch-job?bookingId=${encodeURIComponent(jobId)}`);
   },
 
   async updateDispatchStatus(jobId, targetStatus, idempotencyKey) {

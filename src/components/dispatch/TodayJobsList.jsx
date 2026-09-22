@@ -1,4 +1,5 @@
 import React from 'react';
+import { bindTap } from './tap';
 
 const STATUS_LABELS = {
   scheduled:   'Scheduled',
@@ -34,8 +35,9 @@ export default function TodayJobsList({ jobs, nextJobId, onSelectJob }) {
         return (
           <button
             key={job.id}
-            onClick={() => onSelectJob?.(job.id)}
-            className={`w-full text-left rounded-2xl p-4 border transition-colors active:scale-[0.98] ${
+            type="button"
+            {...bindTap(() => onSelectJob?.(job.id))}
+            className={`touch-manipulation w-full text-left rounded-2xl p-4 border transition-colors active:scale-[0.98] ${
               isCurrent
                 ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-400'
                 : isCompleted
