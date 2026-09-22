@@ -74,7 +74,7 @@ function recTone(rec) {
 
 const TABS = [
   { key: 'queue', label: 'Queue' },
-  { key: 'accepted', label: 'Accepted' },
+  { key: 'quoted', label: 'Quoted' },
   { key: 'passed', label: 'Passed' },
 ];
 
@@ -133,17 +133,18 @@ export default function EstimatesView({ user, safeTop }) {
 
   // Categorize
   const queueItems = liveItems.filter(w => w.opStatus === 'needs_review');
-  const acceptedItems = liveItems.filter(w => ['approved', 'quoted', 'scheduled'].includes(w.opStatus));
+  const quotedItems = liveItems.filter(w => w.opStatus === 'quoted');
+  const bookedItems = liveItems.filter(w => ['approved', 'scheduled', 'in_progress'].includes(w.opStatus));
   const passedItems = liveItems.filter(w => w.opStatus === 'declined');
   const completedItems = liveItems.filter(w => w.opStatus === 'completed');
 
   const tabItems = activeTab === 'queue' ? queueItems
-    : activeTab === 'accepted' ? acceptedItems : passedItems;
-  const tabCounts = { queue: queueItems.length, accepted: acceptedItems.length, passed: passedItems.length };
+    : activeTab === 'quoted' ? quotedItems : passedItems;
+  const tabCounts = { queue: queueItems.length, quoted: quotedItems.length, passed: passedItems.length };
 
-  // Weekly progress (profit-based, matching admin dashboard)
+  // Quoted jobs are waiting on the customer. They are not revenue yet.
   const earnedThisWeek = completedItems.reduce((s, w) => s + w.profit, 0)
-    + acceptedItems.reduce((s, w) => s + w.profit, 0);
+    + bookedItems.reduce((s, w) => s + w.profit, 0);
   const progressPct = weeklyGoal > 0 ? Math.min(100, Math.round(earnedThisWeek / weeklyGoal * 100)) : 0;
   const pendingValue = queueItems.reduce((s, w) => s + w.price, 0);
 
@@ -159,7 +160,7 @@ export default function EstimatesView({ user, safeTop }) {
   }
 
   async function handleAction(item, action, quotedPrice) {
-    const newStatus = action === 'accept' ? 'approved' : 'declined';
+    const newStatus = action === 'accept' ? 'quoted' : 'declined';
     const recommended = truckSendPrice(item.recommendation, item.price, item.suggestedPrice) ?? item.price;
     const price = action === 'accept' ? Math.round(Number(quotedPrice) || recommended) : null;
     try {
@@ -192,7 +193,7 @@ export default function EstimatesView({ user, safeTop }) {
         const now = new Date();
         const pending = liveItems.filter(w => w.opStatus === 'needs_review' && w.id !== item.id);
         const completed = liveItems.filter(w => w.opStatus === 'completed');
-        const accepted = liveItems.filter(w => ['approved', 'quoted', 'scheduled'].includes(w.opStatus));
+        const accepted = liveItems.filter(w => ['approved', 'scheduled', 'in_progress'].includes(w.opStatus));
         const earned = completed.reduce((s, w) => s + w.profit, 0) + accepted.reduce((s, w) => s + w.profit, 0);
 
         await saveOwnerDecision({
@@ -225,7 +226,7 @@ export default function EstimatesView({ user, safeTop }) {
         }).catch(err => console.error('Failed to record decision:', err));
       }
 
-      showToast(action === 'accept' ? 'Job accepted' : 'Job passed');
+      showToast(action === 'accept' ? `Quoted $${price.toLocaleString()}. Waiting on the customer.` : 'Job passed');
       setSelectedItem(null);
       await loadData();
     } catch (err) {
@@ -330,7 +331,7 @@ export default function EstimatesView({ user, safeTop }) {
           {tabItems.length === 0 ? (
             <div className="py-16 text-center">
               <p className="text-gray-300 text-sm">
-                {activeTab === 'queue' ? 'No estimates in queue' : activeTab === 'accepted' ? 'No accepted jobs' : 'No passed jobs'}
+                {activeTab === 'queue' ? 'No estimates in queue' : activeTab === 'quoted' ? 'No quotes waiting on a customer' : 'No passed jobs'}
               </p>
             </div>
           ) : (
