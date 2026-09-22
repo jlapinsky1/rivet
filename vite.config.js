@@ -35,6 +35,9 @@ export default defineConfig({
       workbox: {
         // Precache all build assets (app shell)
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
+        // Reload open home-screen windows when a new worker activates.
+        // The file lives in public/ and is fetched when the worker installs.
+        importScripts: ['sw-reload.js'],
         // Don't let the service worker intercept auth-sensitive routes
         navigateFallbackDenylist: [/^\/login/, /^\/admin/],
         runtimeCaching: [

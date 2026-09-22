@@ -50,6 +50,17 @@
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
 
+# Service worker must revalidate so installed home-screen apps can see a new deploy
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/sw-reload.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
 # Embed script - allow cross-origin loading from any client site
 [[headers]]
   for = "/embed.js"

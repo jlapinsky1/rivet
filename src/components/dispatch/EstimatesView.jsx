@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, MapPin, TrendingUp, Clock } from 'lucide-react';
+import { RefreshCw, TrendingUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { getSettings } from '../../utils/storage';
+import { useSettings } from '../../admin/useSettings';
+import { useLiveRecommendations } from '../../admin/useLiveRecommendations';
+import { truckHeadline, truckSendPrice } from '../../estimator/truckCopy';
 import EstimateJobSheet from './EstimateJobSheet';
 
 function mapRow(row) {
@@ -35,6 +37,7 @@ function mapRow(row) {
     serviceType: row.service_type || '',
     estimationRunId: row.estimation_run_id,
     createdAt: row.created_at,
+    completedAt: row.completed_at,
     source: row.source,
     companyName: row.company_name,
     propertyName: row.property_name,
@@ -52,6 +55,12 @@ function timeAgo(dateStr) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+function recTone(rec) {
+  if (rec === 'pass') return 'bg-red-50 text-red-700';
+  if (rec === 'review') return 'bg-amber-50 text-amber-800';
+  return 'bg-emerald-50 text-emerald-800';
+}
+
 const TABS = [
   { key: 'queue', label: 'Queue' },
   { key: 'accepted', label: 'Accepted' },
@@ -66,9 +75,11 @@ export default function EstimatesView({ user, safeTop }) {
   const [selectedItem, setSelectedItem] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [toast, setToast] = useState(null);
+  const [businessId, setBusinessId] = useState();
 
-  const settings = getSettings();
+  const { settings } = useSettings();
   const weeklyGoal = settings?.weeklyGoal || 2500;
+  const liveItems = useLiveRecommendations(items, loading, settings, businessId);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -85,6 +96,7 @@ export default function EstimatesView({ user, safeTop }) {
         .single();
 
       if (!mem) throw new Error('No business found');
+      setBusinessId(mem.business_id);
 
       const { data, error: fetchErr } = await supabase
         .from('work_items')
@@ -107,10 +119,10 @@ export default function EstimatesView({ user, safeTop }) {
   const handleRefresh = () => { setRefreshing(true); loadData(); };
 
   // Categorize
-  const queueItems = items.filter(w => w.opStatus === 'needs_review');
-  const acceptedItems = items.filter(w => ['approved', 'quoted', 'scheduled'].includes(w.opStatus));
-  const passedItems = items.filter(w => w.opStatus === 'declined');
-  const completedItems = items.filter(w => w.opStatus === 'completed');
+  const queueItems = liveItems.filter(w => w.opStatus === 'needs_review');
+  const acceptedItems = liveItems.filter(w => ['approved', 'quoted', 'scheduled'].includes(w.opStatus));
+  const passedItems = liveItems.filter(w => w.opStatus === 'declined');
+  const completedItems = liveItems.filter(w => w.opStatus === 'completed');
 
   const tabItems = activeTab === 'queue' ? queueItems
     : activeTab === 'accepted' ? acceptedItems : passedItems;
@@ -142,9 +154,9 @@ export default function EstimatesView({ user, safeTop }) {
       if (item.estimationRunId) {
         const { saveOwnerDecision } = await import('../../estimator/persistence');
         const now = new Date();
-        const pending = items.filter(w => w.opStatus === 'needs_review' && w.id !== item.id);
-        const completed = items.filter(w => w.opStatus === 'completed');
-        const accepted = items.filter(w => ['approved', 'quoted', 'scheduled'].includes(w.opStatus));
+        const pending = liveItems.filter(w => w.opStatus === 'needs_review' && w.id !== item.id);
+        const completed = liveItems.filter(w => w.opStatus === 'completed');
+        const accepted = liveItems.filter(w => ['approved', 'quoted', 'scheduled'].includes(w.opStatus));
         const earned = completed.reduce((s, w) => s + w.profit, 0) + accepted.reduce((s, w) => s + w.profit, 0);
 
         await saveOwnerDecision({
@@ -292,7 +304,9 @@ export default function EstimatesView({ user, safeTop }) {
           ) : (
             <div className="space-y-3">
               {tabItems.map(item => {
-                const margin = item.price > 0 ? Math.round(item.profit / item.price * 100) : 0;
+                const shownPrice = truckSendPrice(item.recommendation, item.price, item.suggestedPrice) ?? item.price;
+                const margin = shownPrice > 0 ? Math.round(item.profit / shownPrice * 100) : 0;
+                const headline = truckHeadline(item.recommendation, item.price, item.suggestedPrice, item.lookFirst);
 
                 return (
                   <button
@@ -306,7 +320,7 @@ export default function EstimatesView({ user, safeTop }) {
                       <div className="flex items-start justify-between gap-2 min-w-0">
                         <h3 className="text-[15px] font-semibold text-slate-900 leading-snug truncate min-w-0">{item.title}</h3>
                         <span className="text-base font-bold text-slate-900 shrink-0">
-                          ${item.price.toLocaleString()}
+                          ${shownPrice.toLocaleString()}
                         </span>
                       </div>
 
@@ -317,6 +331,10 @@ export default function EstimatesView({ user, safeTop }) {
                       </div>
 
                       {/* Row 3: metrics */}
+                      <p className={`mt-2.5 inline-block max-w-full truncate text-[13px] font-semibold rounded-lg px-2.5 py-1 ${recTone(item.recommendation)}`}>
+                        {headline}
+                      </p>
+
                       <div className="flex items-center gap-3 mt-2 text-[12px]">
                         <span className="text-emerald-600 font-semibold">{margin}% margin</span>
                         {item.travel && (

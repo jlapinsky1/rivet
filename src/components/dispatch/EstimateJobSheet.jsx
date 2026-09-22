@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { X, MapPin, Phone, Mail, CheckCircle2, AlertCircle, TrendingUp, Calendar } from 'lucide-react';
+import { truckHeadline, truckSentence, truckSendPrice } from '../../estimator/truckCopy';
+
+function recTone(rec) {
+  if (rec === 'pass') return 'bg-red-50 text-red-800';
+  if (rec === 'review') return 'bg-amber-50 text-amber-900';
+  return 'bg-emerald-50 text-emerald-900';
+}
 
 export default function EstimateJobSheet({ item, weeklyGoal, earnedThisWeek, onClose, onAction }) {
   const [visible, setVisible] = useState(false);
@@ -17,7 +24,10 @@ export default function EstimateJobSheet({ item, weeklyGoal, earnedThisWeek, onC
   async function handleAccept() { setActing(true); await onAction(item, 'accept'); setActing(false); }
   async function handlePass()   { setActing(true); await onAction(item, 'pass');   setActing(false); }
 
-  const margin = item.price > 0 ? Math.round(item.profit / item.price * 100) : 0;
+  const shownPrice = truckSendPrice(item.recommendation, item.price, item.suggestedPrice) ?? item.price;
+  const headline = truckHeadline(item.recommendation, item.price, item.suggestedPrice, item.lookFirst);
+  const sentence = truckSentence(item.recommendation, item.price, item.suggestedPrice, item.lookFirst, item.walkAwayPrice);
+  const margin = shownPrice > 0 ? Math.round(item.profit / shownPrice * 100) : 0;
   const jobTargetPct = weeklyGoal > 0 ? Math.round(item.profit / weeklyGoal * 100) : 0;
   const projectedPct = weeklyGoal > 0 ? Math.min(100, Math.round((earnedThisWeek + item.profit) / weeklyGoal * 100)) : 0;
 
@@ -60,11 +70,16 @@ export default function EstimateJobSheet({ item, weeklyGoal, earnedThisWeek, onC
         <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="px-5 pb-4">
 
+            <div className={`rounded-xl px-3.5 py-3 mb-5 ${recTone(item.recommendation)}`}>
+              <p className="text-[16px] font-bold leading-snug">{headline}</p>
+              <p className="text-[13px] mt-1 leading-snug">{sentence}</p>
+            </div>
+
             {/* Key numbers */}
             <div className="flex gap-2.5 mb-5">
               <div className="flex-1 bg-gray-50 rounded-xl py-3 px-3.5">
                 <p className="text-[11px] text-gray-400 font-medium">Revenue</p>
-                <p className="text-lg font-bold text-slate-900 mt-0.5">${item.price.toLocaleString()}</p>
+                <p className="text-lg font-bold text-slate-900 mt-0.5">${shownPrice.toLocaleString()}</p>
               </div>
               <div className="flex-1 bg-emerald-50 rounded-xl py-3 px-3.5">
                 <p className="text-[11px] text-emerald-600 font-medium">Profit</p>
