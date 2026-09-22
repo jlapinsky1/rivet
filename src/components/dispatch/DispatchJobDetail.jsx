@@ -94,7 +94,22 @@ export default function DispatchJobDetail({ bookingId, onBack, onJobCompleted })
     }
   }
 
-  function handleFinishJob() {
+  async function handleFinishJob() {
+    if (job?.source === 'work_item') {
+      setStatusLoading(true);
+      try {
+        const repo = await getRepo();
+        await repo.updateDispatchStatus(bookingId, 'completed', `${bookingId}-completed`);
+        await loadJob();
+        showToast('Job done');
+        onJobCompleted?.();
+      } catch (err) {
+        showToast(err.message || 'Failed to finish job', 'error');
+      } finally {
+        setStatusLoading(false);
+      }
+      return;
+    }
     setView('review_prep');
   }
 
@@ -187,8 +202,9 @@ export default function DispatchJobDetail({ bookingId, onBack, onJobCompleted })
     );
   }
 
-  const showCompletionForm = job.status === 'in_progress' || view === 'review_prep';
-  const showCrewPhotos = ['arrived', 'in_progress', 'completed'].includes(job.status);
+  const isWorkItem = job.source === 'work_item';
+  const showCompletionForm = !isWorkItem && (job.status === 'in_progress' || view === 'review_prep');
+  const showCrewPhotos = !isWorkItem && ['arrived', 'in_progress', 'completed'].includes(job.status);
 
   return (
     <div className="pb-24">
@@ -204,7 +220,7 @@ export default function DispatchJobDetail({ bookingId, onBack, onJobCompleted })
       <div className="p-4 space-y-4">
         <CustomerContactCard job={job} />
         <PickupDetailsCard   job={job} />
-        <CustomerPhotoGallery photos={job.customerPhotos ?? []} />
+        {!isWorkItem && <CustomerPhotoGallery photos={job.customerPhotos ?? []} />}
 
         {showCrewPhotos && (
           <CrewPhotoCapture
@@ -223,7 +239,7 @@ export default function DispatchJobDetail({ bookingId, onBack, onJobCompleted })
           />
         )}
 
-        {job.status !== 'completed' && (
+        {!isWorkItem && job.status !== 'completed' && (
           <button
             onClick={() => setShowIssue(true)}
             className="w-full py-4 rounded-xl border-2 border-amber-400 text-amber-700 font-semibold text-base hover:bg-amber-50 transition-colors"

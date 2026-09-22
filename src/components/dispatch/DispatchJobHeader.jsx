@@ -60,7 +60,7 @@ export default function DispatchJobHeader({
       </div>
 
       <div className="mb-3">
-        <p className="text-xs text-gray-400 font-medium">{appointmentWindow ?? 'Time TBD'}</p>
+        <p className="text-xs text-gray-400 font-medium">{job.title || appointmentWindow || 'Time TBD'}</p>
         <h1 className="text-xl font-bold text-gray-900 leading-snug mt-0.5">{customerName}</h1>
         <p className="text-sm text-gray-500">{shortAddress}</p>
       </div>

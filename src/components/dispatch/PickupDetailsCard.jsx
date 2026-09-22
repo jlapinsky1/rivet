@@ -19,6 +19,27 @@ function Section({ title, children }) {
 export default function PickupDetailsCard({ job }) {
   if (!job) return null;
 
+  if (job.source === 'work_item') {
+    const price = job.price != null ? `$${Number(job.price).toLocaleString()}` : null;
+    return (
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3">
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">The job</h2>
+        {job.title && <p className="text-lg font-bold text-gray-900 leading-snug">{job.title}</p>}
+        {job.description && <p className="text-gray-800 whitespace-pre-wrap">{job.description}</p>}
+        {(price || job.hours) && (
+          <p className="text-sm text-gray-500">
+            {[price, job.hours, job.travel].filter(Boolean).join(' · ')}
+          </p>
+        )}
+        {job.internalJobNotes && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+            <p className="text-amber-900 text-sm whitespace-pre-wrap">{job.internalJobNotes}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   const {
     quantity, accessType, stairs, elevator, description,
     internalJobNotes, accessInstructions,
