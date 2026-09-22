@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Truck } from 'lucide-react';
 import StatusActionButton from './StatusActionButton';
 import { bindTap } from './tap';
@@ -28,6 +28,8 @@ const STATUS_BADGE = {
 };
 
 export default function NextJobCard({ job, onStatusAction, onSelectJob, statusLoading }) {
+  const [needPhotos, setNeedPhotos] = useState(false);
+
   if (!job) {
     return (
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-10 flex flex-col items-center justify-center gap-3">
@@ -49,6 +51,26 @@ export default function NextJobCard({ job, onStatusAction, onSelectJob, statusLo
   const accent = STATUS_ACCENT[status] ?? 'bg-gray-400';
   const badge  = STATUS_BADGE[status]  ?? 'bg-gray-100 text-gray-600';
   const isWorkItem = job.source === 'work_item';
+  const missingCrewPhotos = isWorkItem
+    && status === 'in_progress'
+    && ((job.crewBeforePhotoCount || 0) < 1 || (job.crewAfterPhotoCount || 0) < 1);
+
+  function handleAttempt() {
+    if (missingCrewPhotos) {
+      setNeedPhotos(true);
+      return false;
+    }
+    setNeedPhotos(false);
+    return true;
+  }
+
+  function handleAction() {
+    if (missingCrewPhotos) {
+      setNeedPhotos(true);
+      throw new Error('Upload pictures to complete the job.');
+    }
+    return onStatusAction?.(id, status);
+  }
 
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
@@ -97,9 +119,15 @@ export default function NextJobCard({ job, onStatusAction, onSelectJob, statusLo
           status={status}
           depositConfirmed={depositConfirmed}
           crewBeforePhotoCount={crewBeforePhotoCount ?? 0}
-          onAction={() => onStatusAction?.(id, status)}
+          onAttempt={handleAttempt}
+          onAction={handleAction}
           loading={statusLoading}
         />
+        {needPhotos && (
+          <p className="text-sm font-semibold text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-3 text-center">
+            Upload pictures to complete the job. Open it and add a before photo and an after photo.
+          </p>
+        )}
 
         {/* View Details */}
         <button

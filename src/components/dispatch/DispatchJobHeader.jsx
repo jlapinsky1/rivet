@@ -90,7 +90,7 @@ export default function DispatchJobHeader({
         onAction={handleAction}
         loading={statusLoading}
       />
-      {needPhotos && (
+      {(needPhotos || missingCrewPhotos) && (
         <p className="mt-3 text-sm font-semibold text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-3 text-center">
           Upload pictures to complete the job.
         </p>
