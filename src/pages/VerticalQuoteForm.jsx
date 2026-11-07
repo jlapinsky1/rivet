@@ -77,9 +77,12 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Embed mode: post height changes to parent window for auto-resize
+  // Embed mode: clean body background + post height changes to parent
   useEffect(() => {
     if (!isEmbed || typeof window === 'undefined') return;
+    document.documentElement.style.background = '#fff';
+    document.body.style.background = '#fff';
+    document.body.style.margin = '0';
     let lastHeight = 0;
     const sendHeight = () => {
       const h = document.documentElement.scrollHeight;

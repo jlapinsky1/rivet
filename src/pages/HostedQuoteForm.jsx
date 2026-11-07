@@ -6,6 +6,7 @@ import VerticalQuoteForm from './VerticalQuoteForm';
 export default function HostedQuoteForm() {
   const { slug } = useParams();
   const [state, setState] = useState({ status: 'loading', data: null, error: null });
+  const isEmbed = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('embed');
 
   useEffect(() => {
     let cancelled = false;
@@ -30,6 +31,11 @@ export default function HostedQuoteForm() {
 
   // Loading
   if (state.status === 'loading') {
+    if (isEmbed) {
+      return <div style={{ padding: 40, textAlign: 'center', background: '#fff' }}>
+        <p style={{ color: '#999', fontSize: 14 }}>Loading...</p>
+      </div>;
+    }
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
         <div className="space-y-4 text-center">
@@ -42,6 +48,11 @@ export default function HostedQuoteForm() {
 
   // Not found
   if (state.status === 'not_found') {
+    if (isEmbed) {
+      return <div style={{ padding: 40, textAlign: 'center', background: '#fff' }}>
+        <p style={{ color: '#666', fontSize: 14 }}>This form is not available.</p>
+      </div>;
+    }
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center px-6">
         <div className="max-w-md text-center">
@@ -54,6 +65,11 @@ export default function HostedQuoteForm() {
 
   // Error
   if (state.status === 'error') {
+    if (isEmbed) {
+      return <div style={{ padding: 40, textAlign: 'center', background: '#fff' }}>
+        <p style={{ color: '#666', fontSize: 14 }}>Something went wrong. Please try again.</p>
+      </div>;
+    }
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center px-6">
         <div className="max-w-md text-center">
@@ -74,6 +90,11 @@ export default function HostedQuoteForm() {
 
   // Unpublished
   if (!published) {
+    if (isEmbed) {
+      return <div style={{ padding: 40, textAlign: 'center', background: '#fff' }}>
+        <p style={{ color: '#666', fontSize: 14 }}>This form is not available yet.</p>
+      </div>;
+    }
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center px-6">
         <div className="max-w-md text-center">
