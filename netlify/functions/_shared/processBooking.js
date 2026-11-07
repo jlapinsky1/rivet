@@ -4,7 +4,8 @@ import { estimateHandymanJob, applyCalibration } from '../../../src/estimator/es
 import { deriveRecommendation } from '../../../src/estimator/decision';
 import { buildDecisionContext, parseTravelMiles } from '../../../src/estimator/weekContext';
 import { economicsFromSettings } from '../../../src/estimator/economicsFromSettings';
-import { ESTIMATOR_VERSION, PROMPT_VERSION, AI_MODEL } from '../../../src/estimator/index';
+import { ESTIMATOR_VERSION } from '../../../src/estimator/types';
+import { PROMPT_VERSION, AI_MODEL } from '../../../src/estimator/extract';
 
 /**
  * Process a booking into a work item. Callable directly from any function.
