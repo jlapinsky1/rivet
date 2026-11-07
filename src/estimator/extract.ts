@@ -161,18 +161,20 @@ const ASSEMBLY_PATTERNS: [RegExp, string][] = [
   [/\b(french|double)\s+door/i, 'FRENCH_DOOR_REPLACEMENT'],
   [/\b(oversize|custom|non.?standard)\s+door/i, 'OVERSIZED_EXTERIOR_DOOR'],
   [/\b(exterior|front|entry)\s+door/i, 'STANDARD_EXTERIOR_DOOR'],
-  // Deck
+  // Deck — specific enough to infer scope; vague "fix my deck" falls to review
   [/\b(rebuild|replace\s+section|major).*deck/i, 'DECK_SECTION_REBUILD'],
   [/\bdeck.*(rebuild|replace\s+section|major)/i, 'DECK_SECTION_REBUILD'],
+  [/\b(structural|post|beam|joist|ledger|footer).*deck/i, 'DECK_STRUCTURAL_REPAIR'],
+  [/\bdeck.*(structural|post|beam|joist|ledger|footer|sink|sag|lean)/i, 'DECK_STRUCTURAL_REPAIR'],
   [/\b(board|plank|surface).*deck/i, 'DECK_BOARD_REPLACEMENT'],
-  [/\bdeck.*(board|plank|surface|rot)/i, 'DECK_BOARD_REPLACEMENT'],
-  [/\bdeck/i, 'DECK_STRUCTURAL_REPAIR'],
-  // Fence
+  [/\bdeck.*(board|plank|surface|rot|rotten|rotting|soft\s+spot)/i, 'DECK_BOARD_REPLACEMENT'],
+  // Fence — specific enough to infer scope; vague "fix my fence" falls to review
   [/\b(rebuild|replace\s+section|major).*fence/i, 'FENCE_SECTION_REBUILD'],
   [/\bfence.*(rebuild|replace\s+section|major)/i, 'FENCE_SECTION_REBUILD'],
   [/\b(lean|post|straighten).*fence/i, 'FENCE_POST_RESET'],
   [/\bfence.*(lean|post|straighten)/i, 'FENCE_POST_RESET'],
-  [/\bfence/i, 'FENCE_PANEL_REPLACEMENT'],
+  [/\b(panel|picket|board|section).*fence/i, 'FENCE_PANEL_REPLACEMENT'],
+  [/\bfence.*(panel|picket|board|section|fall|fell|broken|missing)/i, 'FENCE_PANEL_REPLACEMENT'],
   // TV
   [/\b(conceal|hide|in.?wall|wire).*\b(tv|mount)/i, 'TV_MOUNT_CONCEALED_WIRING'],
   [/\b(fireplace|mantle|above\s+fire).*\b(tv|mount)/i, 'TV_MOUNT_ABOVE_FIREPLACE'],
