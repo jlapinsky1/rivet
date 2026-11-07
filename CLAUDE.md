@@ -86,7 +86,7 @@ Shows estimation runs table, full pipeline detail view, filters (customer, trade
 
 ## Demo Account (Mason Home Services)
 
-Login: `mason@myrivet.io` / `MasonDemo2024!`
+Login: `mason@myrivet.io` — one-time code emailed from `/login`. Contractor sign-up is `/signup`. No password.
 
 Seeded account treated identically to a real customer. No special code paths.
 
