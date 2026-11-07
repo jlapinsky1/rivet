@@ -254,6 +254,15 @@ const supabaseRepo = {
     return true;
   },
 
+  async declineWorkItem(workItemId) {
+    const { error } = await supabase
+      .from('work_items')
+      .update({ op_status: 'declined' })
+      .eq('id', workItemId);
+    if (error) throw error;
+    return true;
+  },
+
   async approveBooking(id, data) {
     return adminFetch('/api/approve-quote', {
       method: 'POST',

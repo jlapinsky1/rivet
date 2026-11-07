@@ -209,7 +209,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
     setActionError(null);
     try {
       const repo = await getRepo();
-      await repo.updateBooking(item.id, { status: 'declined' });
+      await repo.declineWorkItem(item.id);
       await recordOwnerDecision('declined', null, null, reasonCode);
       setActionSuccess('Job declined');
       setTimeout(() => {
