@@ -321,25 +321,31 @@ export default async function handler(req) {
       }).catch(err => console.error('Geocode fire-and-forget failed (non-fatal):', err.message));
     }
 
-    // Handyman accounts: score the request through the estimator (non-blocking).
+    // Handyman accounts: score the request through the estimator.
     try {
-      const { data: bizRow } = await supabase
+      const { data: bizRow, error: bizErr } = await supabase
         .from('businesses')
         .select('vertical')
         .eq('id', businessId)
         .single();
+      console.log('Handyman check:', { businessId, vertical: bizRow?.vertical, bizErr: bizErr?.message });
       if (bizRow?.vertical === 'handyman') {
         const site = process.env.URL || process.env.DEPLOY_PRIME_URL || '';
+        console.log('Calling process-handyman-booking:', { site, bookingId: booking.id, businessId });
         if (site) {
-          fetch(`${site}/api/process-handyman-booking`, {
+          const scoreRes = await fetch(`${site}/api/process-handyman-booking`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ bookingId: booking.id, businessId }),
-          }).catch(err => console.error('Handyman scoring failed (non-fatal):', err.message));
+          });
+          const scoreBody = await scoreRes.text();
+          console.log('process-handyman-booking response:', scoreRes.status, scoreBody);
+        } else {
+          console.error('No URL env var set — cannot call process-handyman-booking');
         }
       }
     } catch (err) {
-      console.error('Handyman vertical check failed (non-fatal):', err.message);
+      console.error('Handyman scoring failed:', err.message, err.stack);
     }
 
     return jsonResponse({ bookingId: booking.id }, 201);
