@@ -1422,7 +1422,7 @@ function OutsideServiceAreaCard({ businessName, accentColor, enteredZip, isUnava
   );
 }
 
-// ---- EMBED FORM (lightweight, no marketing chrome) ----
+// ---- EMBED FORM (clean, light, no branding baggage) ----
 
 function EmbedForm({
   step, steps, form, update, config, isHandyman, accentColor, minPhotos, photosEnabled,
@@ -1434,21 +1434,18 @@ function EmbedForm({
 }) {
   const timePreferences = config.fields.timePreference.options;
 
-  // Success
   if (submitted) {
     return (
-      <div style={{ '--accent': accentColor }} className="bg-gray-950 text-white min-h-[400px] flex flex-col items-center justify-center px-6 py-10">
-        <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6" style={{ backgroundColor: accentColor }}>
-          <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
+      <div style={{ fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif', padding: '40px 24px', textAlign: 'center' }}>
+        <div style={{ width: 56, height: 56, borderRadius: '50%', backgroundColor: accentColor, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+          <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#fff" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
         </div>
-        <h2 className="text-2xl font-bold mb-2 text-center">{config.confirmation.headline}</h2>
-        <p className="text-gray-400 text-center mb-6 max-w-sm">{config.confirmation.body}</p>
+        <h2 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 8px', color: '#111' }}>{config.confirmation.headline}</h2>
+        <p style={{ fontSize: 14, color: '#666', margin: '0 0 20px', lineHeight: 1.5 }}>{config.confirmation.body}</p>
         {bookingId && (
-          <div className="bg-gray-900/80 rounded-xl px-5 py-3 border border-gray-800/60">
-            <span className="text-gray-500 text-xs">Confirmation </span>
-            <span className="font-mono font-bold text-sm" style={{ color: accentColor }}>#{bookingId.slice(0, 8).toUpperCase()}</span>
+          <div style={{ display: 'inline-block', background: '#f5f5f5', borderRadius: 8, padding: '8px 16px', fontSize: 13 }}>
+            <span style={{ color: '#999' }}>Confirmation </span>
+            <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#111' }}>#{bookingId.slice(0, 8).toUpperCase()}</span>
           </div>
         )}
       </div>
@@ -1456,246 +1453,252 @@ function EmbedForm({
   }
 
   const currentKey = steps[step]?.key;
+  const font = '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif';
+
+  const inputStyle = {
+    width: '100%', boxSizing: 'border-box', border: '1px solid #ddd', borderRadius: 8,
+    padding: '10px 12px', fontSize: 14, fontFamily: font, color: '#111',
+    outline: 'none', background: '#fff', transition: 'border-color 0.15s',
+  };
+  const labelStyle = { display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 };
+  const btnStyle = {
+    width: '100%', border: 'none', borderRadius: 8, padding: '12px 0',
+    fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: font,
+    backgroundColor: accentColor, color: '#fff', transition: 'opacity 0.15s',
+  };
 
   return (
-    <div style={{ '--accent': accentColor }} className="bg-gray-950 text-white">
-      {/* Progress bar */}
-      <div className="px-5 pt-5 pb-1">
-        <div className="flex gap-1.5">
-          {steps.map((s, i) => (
-            <div
-              key={s.key}
-              className={`h-1 rounded-full flex-1 transition-all duration-300 ${
-                i < step ? 'bg-green-500' : i === step ? 'bg-green-400' : 'bg-gray-800'
-              }`}
-              style={i <= step ? { backgroundColor: accentColor } : undefined}
-            />
-          ))}
+    <div style={{ fontFamily: font, padding: '20px 24px 24px', background: '#fff', color: '#111' }}>
+      {/* Progress */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+        {steps.map((s, i) => (
+          <div key={s.key} style={{
+            flex: 1, height: 3, borderRadius: 2,
+            backgroundColor: i <= step ? accentColor : '#e5e5e5',
+            transition: 'background-color 0.3s',
+          }} />
+        ))}
+      </div>
+      <p style={{ fontSize: 11, color: '#999', margin: '0 0 16px' }}>Step {step + 1} of {steps.length}</p>
+
+      {/* Heading */}
+      <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 16px', color: '#111' }}>{steps[step]?.description}</h2>
+
+      {/* Contact */}
+      {currentKey === 'info' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <label style={labelStyle}>First name</label>
+              <input style={inputStyle} value={form.firstName} onChange={e => update('firstName', e.target.value)} autoFocus />
+            </div>
+            <div>
+              <label style={labelStyle}>Last name</label>
+              <input style={inputStyle} value={form.lastName} onChange={e => update('lastName', e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <label style={labelStyle}>Phone</label>
+            <input style={inputStyle} type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="(555) 555-5555" />
+          </div>
+          <div>
+            <label style={labelStyle}>Email{config.fields.email.required ? '' : ' (optional)'}</label>
+            <input style={inputStyle} type="email" value={form.email} onChange={e => update('email', e.target.value)} placeholder="you@example.com" />
+          </div>
         </div>
-        <p className="text-gray-500 text-xs mt-2 font-medium">
-          Step {step + 1} of {steps.length} — {steps[step]?.label}
-        </p>
-      </div>
+      )}
 
-      {/* Step heading */}
-      <div className="px-5 pt-4 pb-2">
-        <h2 className="text-xl font-bold text-white">{steps[step]?.description}</h2>
-      </div>
-
-      {/* Form content */}
-      <div className="px-5 pb-5">
-        {/* Contact */}
-        {currentKey === 'info' && (
-          <div className="space-y-3 pt-2">
-            <div className="grid grid-cols-2 gap-3">
-              <EmbedInput label="First name" value={form.firstName} onChange={v => update('firstName', v)} autoFocus />
-              <EmbedInput label="Last name" value={form.lastName} onChange={v => update('lastName', v)} />
-            </div>
-            <EmbedInput label="Phone" type="tel" value={form.phone} onChange={v => update('phone', v)} placeholder="(555) 555-5555" />
-            <EmbedInput label={`Email${config.fields.email.required ? '' : ' (optional)'}`} type="email" value={form.email} onChange={v => update('email', v)} placeholder="you@example.com" />
+      {/* Location */}
+      {currentKey === 'location' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label style={labelStyle}>Street address</label>
+            <input style={inputStyle} value={form.address} onChange={e => update('address', e.target.value)} autoFocus placeholder="123 Main St" />
           </div>
-        )}
-
-        {/* Location */}
-        {currentKey === 'location' && (
-          <div className="space-y-3 pt-2">
-            <EmbedInput label="Street address" value={form.address} onChange={v => update('address', v)} autoFocus placeholder="123 Main St" />
-            <div className="grid grid-cols-5 gap-2">
-              <div className="col-span-3"><EmbedInput label="City" value={form.city} onChange={v => update('city', v)} /></div>
-              <EmbedInput label="State" value={form.state} onChange={v => update('state', v)} placeholder="GA" />
-              <EmbedInput label="ZIP" value={form.zip} onChange={v => update('zip', v)} placeholder="30301" />
+          <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1fr', gap: 8 }}>
+            <div>
+              <label style={labelStyle}>City</label>
+              <input style={inputStyle} value={form.city} onChange={e => update('city', e.target.value)} />
             </div>
-            {locationCheckState === 'invalid' && (
-              <p className="text-red-400 text-sm">Please enter a valid five-digit ZIP code.</p>
-            )}
+            <div>
+              <label style={labelStyle}>State</label>
+              <input style={inputStyle} value={form.state} onChange={e => update('state', e.target.value)} placeholder="GA" />
+            </div>
+            <div>
+              <label style={labelStyle}>ZIP</label>
+              <input style={inputStyle} value={form.zip} onChange={e => update('zip', e.target.value)} placeholder="30301" />
+            </div>
           </div>
-        )}
+          {locationCheckState === 'invalid' && (
+            <p style={{ fontSize: 13, color: '#dc2626', margin: 0 }}>Please enter a valid five-digit ZIP code.</p>
+          )}
+        </div>
+      )}
 
-        {/* Photos */}
-        {currentKey === 'photos' && (
-          <div className="space-y-3 pt-2">
-            <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoUpload} />
-            {form.photos.length < 10 && !uploadingPhotos && (
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full border-2 border-dashed border-gray-700/60 hover:border-green-500/40 rounded-xl p-6 text-center transition-all group"
-              >
-                <CameraIcon className="w-6 h-6 text-gray-500 group-hover:text-green-400 mx-auto mb-2 transition-colors" />
-                <span className="text-white font-semibold text-sm block">Add photos</span>
-                <span className="text-gray-500 text-xs mt-1 block">
-                  {form.photos.length === 0
-                    ? `At least ${minPhotos} photo${minPhotos === 1 ? '' : 's'} of ${isHandyman ? 'the work area' : 'your items'}`
-                    : `${form.photos.length}/10 (${Math.max(0, minPhotos - form.photos.length)} more needed)`}
-                </span>
-              </button>
-            )}
-            {form.photos.length > 0 && (
-              <div className="grid grid-cols-4 gap-2">
-                {form.photos.map((photo, i) => (
-                  <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-gray-800 group">
-                    <img src={photo} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
-                    <button
-                      onClick={() => removePhoto(i)}
-                      className="absolute top-1 right-1 w-5 h-5 bg-black/70 rounded-full flex items-center justify-center hover:bg-red-500 transition-colors text-white text-xs"
-                    >
-                      &times;
-                    </button>
-                  </div>
-                ))}
-                {form.photos.length < 10 && (
+      {/* Photos */}
+      {currentKey === 'photos' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <input ref={fileInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handlePhotoUpload} />
+          {form.photos.length < 10 && !uploadingPhotos && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                width: '100%', border: '2px dashed #ddd', borderRadius: 10, padding: '28px 16px',
+                textAlign: 'center', cursor: 'pointer', background: '#fafafa',
+                fontFamily: font, transition: 'border-color 0.15s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = accentColor}
+              onMouseLeave={e => e.currentTarget.style.borderColor = '#ddd'}
+            >
+              <div style={{ fontSize: 28, marginBottom: 4 }}>📷</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>Tap to add photos</div>
+              <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
+                {form.photos.length === 0
+                  ? `At least ${minPhotos} photo${minPhotos === 1 ? '' : 's'} of ${isHandyman ? 'the work area' : 'your items'}`
+                  : `${form.photos.length}/10 photos`}
+              </div>
+            </button>
+          )}
+          {form.photos.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+              {form.photos.map((photo, i) => (
+                <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: 8, overflow: 'hidden', background: '#eee' }}>
+                  <img src={photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="aspect-square rounded-lg border border-dashed border-gray-700/50 flex items-center justify-center hover:border-green-500/40 transition-colors text-gray-600 text-lg"
-                  >
-                    +
-                  </button>
-                )}
-              </div>
-            )}
-            {uploadingPhotos && <p className="text-gray-400 text-sm text-center">Uploading...</p>}
-            {photoError && <p className="text-red-400 text-sm text-center">{photoError}</p>}
-          </div>
-        )}
-
-        {/* Details */}
-        {currentKey === 'details' && (
-          <div className="space-y-4 pt-2">
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-1.5">{config.fields.description?.label || 'Describe the work'}</label>
-              <textarea
-                className="w-full bg-gray-900/60 border border-gray-800/60 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-green-500/50 transition-colors resize-none"
-                rows={4}
-                value={form.description}
-                onChange={e => update('description', e.target.value)}
-                placeholder={config.fields.description?.placeholder || 'Tell us what needs to be done...'}
-                autoFocus
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Schedule */}
-        {currentKey === 'schedule' && (
-          <div className="space-y-4 pt-2">
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-2">Pick a day</label>
-              <div className="grid grid-cols-3 gap-2">
-                {(showMoreDates ? availableDays : availableDays.slice(0, 9)).map(day => {
-                  const { weekday, date } = formatDateShort(day);
-                  const sel = form.preferredDate === day;
-                  return (
-                    <button
-                      key={day}
-                      onClick={() => setForm(prev => ({ ...prev, preferredDate: day, secondChoiceDate: '' }))}
-                      className={`p-2.5 rounded-lg border text-center transition-all text-xs ${
-                        sel ? 'border-green-500/50 bg-green-500/10' : 'border-gray-800/60 bg-gray-900/50 hover:border-gray-700'
-                      }`}
-                    >
-                      <span className={`block font-bold ${sel ? 'text-green-400' : 'text-gray-500'}`}>{weekday}</span>
-                      <span className={`block mt-0.5 font-medium ${sel ? 'text-white' : 'text-gray-300'}`}>{date}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              {availableDays.length > 9 && (
-                <button onClick={() => setShowMoreDates(v => !v)} className="mt-2 text-xs text-gray-500 hover:text-gray-300 underline">
-                  {showMoreDates ? 'Fewer dates' : `More dates (${availableDays.length - 9})`}
-                </button>
+                    onClick={() => removePhoto(i)}
+                    style={{
+                      position: 'absolute', top: 3, right: 3, width: 20, height: 20,
+                      borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: 'none',
+                      color: '#fff', fontSize: 14, cursor: 'pointer', display: 'flex',
+                      alignItems: 'center', justifyContent: 'center', lineHeight: 1,
+                    }}
+                  >&times;</button>
+                </div>
+              ))}
+              {form.photos.length < 10 && (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    aspectRatio: '1', borderRadius: 8, border: '2px dashed #ddd',
+                    background: 'none', cursor: 'pointer', fontSize: 20, color: '#aaa',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >+</button>
               )}
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-2">Time preference</label>
-              <div className="grid grid-cols-3 gap-2">
-                {timePreferences.map(pref => {
-                  const sel = form.timePreference === pref.value;
-                  return (
-                    <button
-                      key={pref.value}
-                      onClick={() => update('timePreference', pref.value)}
-                      className={`p-2.5 rounded-lg border text-center transition-all ${
-                        sel ? 'border-green-500/50 bg-green-500/10' : 'border-gray-800/60 bg-gray-900/50 hover:border-gray-700'
-                      }`}
-                    >
-                      <span className="text-base block">{pref.icon}</span>
-                      <span className={`text-xs font-semibold block mt-1 ${sel ? 'text-white' : 'text-gray-300'}`}>{pref.label}</span>
-                      <span className="text-[10px] text-gray-500 block">{pref.sub}</span>
-                    </button>
-                  );
-                })}
-              </div>
+          )}
+          {uploadingPhotos && <p style={{ fontSize: 13, color: '#888', textAlign: 'center', margin: 0 }}>Uploading...</p>}
+          {photoError && <p style={{ fontSize: 13, color: '#dc2626', textAlign: 'center', margin: 0 }}>{photoError}</p>}
+        </div>
+      )}
+
+      {/* Details */}
+      {currentKey === 'details' && (
+        <div>
+          <label style={labelStyle}>{config.fields.description?.label || 'Describe the work'}</label>
+          <textarea
+            style={{ ...inputStyle, resize: 'none', minHeight: 100 }}
+            value={form.description}
+            onChange={e => update('description', e.target.value)}
+            placeholder={config.fields.description?.placeholder || 'Tell us what needs to be done...'}
+            autoFocus
+          />
+        </div>
+      )}
+
+      {/* Schedule */}
+      {currentKey === 'schedule' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div>
+            <label style={labelStyle}>Pick a day</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+              {(showMoreDates ? availableDays : availableDays.slice(0, 9)).map(day => {
+                const { weekday, date } = formatDateShort(day);
+                const sel = form.preferredDate === day;
+                return (
+                  <button
+                    key={day}
+                    onClick={() => setForm(prev => ({ ...prev, preferredDate: day, secondChoiceDate: '' }))}
+                    style={{
+                      padding: '8px 4px', borderRadius: 8, textAlign: 'center', cursor: 'pointer',
+                      border: sel ? `2px solid ${accentColor}` : '1px solid #e5e5e5',
+                      background: sel ? `${accentColor}11` : '#fff',
+                      fontFamily: font, transition: 'all 0.15s',
+                    }}
+                  >
+                    <div style={{ fontSize: 10, fontWeight: 700, color: sel ? accentColor : '#999', textTransform: 'uppercase' }}>{weekday}</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: '#111', marginTop: 2 }}>{date}</div>
+                  </button>
+                );
+              })}
+            </div>
+            {availableDays.length > 9 && (
+              <button onClick={() => setShowMoreDates(v => !v)} style={{ marginTop: 6, fontSize: 12, color: '#888', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontFamily: font }}>
+                {showMoreDates ? 'Fewer dates' : `More dates`}
+              </button>
+            )}
+          </div>
+          <div>
+            <label style={labelStyle}>Time preference</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+              {timePreferences.map(pref => {
+                const sel = form.timePreference === pref.value;
+                return (
+                  <button
+                    key={pref.value}
+                    onClick={() => update('timePreference', pref.value)}
+                    style={{
+                      padding: '10px 4px', borderRadius: 8, textAlign: 'center', cursor: 'pointer',
+                      border: sel ? `2px solid ${accentColor}` : '1px solid #e5e5e5',
+                      background: sel ? `${accentColor}11` : '#fff',
+                      fontFamily: font, transition: 'all 0.15s',
+                    }}
+                  >
+                    <div style={{ fontSize: 16 }}>{pref.icon}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#111', marginTop: 2 }}>{pref.label}</div>
+                    <div style={{ fontSize: 10, color: '#999' }}>{pref.sub}</div>
+                  </button>
+                );
+              })}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Out of service area */}
-        {currentKey === 'location' && (locationCheckState === 'outside' || locationCheckState === 'unavailable') && (
-          <div className="mt-4">
-            <OutsideServiceAreaCard
-              businessName={businessName}
-              accentColor={accentColor}
-              enteredZip={form.zip}
-              isUnavailable={locationCheckState === 'unavailable'}
-              notifyState={notifyState}
-              onNotifyChange={patch => setNotifyState(s => ({ ...s, ...patch }))}
-              onNotifySubmit={() => handleNotifySubmit(form.zip)}
-              onCheckAnother={() => {
-                setLocationCheckState(null);
-                setNotifyState({ open: false, name: '', email: '', submitting: false, done: false });
-              }}
-            />
-          </div>
-        )}
+      {submitError && (
+        <p style={{ fontSize: 13, color: '#dc2626', textAlign: 'center', marginTop: 12 }}>{submitError}</p>
+      )}
 
-        {submitError && (
-          <p className="text-red-400 text-sm text-center mt-3">{submitError}</p>
-        )}
-
-        {/* Navigation */}
-        {!(currentKey === 'location' && (locationCheckState === 'outside' || locationCheckState === 'unavailable')) && (
-          <div className="mt-6 space-y-2">
-            {step < steps.length - 1 ? (
-              <button
-                onClick={currentKey === 'location' ? handleLocationCheck : next}
-                disabled={!canProceed() || locationCheckState === 'checking'}
-                className="w-full text-gray-950 rounded-xl text-sm font-bold py-3.5 disabled:opacity-30 transition-all hover:brightness-110"
-                style={{ backgroundColor: accentColor }}
-              >
-                {currentKey === 'location' && locationCheckState === 'checking' ? 'Checking...' : 'Continue'}
-              </button>
-            ) : (
-              <button
-                onClick={handleSubmit}
-                disabled={!canProceed() || submitting}
-                className="w-full text-gray-950 rounded-xl text-sm font-bold py-3.5 disabled:opacity-30 transition-all hover:brightness-110"
-                style={{ backgroundColor: accentColor }}
-              >
-                {submitting ? 'Submitting...' : 'Submit Request'}
-              </button>
-            )}
-            {step > 0 && (
-              <button onClick={back} className="w-full text-gray-500 hover:text-gray-300 py-2 text-sm transition-colors">
-                Back
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function EmbedInput({ label, type = 'text', value, onChange, placeholder, autoFocus }) {
-  return (
-    <div>
-      <label className="block text-xs font-semibold text-gray-400 mb-1.5">{label}</label>
-      <input
-        type={type}
-        className="w-full bg-gray-900/60 border border-gray-800/60 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-green-500/50 transition-colors"
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        autoFocus={autoFocus}
-      />
+      {/* Navigation */}
+      {!(currentKey === 'location' && (locationCheckState === 'outside' || locationCheckState === 'unavailable')) && (
+        <div style={{ marginTop: 20 }}>
+          {step < steps.length - 1 ? (
+            <button
+              onClick={currentKey === 'location' ? handleLocationCheck : next}
+              disabled={!canProceed() || locationCheckState === 'checking'}
+              style={{ ...btnStyle, opacity: (!canProceed() || locationCheckState === 'checking') ? 0.4 : 1 }}
+            >
+              {currentKey === 'location' && locationCheckState === 'checking' ? 'Checking...' : 'Continue'}
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={!canProceed() || submitting}
+              style={{ ...btnStyle, opacity: (!canProceed() || submitting) ? 0.4 : 1 }}
+            >
+              {submitting ? 'Submitting...' : 'Submit Request'}
+            </button>
+          )}
+          {step > 0 && (
+            <button onClick={back} style={{
+              width: '100%', background: 'none', border: 'none', padding: '10px 0',
+              fontSize: 13, color: '#999', cursor: 'pointer', fontFamily: font, marginTop: 4,
+            }}>
+              Back
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
