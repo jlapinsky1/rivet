@@ -25,15 +25,19 @@ export default async function handler(req) {
       }
     }
 
-    // Resolve business_id from slug, or default to first business (Squatterz)
+    // Resolve business_id from slug, or default to first business
     let businessId;
     if (businessSlug) {
-      const { data: biz } = await supabase
+      const { data: biz, error: bizErr } = await supabase
         .from('businesses')
         .select('id')
         .eq('slug', businessSlug)
         .single();
-      if (!biz) return errorResponse('Business not found', 404);
+      if (bizErr) {
+        console.error('Business lookup error:', bizErr, 'slug:', businessSlug);
+        return errorResponse(`Business lookup failed: ${bizErr.message}`, 500);
+      }
+      if (!biz) return errorResponse(`Business not found for slug: ${businessSlug}`, 404);
       businessId = biz.id;
     } else {
       // Default: first business (backward compat for existing residential flow)
@@ -62,8 +66,8 @@ export default async function handler(req) {
       .single();
 
     if (error) {
-      console.error('Session creation error:', error);
-      return errorResponse('Failed to create upload session', 500);
+      console.error('Session creation error:', error, 'businessId:', businessId);
+      return errorResponse(`Session insert failed: ${error.message}`, 500);
     }
 
     return jsonResponse({
