@@ -10,28 +10,16 @@ import {
 
 const OTP = '654321';
 
-function adminClient({ existing = false, missing = false, passwordRequired = false, otp = OTP } = {}) {
+function adminClient({ existing = false, missing = false, otp = OTP } = {}) {
   const calls = [];
   const client = {
     calls,
     auth: {
       admin: {
-        createUser: async (args) => {
-          calls.push({ method: 'createUser', args });
-          if (passwordRequired) {
-            return { data: null, error: { message: 'Password is required', code: 'validation_failed' } };
-          }
-          if (existing) {
-            return {
-              data: null,
-              error: { message: 'A user with this email address has already been registered', code: 'email_exists' },
-            };
-          }
-          return { data: { user: { id: 'user-1' } }, error: null };
-        },
         generateLink: async (args) => {
           calls.push({ method: 'generateLink', args });
-          if (args.type === 'magiclink' && missing) {
+          const userMissing = missing || !existing;
+          if (args.type === 'magiclink' && userMissing) {
             return { data: null, error: { message: 'User with this email not found', status: 404, code: 'user_not_found' } };
           }
           return {
@@ -110,16 +98,13 @@ describe('issueContractorOtp', () => {
       sendEmail: async (msg) => { sent.push(msg); },
     });
 
-    expect(supabase.calls[0]).toEqual({
-      method: 'createUser',
-      args: { email: 'new@shop.test', email_confirm: true },
-    });
-    expect(supabase.calls[0].args).not.toHaveProperty('password');
-    expect(supabase.calls[1].args).toEqual({ type: 'magiclink', email: 'new@shop.test' });
+    expect(supabase.calls.map(call => call.args.type)).toEqual(['magiclink', 'invite']);
+    expect(supabase.calls.some(call => call.method === 'createUser')).toBe(false);
+    expect(JSON.stringify(supabase.calls)).not.toContain('password');
     expect(sent).toEqual([{ to: 'new@shop.test', code: OTP }]);
     expect(result).toEqual({
       status: 200,
-      body: { sent: true, existingAccount: false, verificationType: 'magiclink' },
+      body: { sent: true, existingAccount: false, verificationType: 'invite' },
     });
     expect(JSON.stringify(result.body)).not.toContain(OTP);
     expect(JSON.stringify(result.body)).not.toContain('action_link');
@@ -160,23 +145,8 @@ describe('issueContractorOtp', () => {
       sendEmail: async () => {},
     });
     expect(result.body.existingAccount).toBe(true);
-    expect(supabase.calls.map(call => call.method)).toEqual(['createUser', 'generateLink']);
-    expect(supabase.calls[0].args).not.toHaveProperty('password');
-  });
-
-  it('falls back to an invite link when the auth project requires a password field', async () => {
-    const supabase = adminClient({ passwordRequired: true });
-    const sent = [];
-    const result = await issueContractorOtp({
-      supabase,
-      intent: 'signup',
-      email: 'new@shop.test',
-      sendEmail: async (msg) => { sent.push(msg); },
-    });
-    expect(supabase.calls.map(call => call.args.type || 'create')).toEqual(['create', 'invite']);
-    expect(sent[0].code).toBe(OTP);
-    expect(result.body.verificationType).toBe('invite');
-    expect(JSON.stringify(result.body)).not.toContain(OTP);
+    expect(supabase.calls.map(call => call.args.type)).toEqual(['magiclink']);
+    expect(JSON.stringify(supabase.calls)).not.toContain('password');
   });
 });
 
@@ -388,7 +358,8 @@ describe('contractor OTP endpoint', () => {
     const fetchBody = JSON.parse(vi.mocked(fetch).mock.calls[0][1].body);
     expect(fetchBody.html).toContain(OTP);
     expect(fetchBody.to).toEqual(['new@shop.test']);
-    expect(state.createUser.mock.calls[0][0]).not.toHaveProperty('password');
+    expect(state.createUser).not.toHaveBeenCalled();
+    expect(state.generateLink).toHaveBeenCalled();
   });
 
   it('stops before creating a user when the address is rate limited', async () => {

@@ -109,62 +109,53 @@ export async function allocateSlug(supabase, name) {
   return `${base}-${crypto.randomUUID().slice(0, 8)}`.slice(0, 60);
 }
 
+function oneTimeCode(data) {
+  return data?.properties?.email_otp || data?.email_otp || '';
+}
+
 /**
  * Mint a fresh one-time code. Login never creates a user.
  * The code is passed only to sendEmail and is not returned to the browser.
+ * A new code replaces the previous one inside Supabase Auth.
  */
 export async function issueContractorOtp({ supabase, intent, email, sendEmail }) {
-  let createdNew = false;
-  let preissued = null;
+  const magic = await supabase.auth.admin.generateLink({ type: 'magiclink', email });
+  let link = magic;
+  let existingAccount = false;
 
-  if (intent === 'signup') {
-    const created = await supabase.auth.admin.createUser({
-      email,
-      email_confirm: true,
-    });
-
-    if (!created.error) {
-      createdNew = true;
-    } else if (isAlreadyRegistered(created.error)) {
-      createdNew = false;
-    } else if (isPasswordRequired(created.error)) {
-      const invited = await supabase.auth.admin.generateLink({ type: 'invite', email });
-      if (!invited.error && invited.data?.properties?.email_otp) {
-        createdNew = true;
-        preissued = invited.data;
-      } else if (invited.error && isAlreadyRegistered(invited.error)) {
-        createdNew = false;
-      } else {
-        throw invited.error || created.error;
-      }
-    } else {
-      throw created.error;
-    }
-  }
-
-  let linkData = preissued;
-  if (!linkData) {
-    const link = await supabase.auth.admin.generateLink({ type: 'magiclink', email });
-    if (link.error || !link.data?.properties?.email_otp) {
-      if (intent === 'login' && isUserMissing(link.error)) {
+  if (magic.error || !oneTimeCode(magic.data)) {
+    if (isUserMissing(magic.error)) {
+      if (intent === 'login') {
         return {
           status: 404,
           body: { error: 'No account for that email. Start free to create one.' },
         };
       }
-      throw link.error || new Error('Could not create a sign-in code');
+      // Invite creates a passwordless user and returns a single-use code.
+      link = await supabase.auth.admin.generateLink({ type: 'invite', email });
+    } else if (isAlreadyRegistered(magic.error)) {
+      existingAccount = true;
+      link = await supabase.auth.admin.generateLink({ type: 'magiclink', email });
+    } else {
+      throw magic.error || new Error('Could not create a sign-in code');
     }
-    linkData = link.data;
+  } else if (intent === 'signup') {
+    existingAccount = true;
   }
 
-  await sendEmail({ to: email, code: linkData.properties.email_otp });
+  const code = oneTimeCode(link.data);
+  if (link.error || !code) {
+    throw link.error || magic.error || new Error('Could not create a sign-in code');
+  }
+
+  await sendEmail({ to: email, code });
 
   return {
     status: 200,
     body: {
       sent: true,
-      existingAccount: intent === 'signup' && !createdNew,
-      verificationType: linkData.properties.verification_type || 'magiclink',
+      existingAccount,
+      verificationType: link.data?.properties?.verification_type || (existingAccount ? 'magiclink' : 'invite'),
     },
   };
 }
@@ -204,7 +195,7 @@ export async function sendContractorCodeEmail({ to, code }) {
   const resendKey = process.env.RESEND_API_KEY;
   if (!resendKey) throw new Error('Email service not configured');
 
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@myrivet.io';
+  const fromEmail = (process.env.RESEND_FROM_EMAIL || 'noreply@squatterz.com').trim();
   const from = fromEmail.includes('<') ? fromEmail : `Rivet <${fromEmail}>`;
   const message = buildContractorCodeEmail({ code });
 
@@ -223,8 +214,10 @@ export async function sendContractorCodeEmail({ to, code }) {
   });
 
   if (!resendRes.ok) {
+    const detail = await resendRes.json().catch(() => ({}));
+    const reason = detail?.message || detail?.error || `status ${resendRes.status}`;
     console.error('Resend error status', resendRes.status);
-    throw new Error('Failed to send sign-in code');
+    throw new Error(`Email provider rejected the code (${reason})`);
   }
 }
 

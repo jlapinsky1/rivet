@@ -34,8 +34,12 @@ export default async function handler(req) {
 
     return jsonResponse(result.body, result.status);
   } catch (err) {
-    console.error('contractor-otp error:', err?.message || 'unknown');
-    return errorResponse('Could not send a sign-in code. Please try again.', 500);
+    const message = `${err?.message || 'Could not send a sign-in code. Please try again.'}`
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 180);
+    console.error('contractor-otp error:', message);
+    return errorResponse(message || 'Could not send a sign-in code. Please try again.', 500);
   }
 }
 
