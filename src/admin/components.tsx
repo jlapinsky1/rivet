@@ -125,24 +125,30 @@ export function WorkRecommendationCard({ item, onView }: { item: WorkItem; onVie
           </div>
           <p className="hero-sentence">{copy.sentence}</p>
         </div>
-        <div className="hero-insight">
-          <div className="insight-primary">
-            <span className="insight-rate">{item.rate}</span>
-            <span className="insight-rate-label">Profit per hour</span>
+        {item.recommendation !== 'review' ? (
+          <div className="hero-insight">
+            <div className="insight-primary">
+              <span className="insight-rate">{item.rate}</span>
+              <span className="insight-rate-label">Profit per hour</span>
+            </div>
+            <div className="insight-secondary">
+              <span className="insight-profit">${item.profit}</span>
+              <span className="insight-detail">estimated profit</span>
+              <span className="insight-bullet">·</span>
+              <span className="insight-detail">{item.hours}</span>
+              <span className="insight-bullet">·</span>
+              <span className="insight-detail">{item.travel}</span>
+            </div>
+            <div className="insight-confidence">
+              <span className="confidence-label">Estimate confidence</span>
+              <span className="confidence-value">{item.confidence}%</span>
+            </div>
           </div>
-          <div className="insight-secondary">
-            <span className="insight-profit">${item.profit}</span>
-            <span className="insight-detail">estimated profit</span>
-            <span className="insight-bullet">·</span>
-            <span className="insight-detail">{item.hours}</span>
-            <span className="insight-bullet">·</span>
-            <span className="insight-detail">{item.travel}</span>
+        ) : (
+          <div className="hero-insight review-action-hint">
+            <p className="review-hint-text">Open this job to contact the customer and get more details before quoting.</p>
           </div>
-          <div className="insight-confidence">
-            <span className="confidence-label">Estimate confidence</span>
-            <span className="confidence-value">{item.confidence}%</span>
-          </div>
-        </div>
+        )}
       </div>
       <div className="hero-footer">
         <button className="btn-primary-cta" onClick={onView}>

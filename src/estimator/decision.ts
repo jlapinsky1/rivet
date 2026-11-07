@@ -31,21 +31,21 @@ export function walkAwayFromFloors(job: EconomicJob): number {
 
 
 function lookFirstFor(job: EconomicJob, lowConfidence: boolean): string | null {
-  if (job.riskFlags.includes('hidden_water_damage')) return 'How far the water went';
-  if (job.riskFlags.includes('unknown_substrate')) return "What's behind the wall once you open it";
+  if (job.riskFlags.includes('hidden_water_damage')) return 'how far the water damage goes';
+  if (job.riskFlags.includes('unknown_substrate')) return "what's behind the wall once you open it";
   if (job.riskFlags.some(flag => flag.startsWith('structural_'))) {
-    return 'Whether this is structural (might need a specialist)';
+    return 'whether this involves structural work (may need a specialist)';
   }
   if (job.riskFlags.includes('unknown_job_family') || job.riskFlags.includes('unrecognized_job_class')) {
-    return "What the actual job is. The photos don't show it";
+    return "what the job actually involves";
   }
   if (job.riskFlags.includes('no_tasks_extracted') || job.riskFlags.includes('poor_component_coverage')) {
-    return "The photos. They don't show the full job";
+    return "the full scope of work";
   }
   if (job.riskFlags.includes('unsupported_task_component')) {
-    return "The part of the work Rivet doesn't recognize";
+    return "the specific work needed";
   }
-  if (lowConfidence) return "The photos. We can't tell the full job yet";
+  if (lowConfidence) return "the full scope — more detail or a site visit is needed";
   return null;
 }
 

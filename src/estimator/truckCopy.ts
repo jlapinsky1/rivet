@@ -11,17 +11,15 @@ export function truckSendPrice(
   return Math.round(quote);
 }
 
-/** One line for the truck: Send $X, Pass, or Look first: {thing}. */
+/** One line for the truck: Send $X, Pass, or Need more info. */
 export function truckHeadline(
   rec: Recommendation,
   quote: number,
   suggestedPrice?: number,
-  lookFirst?: string | null,
+  _lookFirst?: string | null,
 ): string {
   if (rec === 'pass') return 'Pass';
-  if (rec === 'review') {
-    return lookFirst ? `Look first: ${lookFirst}` : 'Look first';
-  }
+  if (rec === 'review') return 'Need more info';
   const send = truckSendPrice(rec, quote, suggestedPrice);
   return send != null ? `Send $${send}` : 'Send';
 }
@@ -39,10 +37,9 @@ export function truckSentence(
       : 'Skip this one this week.';
   }
   if (rec === 'review') {
-    const look = lookFirst
-      ? `Don't send a number until you check: ${lookFirst}.`
-      : 'Look at the job before you send a number.';
-    return walkAwayPrice ? `${look} Don't go below $${walkAwayPrice}.` : look;
+    return lookFirst
+      ? `Reach out to the customer to find out ${lookFirst} before you send a number.`
+      : 'Get more details from the customer before you send a number.';
   }
   const send = truckSendPrice(rec, quote, suggestedPrice);
   if (send == null) return 'Send the quote.';

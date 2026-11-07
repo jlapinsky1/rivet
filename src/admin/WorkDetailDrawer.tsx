@@ -128,9 +128,11 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   const isCommercial = item.source === 'commercial_work_order';
   const copy = recCopy(item.recommendation, item.rate, item.suggestedPrice, item.price, item.lookFirst, item.walkAwayPrice);
 
-  const ctaLabel = isCommercial
-    ? `Accept Work Order - $${price.toLocaleString()}`
-    : `Create Quote - $${price.toLocaleString()}`;
+  const ctaLabel = item.recommendation === 'review'
+    ? 'Mark as contacted'
+    : isCommercial
+      ? `Accept Work Order - $${price.toLocaleString()}`
+      : `Create Quote - $${price.toLocaleString()}`;
 
   function requestApprove() {
     if (recReasonPrompt(item.recommendation, 'approve')) {
@@ -141,10 +143,6 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   }
 
   function requestDecline() {
-    if (recReasonPrompt(item.recommendation, 'decline')) {
-      setActionPrompt({ intent: 'decline' });
-      return;
-    }
     void executeDecline();
   }
 
@@ -263,39 +261,48 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
             </div>
             <p>{copy.sentence}</p>
           </div>
-          <div className="drawer-insight">
-            <div className="drawer-insight-block">
-              <span className="insight-rate">{item.rate}</span>
-              <span className="insight-rate-label">Profit per hour</span>
+          {item.recommendation !== 'review' && (
+            <div className="drawer-insight">
+              <div className="drawer-insight-block">
+                <span className="insight-rate">{item.rate}</span>
+                <span className="insight-rate-label">Profit per hour</span>
+              </div>
+              <div className="drawer-insight-block">
+                <span className="insight-profit">${item.profit}</span>
+                <span className="insight-rate-label">Estimated profit</span>
+              </div>
+              <div className="drawer-insight-block">
+                <span className="insight-profit">{item.hours}</span>
+                <span className="insight-rate-label">Estimated time</span>
+              </div>
+              <div className="drawer-insight-block">
+                <span className="insight-profit">{item.travel}</span>
+                <span className="insight-rate-label">Travel</span>
+              </div>
             </div>
-            <div className="drawer-insight-block">
-              <span className="insight-profit">${item.profit}</span>
-              <span className="insight-rate-label">Estimated profit</span>
+          )}
+          {item.recommendation !== 'review' ? (
+            <div className="detail-section">
+              <div className="section-heading"><h3>Estimate</h3><span>At recommended price</span></div>
+              <div className="estimate-breakdown">
+                <div className="estimate-line"><span>Send this</span><strong>${(item.suggestedPrice ?? item.price).toLocaleString()}</strong></div>
+                {item.walkAwayPrice != null && item.walkAwayPrice < (item.suggestedPrice ?? item.price) && (
+                  <div className="estimate-line sub"><span>Don't go below</span><strong>${item.walkAwayPrice.toLocaleString()}</strong></div>
+                )}
+                {item.costBreakdown.map((line) => (
+                  <div key={line.label} className="estimate-line sub"><span>{line.label}</span><strong>{line.value ?? '-'}</strong></div>
+                ))}
+                <div className="estimate-line total"><span>Estimated profit</span><strong className="success-text">${item.profit}</strong></div>
+                <div className="estimate-line"><span>Profit per hour</span><strong>{item.rate}</strong></div>
+                <div className="estimate-line"><span>Estimate confidence</span><strong>{item.confidence}%</strong></div>
+              </div>
             </div>
-            <div className="drawer-insight-block">
-              <span className="insight-profit">{item.hours}</span>
-              <span className="insight-rate-label">Estimated time</span>
+          ) : (
+            <div className="detail-section review-contact-prompt">
+              <div className="section-heading"><h3>Contact customer</h3></div>
+              <p className="review-contact-note">Don't send a number yet — reach out to get the details you need first.</p>
             </div>
-            <div className="drawer-insight-block">
-              <span className="insight-profit">{item.travel}</span>
-              <span className="insight-rate-label">Travel</span>
-            </div>
-          </div>
-          <div className="detail-section">
-            <div className="section-heading"><h3>Estimate</h3><span>At recommended price</span></div>
-            <div className="estimate-breakdown">
-              <div className="estimate-line"><span>Send this</span><strong>${(item.suggestedPrice ?? item.price).toLocaleString()}</strong></div>
-              {item.walkAwayPrice != null && item.walkAwayPrice < (item.suggestedPrice ?? item.price) && (
-                <div className="estimate-line sub"><span>Don't go below</span><strong>${item.walkAwayPrice.toLocaleString()}</strong></div>
-              )}
-              {item.costBreakdown.map((line) => (
-                <div key={line.label} className="estimate-line sub"><span>{line.label}</span><strong>{line.value ?? '-'}</strong></div>
-              ))}
-              <div className="estimate-line total"><span>Estimated profit</span><strong className="success-text">${item.profit}</strong></div>
-              <div className="estimate-line"><span>Profit per hour</span><strong>{item.rate}</strong></div>
-              <div className="estimate-line"><span>Estimate confidence</span><strong>{item.confidence}%</strong></div>
-            </div>
-          </div>
+          )}
           <div className="detail-section">
             <div className="section-heading"><h3>{
               item.recommendation === 'take' || item.recommendation === 'take_at_price' ? 'Why send this number'
@@ -318,7 +325,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
           </div>
 
           {/* Price editor */}
-          <div className="detail-section quote-editor">
+          {item.recommendation !== 'review' && <div className="detail-section quote-editor">
             <div className="section-heading"><h3>Set your price</h3><span>Change it if needed</span></div>
             <label htmlFor="price" className="quote-label">Your {isCommercial ? 'invoice' : 'quote'} amount</label>
             <div className="price-input">
@@ -365,7 +372,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
                 <small>${estimatedProfit.toLocaleString()} estimated profit · ${hourlyRate}/hr</small>
               </div>
             </div>
-          </div>
+          </div>}
 
           {/* Context section: residential vs commercial */}
           {isCommercial ? (
