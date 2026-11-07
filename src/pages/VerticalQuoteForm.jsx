@@ -7,7 +7,7 @@ function generateIdempotencyKey() {
 }
 
 /**
- * Configurable quote request form for any junk removal business.
+ * Configurable quote request form for any service business (handyman, junk removal, etc.).
  * Accepts a merged quoteFormConfig, the canonical business name, and the business slug.
  */
 export default function VerticalQuoteForm({ config, businessName, businessSlug }) {
@@ -450,17 +450,16 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
             <div className="lg:flex lg:items-center lg:gap-12">
               <div className="lg:w-1/2">
                 <h1 className="text-5xl lg:text-6xl xl:text-7xl font-black leading-[1.05] tracking-tight mb-6">
-                  Junk gone.<br />
-                  <span style={{ color: accentColor }}>On your schedule.</span>
+                  {isHandyman ? <>Good work.<br /><span style={{ color: accentColor }}>Done right.</span></> : <>Junk gone.<br /><span style={{ color: accentColor }}>On your schedule.</span></>}
                 </h1>
                 <p className="text-gray-400 text-lg lg:text-xl leading-relaxed mb-10 max-w-lg">
-                  Fast, reliable junk removal for homes and businesses.
+                  {isHandyman ? 'Tell us about your project and get a clear price fast.' : 'Fast, reliable junk removal for homes and businesses.'}
                 </p>
 
                 <div className="max-w-md space-y-3">
                   <div className="bg-gray-900/60 border border-gray-800/60 rounded-2xl p-6 ring-1 ring-white/[0.02]">
                     <label className="block text-[11px] font-bold text-gray-400 mb-3 uppercase tracking-[0.15em]">
-                      Where is the pickup?
+                      {isHandyman ? 'Where is the job?' : 'Where is the pickup?'}
                     </label>
                     <div className="flex gap-3">
                       <div className="flex-1 flex items-center bg-gray-800/50 border border-gray-700/50 rounded-xl px-4">
@@ -542,10 +541,10 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
         <section className="border-t border-gray-800/30">
           <div className="max-w-4xl mx-auto px-5 py-20 lg:py-28 text-center">
             <h2 className="text-4xl lg:text-6xl font-black leading-[1.08] tracking-tight mb-6">
-              Ready to reclaim your<br />space?
+              {isHandyman ? <>Ready to get<br />started?</> : <>Ready to reclaim your<br />space?</>}
             </h2>
             <p className="text-gray-400 text-lg lg:text-xl mb-10 max-w-2xl mx-auto">
-              Get a free, firm estimate in about 2 minutes. No phone calls required.
+              {isHandyman ? 'Describe the work and get a clear price. No phone calls required.' : 'Get a free, firm estimate in about 2 minutes. No phone calls required.'}
             </p>
 
             <div className="flex justify-center mb-10">
@@ -578,11 +577,15 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
             </div>
 
             <div className="grid md:grid-cols-3 gap-6">
-              {[
+              {(isHandyman ? [
+                { num: '1', icon: CameraIcon, title: 'Show Us the Work', desc: 'Snap a photo and describe what needs doing.' },
+                { num: '2', icon: ClipboardIcon, title: 'Get a Clear Price', desc: 'No surprises, no hidden fees.' },
+                { num: '3', icon: CalendarIcon, title: 'Pick a Time', desc: 'Choose a day that works and we'll be there.' },
+              ] : [
                 { num: '1', icon: CameraIcon, title: 'Snap a Few Photos', desc: 'Show us what needs to go.' },
                 { num: '2', icon: ClipboardIcon, title: 'Get a Firm Price', desc: 'No surprises, no upsells.' },
                 { num: '3', icon: TruckIcon, title: 'We Haul It All', desc: 'Pick a time. We handle everything.' },
-              ].map(s => (
+              ]).map(s => (
                 <div key={s.num} className="bg-gray-900/50 border border-gray-800/60 rounded-2xl p-8">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: accentColor }}>
@@ -761,7 +764,7 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
                         </span>
                         <span className="text-gray-500 text-sm mt-1 block">
                           {form.photos.length === 0
-                            ? `Upload at least ${minPhotos} photos of your items`
+                            ? `Upload at least ${minPhotos} photo${minPhotos === 1 ? '' : 's'} of ${isHandyman ? 'the work area' : 'your items'}`
                             : `${form.photos.length}/10 photos (${Math.max(0, minPhotos - form.photos.length)} more required)`
                           }
                         </span>
@@ -808,12 +811,12 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                             </svg>
-                            Identifying items...
+                            {isHandyman ? 'Analyzing photos...' : 'Identifying items...'}
                           </>
                         ) : (
                           <>
                             <SparkleIcon className="w-5 h-5 text-green-400" />
-                            Auto-detect items from photos
+                            {isHandyman ? 'Describe what you see' : 'Auto-detect items from photos'}
                           </>
                         )}
                       </button>
@@ -823,7 +826,7 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
                       <div className="bg-gray-900/60 rounded-2xl p-4 space-y-2 border border-gray-800/60 ring-1 ring-white/[0.02]">
                         <div className="flex items-center gap-2 mb-3">
                           <SparkleIcon className="w-4 h-4 text-green-400" />
-                          <span className="text-sm font-bold text-white">Items detected - confirm or edit:</span>
+                          <span className="text-sm font-bold text-white">{isHandyman ? 'Work detected - confirm or edit:' : 'Items detected - confirm or edit:'}</span>
                         </div>
                         {aiItems.map((item, i) => (
                           <div key={i} className="flex items-center gap-2 bg-gray-800/60 rounded-xl p-2.5">
@@ -855,7 +858,7 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
 
                     {aiItems && aiItems.length === 0 && (
                       <p className="text-sm text-gray-500 text-center py-2">
-                        Couldn't auto-detect items. No worries - just describe them in the next step.
+                        {isHandyman ? "Couldn't identify the work from photos. No worries - just describe it in the next step." : "Couldn't auto-detect items. No worries - just describe them in the next step."}
                       </p>
                     )}
 
