@@ -32,7 +32,7 @@ type AuthState = {
     contactName?: string;
   }) => Promise<SendCodeResult>;
   verifyEmailCode: (email: string, code: string, verificationType?: string) => Promise<{ error: string | null }>;
-  provisionContractor: (input: { businessName: string; contactName?: string }) => Promise<{ error: string | null }>;
+  provisionContractor: (input: { businessName: string; contactName?: string; vertical?: string }) => Promise<{ error: string | null }>;
   refreshBusiness: () => Promise<BusinessContext | null>;
   signOut: () => Promise<void>;
 };
@@ -186,7 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: friendlyAuthError(error?.message ?? null) };
   }, []);
 
-  const provisionContractor = useCallback(async (input: { businessName: string; contactName?: string }) => {
+  const provisionContractor = useCallback(async (input: { businessName: string; contactName?: string; vertical?: string }) => {
     const { data: { session: current } } = await supabase.auth.getSession();
     const token = current?.access_token;
     if (!token) return { error: 'Sign-in expired. Request a new code.' };

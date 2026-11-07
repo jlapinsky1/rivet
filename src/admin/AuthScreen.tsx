@@ -31,6 +31,7 @@ export default function AuthScreen({
   const { sendEmailCode, verifyEmailCode, provisionContractor, refreshBusiness } = useAuth();
   const [step, setStep] = useState<Step>(sessionEmail ? 'finish' : 'details');
   const [businessName, setBusinessName] = useState('');
+  const [vertical, setVertical] = useState<'handyman' | 'junk_removal'>('handyman');
   const [contactName, setContactName] = useState('');
   const [email, setEmail] = useState(sessionEmail || '');
   const [code, setCode] = useState('');
@@ -72,7 +73,7 @@ export default function AuthScreen({
     }
 
     if (mode === 'signup') {
-      const provisioned = await provisionContractor({ businessName, contactName });
+      const provisioned = await provisionContractor({ businessName, contactName, vertical });
       if (provisioned.error) {
         setError(provisioned.error);
         setStep('finish');
@@ -90,7 +91,7 @@ export default function AuthScreen({
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const provisioned = await provisionContractor({ businessName, contactName });
+    const provisioned = await provisionContractor({ businessName, contactName, vertical });
     if (provisioned.error) {
       setError(provisioned.error);
       setLoading(false);
@@ -158,6 +159,18 @@ export default function AuthScreen({
                     autoComplete="organization"
                     placeholder="Northside Handyman"
                   />
+                </div>
+                <div className="login-field">
+                  <label htmlFor="vertical">What type of business?</label>
+                  <select
+                    id="vertical"
+                    value={vertical}
+                    onChange={e => setVertical(e.target.value as 'handyman' | 'junk_removal')}
+                    required
+                  >
+                    <option value="handyman">Handyman</option>
+                    <option value="junk_removal">Junk Removal</option>
+                  </select>
                 </div>
                 <div className="login-field">
                   <label htmlFor="contact-name">Your name</label>

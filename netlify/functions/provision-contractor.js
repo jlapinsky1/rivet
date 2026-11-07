@@ -21,6 +21,7 @@ export default async function handler(req) {
       user,
       businessName: body?.businessName,
       contactName: body?.contactName,
+      vertical: body?.vertical,
     });
 
     return jsonResponse(result.body, result.status);

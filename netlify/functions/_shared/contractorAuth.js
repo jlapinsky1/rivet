@@ -223,7 +223,10 @@ export async function sendContractorCodeEmail({ to, code }) {
   }
 }
 
-export async function provisionContractorBusiness({ supabase, user, businessName, contactName }) {
+const VALID_VERTICALS = ['handyman', 'junk_removal'];
+
+export async function provisionContractorBusiness({ supabase, user, businessName, contactName, vertical }) {
+  const resolvedVertical = VALID_VERTICALS.includes(vertical) ? vertical : 'handyman';
   const { data: membership, error: memReadErr } = await supabase
     .from('business_memberships')
     .select('business_id')
@@ -249,7 +252,7 @@ export async function provisionContractorBusiness({ supabase, user, businessName
         owner_user_id: user.id,
         name: nameCheck.name,
         slug,
-        vertical: 'handyman',
+        vertical: resolvedVertical,
         timezone: 'America/New_York',
         settings: {},
       })
