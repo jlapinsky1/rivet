@@ -3,7 +3,6 @@ import {
   jsonResponse, errorResponse,
 } from './_shared/supabase.js';
 import { evaluateZip, loadServiceAreaConfig } from './_shared/serviceArea.js';
-import { processBooking } from './_shared/processBooking.js';
 
 export default async function handler(req) {
   if (req.method !== 'POST') return errorResponse('Method not allowed', 405);
@@ -322,22 +321,8 @@ export default async function handler(req) {
       }).catch(err => console.error('Geocode fire-and-forget failed (non-fatal):', err.message));
     }
 
-    // Handyman accounts: score the request through the estimator (direct call).
-    try {
-      const { data: bizRow } = await supabase
-        .from('businesses')
-        .select('vertical')
-        .eq('id', businessId)
-        .single();
-      if (bizRow?.vertical === 'handyman') {
-        const result = await processBooking(booking.id, businessId);
-        console.log('processBooking result:', result);
-      }
-    } catch (err) {
-      console.error('Handyman scoring failed (non-fatal):', err.message);
-    }
-
-    return jsonResponse({ bookingId: booking.id }, 201);
+    // Return immediately — scoring runs separately via /api/process-handyman-booking.
+    return jsonResponse({ bookingId: booking.id, businessId }, 201);
   } catch (e) {
     console.error('create-booking error:', e);
     return errorResponse('Server error', 500);

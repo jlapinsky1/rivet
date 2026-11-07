@@ -273,6 +273,14 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
       if (isEmbed) {
         window.parent.postMessage({ type: 'rivet-submitted', bookingId: result.bookingId || result.id }, '*');
       }
+      // Fire-and-forget: score the booking into a work item (non-blocking).
+      if (result.bookingId && result.businessId) {
+        fetch('/api/process-handyman-booking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingId: result.bookingId, businessId: result.businessId }),
+        }).catch(() => {});
+      }
     } catch (err) {
       setSubmitError(err.message || 'Submission failed. Please try again.');
     } finally {
