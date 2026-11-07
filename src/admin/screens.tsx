@@ -9,7 +9,7 @@ import { useGoalData } from './useGoalData';
 import { MetricCard, WorkRecommendationCard, WorkRow, RecPill, StatusBadge, sourceLabel } from './components';
 import { DecisionLab, isDecisionLabEnabled } from './DecisionLab';
 import {
-  ArrowRight, Building2, CalendarDays, ChevronDown, ChevronRight,
+  ArrowRight, Building2, ChevronDown, ChevronRight,
   Clock3, Copy, ExternalLink, Filter, MapPin, Phone, Mail, Plus, TrendingUp,
   User, Wallet, Zap, Briefcase, DollarSign, Target, Percent, Clock,
 } from 'lucide-react';
@@ -24,11 +24,6 @@ export function HomeScreen({ onOpenItem }: { onOpenItem: (item: WorkItem) => voi
   const lead = needsReview[0];
 
   const fmt = (n: number) => '$' + n.toLocaleString();
-  const paceClass = goal.paceStatus === 'ahead' || goal.paceStatus === 'achieved' ? 'ahead'
-    : goal.paceStatus === 'behind' ? 'behind'
-    : goal.paceStatus === 'at_risk' ? 'at-risk'
-    : 'on-pace';
-
   return (
     <div className="dashboard">
       <p className="dashboard-intro">Here's what matters today.</p>
@@ -60,18 +55,18 @@ export function HomeScreen({ onOpenItem }: { onOpenItem: (item: WorkItem) => voi
           icon={Briefcase}
         />
       </section>
-      <div className="content-grid">
-        <div className="primary-column">
-          <div className="section-title-row">
-            <div><span className="section-kicker">Your next best move</span><h2>Action needed</h2></div>
-            <span className="attention-count">{needsReview.length} to review</span>
+      <div className="action-section">
+        <div className="section-title-row">
+          <div><span className="section-kicker">Your next best move</span><h2>Action needed</h2></div>
+          {needsReview.length > 0 && <span className="attention-count">{needsReview.length} to review</span>}
+        </div>
+        {lead && <WorkRecommendationCard item={lead} onView={() => onOpenItem(lead)} />}
+        {!lead && !loading && (
+          <div className="empty-state">
+            <p>No jobs need review right now.</p>
           </div>
-          {lead && <WorkRecommendationCard item={lead} onView={() => onOpenItem(lead)} />}
-          {!lead && !loading && (
-            <div className="empty-state">
-              <p>No jobs need review right now.</p>
-            </div>
-          )}
+        )}
+        {needsReview.length > 1 && (
           <section className="leads-section">
             <div className="section-title-row">
               <div><span className="section-kicker">Keep moving</span><h2>Other work</h2></div>
@@ -80,44 +75,7 @@ export function HomeScreen({ onOpenItem }: { onOpenItem: (item: WorkItem) => voi
               {needsReview.slice(1).map((item) => <WorkRow key={item.id} item={item} onClick={() => onOpenItem(item)} />)}
             </div>
           </section>
-        </div>
-        <aside className="right-column">
-          <section className="goal-card">
-            <div className="section-title-row">
-              <div><span className="section-kicker">This week</span><h2>Weekly goal</h2></div>
-              {goal.hasGoal && <span className={`pace-badge ${paceClass}`}>{goal.paceLabel}</span>}
-            </div>
-            {goal.hasGoal ? (
-              <>
-                <div className="goal-numbers"><strong>{fmt(goal.earnedThisWeek)}</strong><span>/ {fmt(goal.weeklyTarget)}</span></div>
-                <div className="goal-progress"><span style={{ width: `${goal.progressPct}%` }} /></div>
-                <div className="goal-footer"><span>{goal.progressPct}% of goal</span><strong>{goal.jobsBooked} jobs booked</strong></div>
-                {goal.neededPerHour > 0 && (
-                  <p className="goal-insight">You need about <strong>${goal.neededPerHour} of profit</strong> per remaining hour to hit your goal.</p>
-                )}
-              </>
-            ) : (
-              <p className="goal-insight">Set a goal in Settings to track your progress here.</p>
-            )}
-          </section>
-          <section className="schedule-card">
-            <div className="section-title-row">
-              <div><span className="section-kicker">Up next</span><h2>Schedule</h2></div>
-              <CalendarDays size={19} className="muted-icon" />
-            </div>
-            {workItems.filter(w => w.opStatus === 'scheduled').slice(0, 3).map((item) => (
-              <div key={item.id} className="schedule-item" onClick={() => onOpenItem(item)} style={{ cursor: 'pointer' }}>
-                <div className="schedule-date"><strong>{item.preferredDate?.slice(0, 3).toUpperCase() || 'TBD'}</strong></div>
-                <div><strong>{item.title}</strong><small>{item.customerName} · {item.hours}</small></div>
-              </div>
-            ))}
-            {workItems.filter(w => w.opStatus === 'scheduled').length === 0 && (
-              <div className="schedule-item">
-                <div><strong>No scheduled jobs</strong><small className="success-text">Schedule is open</small></div>
-              </div>
-            )}
-          </section>
-        </aside>
+        )}
       </div>
     </div>
   );
