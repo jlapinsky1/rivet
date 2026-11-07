@@ -335,14 +335,14 @@ export function CustomersScreen() {
 /* ===== REPORTS ===== */
 export function ReportsScreen() {
   const reportMetrics = [
-    { label: 'Revenue', value: '$12,840', detail: 'Last 30 days', icon: DollarSign },
-    { label: 'Cash profit', value: '$7,320', detail: '57% margin', icon: Wallet },
-    { label: 'Profit / hour', value: '$58/hr', detail: 'Across all jobs', icon: Clock },
-    { label: 'Goal performance', value: '102%', detail: 'On track this month', icon: Target },
-    { label: 'Win rate', value: '68%', detail: 'Quotes accepted', icon: Percent },
-    { label: 'Avg job value', value: '$780', detail: 'Per completed job', icon: TrendingUp },
-    { label: 'Capacity utilization', value: '74%', detail: 'Of available hours', icon: Zap },
-    { label: 'Pipeline value', value: '$4,200', detail: 'Pending quotes', icon: Briefcase },
+    { label: 'Revenue', value: '$0', detail: 'Last 30 days', icon: DollarSign },
+    { label: 'Cash profit', value: '$0', detail: '--', icon: Wallet },
+    { label: 'Profit / hour', value: '$0/hr', detail: 'Across all jobs', icon: Clock },
+    { label: 'Goal performance', value: '0%', detail: 'No data yet', icon: Target },
+    { label: 'Win rate', value: '0%', detail: 'Quotes accepted', icon: Percent },
+    { label: 'Avg job value', value: '$0', detail: 'Per completed job', icon: TrendingUp },
+    { label: 'Capacity utilization', value: '0%', detail: 'Of available hours', icon: Zap },
+    { label: 'Pipeline value', value: '$0', detail: 'Pending quotes', icon: Briefcase },
   ];
   return (
     <div className="dashboard">
@@ -373,7 +373,7 @@ export function ReportsScreen() {
       <div className="report-chart-section">
         <div className="section-title-row"><div><span className="section-kicker">Trends</span><h2>Revenue vs profit</h2></div></div>
         <div className="report-chart">
-          {[40, 55, 48, 62, 58, 70, 65, 78, 72, 85, 80, 92].map((h, i) => (
+          {[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0].map((h, i) => (
             <div key={i} className="chart-bar-group">
               <div className="chart-bars">
                 <div className="chart-bar revenue" style={{ height: `${h}%` }} />
