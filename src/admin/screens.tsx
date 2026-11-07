@@ -612,11 +612,13 @@ function QuoteFormSettings({ settings, onSave }: { settings: any; onSave: (updat
       {/* Section D: Field Configuration */}
       <h4 style={{ marginTop: 28 }}>Optional Fields</h4>
       {([
-        { key: 'stairs', label: 'Stairs question' },
-        { key: 'elevator', label: 'Elevator question' },
+        ...(formVertical !== 'handyman' ? [
+          { key: 'stairs', label: 'Stairs question' },
+          { key: 'elevator', label: 'Elevator question' },
+        ] : []),
         { key: 'description', label: 'Description field' },
         { key: 'secondChoiceDate', label: 'Second choice date' },
-      ] as const).map(({ key, label }) => (
+      ] as { key: string; label: string }[]).map(({ key, label }) => (
         <div key={key} className="settings-field">
           <label>{label}</label>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -649,14 +651,18 @@ function QuoteFormSettings({ settings, onSave }: { settings: any; onSave: (updat
       ))}
 
       <h4 style={{ marginTop: 28 }}>Field Labels</h4>
-      <div className="settings-field">
-        <label>Quantity question</label>
-        <input type="text" value={qfc.fields.quantity.label} onChange={e => updateConfig('fields.quantity.label', e.target.value)} />
-      </div>
-      <div className="settings-field">
-        <label>Access type question</label>
-        <input type="text" value={qfc.fields.accessType.label} onChange={e => updateConfig('fields.accessType.label', e.target.value)} />
-      </div>
+      {formVertical !== 'handyman' && (
+        <>
+          <div className="settings-field">
+            <label>Quantity question</label>
+            <input type="text" value={qfc.fields.quantity.label} onChange={e => updateConfig('fields.quantity.label', e.target.value)} />
+          </div>
+          <div className="settings-field">
+            <label>Access type question</label>
+            <input type="text" value={qfc.fields.accessType.label} onChange={e => updateConfig('fields.accessType.label', e.target.value)} />
+          </div>
+        </>
+      )}
       <div className="settings-field">
         <label>Time preference question</label>
         <input type="text" value={qfc.fields.timePreference.label} onChange={e => updateConfig('fields.timePreference.label', e.target.value)} />
