@@ -129,12 +129,12 @@ export default function AuthScreen({
         : 'Sign in';
 
   const subtitle = step === 'code'
-    ? `We sent a one-time code to ${email}.`
+    ? `We sent a new one-time code to ${email}. It works once.`
     : step === 'finish'
       ? 'You are signed in. Name the business to open Rivet.'
       : mode === 'signup'
-        ? 'For contractors. We’ll email a one-time code. No password.'
-        : 'We’ll email you a one-time code. No password.';
+        ? 'For contractors. We’ll email a new one-time code. No password.'
+        : 'We’ll email a new one-time code. No password.';
 
   return (
     <div className="login-page">
@@ -225,7 +225,7 @@ export default function AuthScreen({
               {loading ? 'Checking...' : mode === 'signup' && !existingAccount ? 'Create account' : 'Sign in'}
             </button>
             <button type="button" className="login-text-btn" onClick={handleResend} disabled={loading}>
-              Resend code
+              Email a new code
             </button>
             <button
               type="button"

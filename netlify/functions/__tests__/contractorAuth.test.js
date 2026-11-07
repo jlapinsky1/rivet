@@ -181,6 +181,44 @@ describe('issueContractorOtp', () => {
 });
 
 describe('sign-in email', () => {
+  it('mints a different code on every request', async () => {
+    const codes = ['111111', '222222'];
+    let n = 0;
+    const sent = [];
+    const supabase = {
+      auth: {
+        admin: {
+          generateLink: async () => ({
+            data: {
+              properties: {
+                email_otp: codes[n++],
+                verification_type: 'magiclink',
+                action_link: 'https://example.test/secret',
+              },
+            },
+            error: null,
+          }),
+        },
+      },
+    };
+
+    await issueContractorOtp({
+      supabase,
+      intent: 'login',
+      email: 'mason@myrivet.io',
+      sendEmail: async (msg) => { sent.push(msg.code); },
+    });
+    await issueContractorOtp({
+      supabase,
+      intent: 'login',
+      email: 'mason@myrivet.io',
+      sendEmail: async (msg) => { sent.push(msg.code); },
+    });
+
+    expect(sent).toEqual(['111111', '222222']);
+    expect(n).toBe(2);
+  });
+
   it('includes the code and does not include a password or the raw auth link', () => {
     const message = buildContractorCodeEmail({ code: OTP });
     expect(message.subject).toMatch(/code/i);

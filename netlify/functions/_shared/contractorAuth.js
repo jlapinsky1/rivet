@@ -1,9 +1,11 @@
 /**
- * Contractor sign-up and sign-in via one-time email codes.
+ * Contractor sign-up and sign-in via Supabase email one-time passwords.
  *
- * No password is collected or written. The account email lives in Supabase
- * Auth so the code can be delivered and the person recognized on return.
- * The one-time code is hashed by Supabase and expires; this app does not store it.
+ * Every request calls GoTrue generateLink, which mints a new code and
+ * replaces the previous one. GoTrue stores only a hash. verifyOtp burns
+ * the code, so it cannot be used again. This app never stores the code
+ * or a password. The account email lives in Supabase Auth so the code
+ * can be delivered.
  */
 
 export function normalizeEmail(email) {
@@ -108,8 +110,8 @@ export async function allocateSlug(supabase, name) {
 }
 
 /**
- * Create a passwordless auth user when signing up, then issue a one-time code.
- * Login never creates a user. The code is handed only to sendEmail.
+ * Mint a fresh one-time code. Login never creates a user.
+ * The code is passed only to sendEmail and is not returned to the browser.
  */
 export async function issueContractorOtp({ supabase, intent, email, sendEmail }) {
   let createdNew = false;
@@ -184,7 +186,8 @@ export function buildContractorCodeEmail({ code }) {
         <div style="font-size:20px;font-weight:800;letter-spacing:-0.02em;">Rivet</div>
         <h1 style="font-size:22px;font-weight:800;margin:24px 0 8px;">Your sign-in code</h1>
         <p style="color:#5c6b62;font-size:14px;line-height:1.6;margin:0 0 24px;">
-          Enter this code to continue. It expires in one hour.
+          Enter this code to continue. It works once, then it expires.
+          If you request another code, this one stops working.
         </p>
         <div style="font-size:32px;font-weight:800;letter-spacing:0.28em;background:#ffffff;border:1px solid #e6e3dc;border-radius:12px;padding:16px 20px;text-align:center;">
           ${safeCode}
