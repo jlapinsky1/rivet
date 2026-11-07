@@ -3,7 +3,7 @@ import {
   jsonResponse, errorResponse,
 } from './_shared/supabase.js';
 import { evaluateZip, loadServiceAreaConfig } from './_shared/serviceArea.js';
-import { processBooking } from './process-handyman-booking.ts';
+import { processBooking } from './_shared/processBooking.js';
 
 export default async function handler(req) {
   if (req.method !== 'POST') return errorResponse('Method not allowed', 405);
