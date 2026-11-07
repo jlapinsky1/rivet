@@ -486,6 +486,19 @@ function QuoteFormSettings({ settings, onSave }: { settings: any; onSave: (updat
   const slug = settings.slug || business?.slug || 'your-business';
   const publicUrl = `${window.location.origin}/request/${slug}`;
   const [copied, setCopied] = useState(false);
+  const [copiedEmbed, setCopiedEmbed] = useState<string | null>(null);
+
+  const origin = window.location.origin;
+  const popupSnippet = `<script src="${origin}/embed.js" data-business="${slug}" data-mode="popup"></script>`;
+  const inlineSnippet = `<div id="rivet-quote"></div>\n<script src="${origin}/embed.js" data-business="${slug}"></script>`;
+  const directLink = publicUrl;
+
+  function copyEmbed(text: string, label: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedEmbed(label);
+      setTimeout(() => setCopiedEmbed(null), 2000);
+    });
+  }
 
   function updateConfig(path: string, value: any) {
     const parts = path.split('.');
@@ -550,6 +563,63 @@ function QuoteFormSettings({ settings, onSave }: { settings: any; onSave: (updat
             </a>
           </div>
         </div>
+      )}
+
+      {qfc.published && (
+        <>
+          <h4 style={{ marginTop: 28 }}>Add to your website</h4>
+          <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 16, lineHeight: 1.5 }}>
+            Paste one of these snippets into your website to let customers request quotes.
+          </p>
+
+          <div className="settings-field">
+            <label>Option 1: Popup button</label>
+            <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 8px' }}>
+              Adds a "Request a Quote" button that opens the form in a popup.
+            </p>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+              <code style={{ flex: 1, fontSize: 11, color: '#d1d5db', background: '#1f2937', padding: '10px 12px', borderRadius: 8, whiteSpace: 'pre-wrap', wordBreak: 'break-all', lineHeight: 1.5 }}>
+                {popupSnippet}
+              </code>
+              <button onClick={() => copyEmbed(popupSnippet, 'popup')} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #374151', background: 'transparent', cursor: 'pointer', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                <Copy size={14} />
+                <span style={{ fontSize: 12 }}>{copiedEmbed === 'popup' ? 'Copied!' : 'Copy'}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="settings-field">
+            <label>Option 2: Inline form</label>
+            <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 8px' }}>
+              Embeds the full form directly in your page.
+            </p>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+              <code style={{ flex: 1, fontSize: 11, color: '#d1d5db', background: '#1f2937', padding: '10px 12px', borderRadius: 8, whiteSpace: 'pre-wrap', wordBreak: 'break-all', lineHeight: 1.5 }}>
+                {inlineSnippet}
+              </code>
+              <button onClick={() => copyEmbed(inlineSnippet, 'inline')} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #374151', background: 'transparent', cursor: 'pointer', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                <Copy size={14} />
+                <span style={{ fontSize: 12 }}>{copiedEmbed === 'inline' ? 'Copied!' : 'Copy'}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="settings-field">
+            <label>Option 3: Direct link</label>
+            <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 8px' }}>
+              Link directly to your hosted form page from any button or menu.
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <code style={{ flex: 1, fontSize: 11, color: '#d1d5db', background: '#1f2937', padding: '10px 12px', borderRadius: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {directLink}
+              </code>
+              <button onClick={() => copyEmbed(directLink, 'link')} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #374151', background: 'transparent', cursor: 'pointer', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                <Copy size={14} />
+                <span style={{ fontSize: 12 }}>{copiedEmbed === 'link' ? 'Copied!' : 'Copy'}</span>
+              </button>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Section B: Branding */}
