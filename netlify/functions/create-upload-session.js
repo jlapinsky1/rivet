@@ -54,16 +54,27 @@ export default async function handler(req) {
     // Create session (expires in 2 hours)
     const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
 
-    const { data, error } = await supabase
+    const row = {
+      ip_address: ip,
+      turnstile_verified: !!turnstileToken,
+      expires_at: expiresAt,
+    };
+
+    // Try with business_id first; fall back without if column doesn't exist yet
+    let data, error;
+    ({ data, error } = await supabase
       .from('upload_sessions')
-      .insert({
-        business_id: businessId,
-        ip_address: ip,
-        turnstile_verified: !!turnstileToken,
-        expires_at: expiresAt,
-      })
+      .insert({ ...row, business_id: businessId })
       .select('id, max_photos, max_file_bytes, expires_at')
-      .single();
+      .single());
+
+    if (error && error.message?.includes('business_id')) {
+      ({ data, error } = await supabase
+        .from('upload_sessions')
+        .insert(row)
+        .select('id, max_photos, max_file_bytes, expires_at')
+        .single());
+    }
 
     if (error) {
       console.error('Session creation error:', error, 'businessId:', businessId);
