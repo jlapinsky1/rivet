@@ -157,13 +157,13 @@ export function suggestTunes(input: {
   }
 
   if (out.length === 0) {
-    out.push('Misses are sparse. No assembly or rule change this week — watch another week.');
+    out.push('Misses are sparse. No assembly or rule change this week. Watch another week.');
   }
   return out;
 }
 
 export function renderTuningReportMarkdown(report: TuningReport, narrative?: string): string {
-  const pct = report.decisions === 0 ? '—' : `${Math.round(report.missRate * 100)}%`;
+  const pct = report.decisions === 0 ? '-' : `${Math.round(report.missRate * 100)}%`;
   const reasonLines = Object.entries(report.reasons)
     .sort((a, b) => b[1] - a[1])
     .map(([code, n]) => `| ${code} | ${n} |`)
@@ -173,7 +173,7 @@ export function renderTuningReportMarkdown(report: TuningReport, narrative?: str
     .map(([name, v]) => `| ${name} | ${v.decisions} | ${v.misses} |`)
     .join('\n');
   const missLines = report.missRows
-    .map(r => `| ${r.decidedAt.slice(0, 10)} | ${r.projectFamily} | ${r.rec} | ${r.action} | ${r.reasonCode ?? '—'} | ${r.rivetPrice} | ${r.ownerPrice ?? '—'} |`)
+    .map(r => `| ${r.decidedAt.slice(0, 10)} | ${r.projectFamily} | ${r.rec} | ${r.action} | ${r.reasonCode ?? '-'} | ${r.rivetPrice} | ${r.ownerPrice ?? '-'} |`)
     .join('\n');
 
   return `# Weekly tuning report
@@ -194,18 +194,18 @@ ${narrative ? `\n## Notes\n\n${narrative}\n` : ''}
 
 | Code | Count |
 | --- | ---: |
-${reasonLines || '| — | 0 |'}
+${reasonLines || '| - | 0 |'}
 
 ## By family
 
 | Family | Decisions | Misses |
 | --- | ---: | ---: |
-${familyLines || '| — | 0 | 0 |'}
+${familyLines || '| - | 0 | 0 |'}
 
 ## Miss rows
 
 | Date | Family | Rec | Action | Reason | Rivet $ | Owner $ |
 | --- | --- | --- | --- | --- | ---: | ---: |
-${missLines || '| — | — | — | — | — | — | — |'}
+${missLines || '| - | - | - | - | - | - | - |'}
 `;
 }

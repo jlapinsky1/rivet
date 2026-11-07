@@ -128,8 +128,14 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   const isCommercial = item.source === 'commercial_work_order';
   const copy = recCopy(item.recommendation, item.rate, item.suggestedPrice, item.price, item.lookFirst, item.walkAwayPrice);
 
+  const contactHref = item.phone
+    ? `tel:${item.phone.replace(/\s/g, '')}`
+    : item.email
+      ? `mailto:${item.email}`
+      : null;
+
   const ctaLabel = item.recommendation === 'review'
-    ? 'Mark as contacted'
+    ? (item.phone ? `Call ${item.phone}` : item.email ? `Email ${item.email}` : 'Contact Customer')
     : isCommercial
       ? `Accept Work Order - $${price.toLocaleString()}`
       : `Create Quote - $${price.toLocaleString()}`;
@@ -300,7 +306,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
           ) : (
             <div className="detail-section review-contact-prompt">
               <div className="section-heading"><h3>Contact customer</h3></div>
-              <p className="review-contact-note">Don't send a number yet — reach out to get the details you need first.</p>
+              <p className="review-contact-note">Don't send a number yet. Reach out to get the details you need first.</p>
             </div>
           )}
           <div className="detail-section">
@@ -466,13 +472,19 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
           <button className="btn-secondary" onClick={requestDecline} disabled={actionLoading || !!actionPrompt}>
             Decline
           </button>
-          <button className={`btn-primary-cta ${item.recommendation}`} onClick={requestApprove} disabled={actionLoading || !!actionPrompt}>
-            {actionLoading ? (
-              <><Loader2 size={17} className="spin" /> Processing...</>
-            ) : (
-              <>{ctaLabel}<ArrowRight size={17} /></>
-            )}
-          </button>
+          {item.recommendation === 'review' && contactHref ? (
+            <a className={`btn-primary-cta ${item.recommendation}`} href={contactHref}>
+              {ctaLabel}<ArrowRight size={17} />
+            </a>
+          ) : (
+            <button className={`btn-primary-cta ${item.recommendation}`} onClick={requestApprove} disabled={actionLoading || !!actionPrompt}>
+              {actionLoading ? (
+                <><Loader2 size={17} className="spin" /> Processing...</>
+              ) : (
+                <>{ctaLabel}<ArrowRight size={17} /></>
+              )}
+            </button>
+          )}
         </div>
       </aside>
     </div>

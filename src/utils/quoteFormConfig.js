@@ -168,7 +168,7 @@ function getHandymanDefaults() {
       description: {
         enabled: true,
         label: 'What needs to be done?',
-        placeholder: 'Describe the job — for example, patch two holes in drywall, mount a 65" TV, reset fence posts…',
+        placeholder: 'Describe the job - for example, patch two holes in drywall, mount a 65" TV, reset fence posts...',
       },
       secondChoiceDate: { enabled: true },
       email: { required: false },

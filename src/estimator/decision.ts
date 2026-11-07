@@ -45,7 +45,7 @@ function lookFirstFor(job: EconomicJob, lowConfidence: boolean): string | null {
   if (job.riskFlags.includes('unsupported_task_component')) {
     return "the specific work needed";
   }
-  if (lowConfidence) return "the full scope — more detail or a site visit is needed";
+  if (lowConfidence) return "the full scope - more detail or a site visit is needed";
   return null;
 }
 

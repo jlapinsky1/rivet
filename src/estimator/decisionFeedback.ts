@@ -38,7 +38,7 @@ export function recReasonPrompt(
     return {
       title: 'We said Pass. Why take it?',
       options: [
-        { code: 'REC_OVERRIDE_PASS', label: 'Wrong call — I can take this' },
+        { code: 'REC_OVERRIDE_PASS', label: 'Wrong call, I can take this' },
         { code: 'OWNER_EXPERIENCE', label: 'My experience says this is fine' },
         { code: 'OTHER', label: 'Other' },
       ],
@@ -49,7 +49,7 @@ export function recReasonPrompt(
     return {
       title: 'We said look first. What did you decide?',
       options: [
-        { code: 'REC_LOOK_FIRST_CLEAR', label: 'Looked — nothing to worry about' },
+        { code: 'REC_LOOK_FIRST_CLEAR', label: 'Looked, nothing to worry about' },
         { code: 'REC_SHOULD_HAVE_SENT', label: 'You should have just sent it' },
         { code: 'OTHER', label: 'Other' },
       ],

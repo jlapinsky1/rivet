@@ -97,9 +97,9 @@ export function defaultWeekScenarios(budget: SoloHandymanBudget): WeekScenario[]
   const goal = budget.weeklyGoal;
   const hours = budget.weeklyHours;
   return [
-    { id: 'monday', label: 'Monday — empty week', earned: 0, remainingHours: hours },
-    { id: 'midweek', label: 'Midweek — on pace', earned: Math.round(goal * 0.72), remainingHours: Math.round(hours * 0.69) },
-    { id: 'friday', label: 'Friday — behind, hours left scarce', earned: Math.round(goal * 0.76), remainingHours: 6 },
+    { id: 'monday', label: 'Monday: empty week', earned: 0, remainingHours: hours },
+    { id: 'midweek', label: 'Midweek: on pace', earned: Math.round(goal * 0.72), remainingHours: Math.round(hours * 0.69) },
+    { id: 'friday', label: 'Friday: behind, hours left scarce', earned: Math.round(goal * 0.76), remainingHours: 6 },
   ];
 }
 
@@ -251,8 +251,8 @@ export function renderSimulationMarkdown(report: SimulationReport): string {
     ln('| ID | Title | Truck | If they push | Owner sent | Feel? |');
     ln('| --- | --- | --- | ---: | ---: | --- |');
     for (const job of sc.jobs) {
-      const owner = job.ownerQuoted != null ? `$${job.ownerQuoted}` : '—';
-      const low = job.walkAwayPrice != null ? `$${job.walkAwayPrice}` : '—';
+      const owner = job.ownerQuoted != null ? `$${job.ownerQuoted}` : '-';
+      const low = job.walkAwayPrice != null ? `$${job.walkAwayPrice}` : '-';
       ln(`| ${job.id} | ${job.title} | **${job.truck}** | ${low} | ${owner} | |`);
     }
     ln('');
