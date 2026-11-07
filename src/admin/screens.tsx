@@ -193,7 +193,7 @@ export function WorkScreen({ onOpenItem }: { onOpenItem: (item: WorkItem) => voi
         <div className="lead-list">
           {filtered.map((item) => (
             <button key={item.id} className="work-list-row" onClick={() => onOpenItem(item)}>
-              <div className="work-list-thumb"><img src={item.photos[0]} alt={item.title} loading="lazy" /></div>
+              <div className="work-list-thumb">{item.photos[0] ? <img src={item.photos[0]} alt={item.title} loading="lazy" /> : <div className="work-list-thumb-placeholder" />}</div>
               <div className="work-list-main">
                 <div className="work-list-top"><span className={`source-tag ${item.source === 'commercial_work_order' ? 'commercial' : 'residential'}`}>{sourceLabel(item.source)}</span></div>
                 <strong>{item.title}</strong>

@@ -134,7 +134,21 @@ export async function processBooking(bookingId, businessId) {
       { label: 'Travel', value: `$${Math.round(economicJob.travelCost)}` },
     ],
     reasons: decision.reasons,
-    photos: [],
+    photos: await (async () => {
+      const { data: bPhotos } = await supabase
+        .from('booking_photos')
+        .select('storage_path')
+        .eq('booking_id', bookingId)
+        .order('sort_order');
+      if (!bPhotos?.length) return [];
+      const urls = await Promise.all(
+        bPhotos.map(p =>
+          supabase.storage.from('booking-photos').createSignedUrl(p.storage_path, 604800)
+            .then(({ data }) => data?.signedUrl || null)
+        )
+      );
+      return urls.filter(Boolean);
+    })(),
     op_status: 'needs_review',
     billing_status: 'not_invoiced',
     preferred_date: booking.preferred_date,

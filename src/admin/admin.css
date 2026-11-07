@@ -792,6 +792,7 @@ img { display: block; max-width: 100%; }
 .work-list-row:hover { background: var(--bg-page); }
 .work-list-thumb { width: 48px; height: 48px; border-radius: var(--radius-sm); overflow: hidden; flex-shrink: 0; border: 1px solid var(--border-light); }
 .work-list-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.work-list-thumb-placeholder { width: 100%; height: 100%; background: var(--surface-raised, #e8e3da); }
 .work-list-main { min-width: 0; }
 .work-list-top { margin-bottom: 4px; }
 .work-list-main strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; color: var(--text-primary); }
