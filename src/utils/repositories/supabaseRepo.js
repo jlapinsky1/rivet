@@ -217,11 +217,11 @@ const supabaseRepo = {
   },
 
   // ── Upload session (customer, via Netlify functions) ──
-  async createUploadSession(turnstileToken) {
+  async createUploadSession(businessSlug, turnstileToken) {
     const res = await fetch('/api/create-upload-session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ turnstileToken }),
+      body: JSON.stringify({ businessSlug, turnstileToken }),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
