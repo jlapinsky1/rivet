@@ -29,13 +29,41 @@ export default function HostedQuoteForm() {
     return () => { cancelled = true; };
   }, [slug]);
 
-  // Loading
-  if (state.status === 'loading') {
-    if (isEmbed) {
+  // Embed: render form instantly with defaults, update when config arrives
+  if (isEmbed) {
+    if (state.status === 'not_found') {
       return <div style={{ padding: 40, textAlign: 'center', background: '#fff' }}>
-        <p style={{ color: '#999', fontSize: 14 }}>Loading...</p>
+        <p style={{ color: '#666', fontSize: 14 }}>This form is not available.</p>
       </div>;
     }
+    if (state.status === 'error') {
+      return <div style={{ padding: 40, textAlign: 'center', background: '#fff' }}>
+        <p style={{ color: '#666', fontSize: 14 }}>Something went wrong. Please try again.</p>
+      </div>;
+    }
+
+    // Use real config if loaded, otherwise fall back to handyman defaults
+    const vertical = state.data?.vertical === 'junk_removal' ? 'junk_removal' : 'handyman';
+    const mergedConfig = mergeQuoteFormConfig(state.data?.quoteFormConfig || null, vertical);
+    const name = state.data?.name || slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+    if (state.data && !state.data.published) {
+      return <div style={{ padding: 40, textAlign: 'center', background: '#fff' }}>
+        <p style={{ color: '#666', fontSize: 14 }}>This form is not available yet.</p>
+      </div>;
+    }
+
+    return (
+      <VerticalQuoteForm
+        config={mergedConfig}
+        businessName={name}
+        businessSlug={slug}
+      />
+    );
+  }
+
+  // Full page: keep loading/error states
+  if (state.status === 'loading') {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
         <div className="space-y-4 text-center">
@@ -46,13 +74,7 @@ export default function HostedQuoteForm() {
     );
   }
 
-  // Not found
   if (state.status === 'not_found') {
-    if (isEmbed) {
-      return <div style={{ padding: 40, textAlign: 'center', background: '#fff' }}>
-        <p style={{ color: '#666', fontSize: 14 }}>This form is not available.</p>
-      </div>;
-    }
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center px-6">
         <div className="max-w-md text-center">
@@ -63,13 +85,7 @@ export default function HostedQuoteForm() {
     );
   }
 
-  // Error
   if (state.status === 'error') {
-    if (isEmbed) {
-      return <div style={{ padding: 40, textAlign: 'center', background: '#fff' }}>
-        <p style={{ color: '#666', fontSize: 14 }}>Something went wrong. Please try again.</p>
-      </div>;
-    }
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center px-6">
         <div className="max-w-md text-center">
@@ -88,13 +104,7 @@ export default function HostedQuoteForm() {
 
   const { name, vertical, published, quoteFormConfig } = state.data;
 
-  // Unpublished
   if (!published) {
-    if (isEmbed) {
-      return <div style={{ padding: 40, textAlign: 'center', background: '#fff' }}>
-        <p style={{ color: '#666', fontSize: 14 }}>This form is not available yet.</p>
-      </div>;
-    }
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center px-6">
         <div className="max-w-md text-center">
@@ -107,11 +117,9 @@ export default function HostedQuoteForm() {
     );
   }
 
-  // Merge saved config with defaults
   const formVertical = vertical === 'handyman' ? 'handyman' : 'junk_removal';
   const mergedConfig = mergeQuoteFormConfig(quoteFormConfig, formVertical);
 
-  // Set page title
   document.title = `${name} - Request a Quote`;
 
   return (
