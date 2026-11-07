@@ -131,8 +131,10 @@ export async function issueContractorOtp({ supabase, intent, email, sendEmail })
           body: { error: 'No account for that email. Start free to create one.' },
         };
       }
-      // Invite creates a passwordless user and returns a single-use code.
-      link = await supabase.auth.admin.generateLink({ type: 'invite', email });
+      // Invite creates a passwordless user; then issue a magiclink for sign-in.
+      const invited = await supabase.auth.admin.generateLink({ type: 'invite', email });
+      if (invited.error) throw invited.error;
+      link = await supabase.auth.admin.generateLink({ type: 'magiclink', email });
     } else if (isAlreadyRegistered(magic.error)) {
       existingAccount = true;
       link = await supabase.auth.admin.generateLink({ type: 'magiclink', email });
@@ -155,7 +157,7 @@ export async function issueContractorOtp({ supabase, intent, email, sendEmail })
     body: {
       sent: true,
       existingAccount,
-      verificationType: link.data?.properties?.verification_type || (existingAccount ? 'magiclink' : 'invite'),
+      verificationType: link.data?.properties?.verification_type || 'magiclink',
     },
   };
 }

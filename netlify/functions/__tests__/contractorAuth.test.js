@@ -12,16 +12,17 @@ const OTP = '654321';
 
 function adminClient({ existing = false, missing = false, otp = OTP } = {}) {
   const calls = [];
+  let userExists = existing;
   const client = {
     calls,
     auth: {
       admin: {
         generateLink: async (args) => {
           calls.push({ method: 'generateLink', args });
-          const userMissing = missing || !existing;
-          if (args.type === 'magiclink' && userMissing) {
+          if (args.type === 'magiclink' && (missing || !userExists)) {
             return { data: null, error: { message: 'User with this email not found', status: 404, code: 'user_not_found' } };
           }
+          if (args.type === 'invite') userExists = true;
           return {
             data: {
               properties: {
@@ -98,13 +99,13 @@ describe('issueContractorOtp', () => {
       sendEmail: async (msg) => { sent.push(msg); },
     });
 
-    expect(supabase.calls.map(call => call.args.type)).toEqual(['magiclink', 'invite']);
+    expect(supabase.calls.map(call => call.args.type)).toEqual(['magiclink', 'invite', 'magiclink']);
     expect(supabase.calls.some(call => call.method === 'createUser')).toBe(false);
     expect(JSON.stringify(supabase.calls)).not.toContain('password');
     expect(sent).toEqual([{ to: 'new@shop.test', code: OTP }]);
     expect(result).toEqual({
       status: 200,
-      body: { sent: true, existingAccount: false, verificationType: 'invite' },
+      body: { sent: true, existingAccount: false, verificationType: 'magiclink' },
     });
     expect(JSON.stringify(result.body)).not.toContain(OTP);
     expect(JSON.stringify(result.body)).not.toContain('action_link');
