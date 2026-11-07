@@ -3,6 +3,7 @@ import {
   jsonResponse, errorResponse,
 } from './_shared/supabase.js';
 import { evaluateZip, loadServiceAreaConfig } from './_shared/serviceArea.js';
+import { processBooking } from './process-handyman-booking.ts';
 
 export default async function handler(req) {
   if (req.method !== 'POST') return errorResponse('Method not allowed', 405);
@@ -321,31 +322,19 @@ export default async function handler(req) {
       }).catch(err => console.error('Geocode fire-and-forget failed (non-fatal):', err.message));
     }
 
-    // Handyman accounts: score the request through the estimator.
+    // Handyman accounts: score the request through the estimator (direct call).
     try {
-      const { data: bizRow, error: bizErr } = await supabase
+      const { data: bizRow } = await supabase
         .from('businesses')
         .select('vertical')
         .eq('id', businessId)
         .single();
-      console.log('Handyman check:', { businessId, vertical: bizRow?.vertical, bizErr: bizErr?.message });
       if (bizRow?.vertical === 'handyman') {
-        const site = process.env.URL || process.env.DEPLOY_PRIME_URL || '';
-        console.log('Calling process-handyman-booking:', { site, bookingId: booking.id, businessId });
-        if (site) {
-          const scoreRes = await fetch(`${site}/api/process-handyman-booking`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ bookingId: booking.id, businessId }),
-          });
-          const scoreBody = await scoreRes.text();
-          console.log('process-handyman-booking response:', scoreRes.status, scoreBody);
-        } else {
-          console.error('No URL env var set — cannot call process-handyman-booking');
-        }
+        const result = await processBooking(booking.id, businessId);
+        console.log('processBooking result:', result);
       }
     } catch (err) {
-      console.error('Handyman scoring failed:', err.message, err.stack);
+      console.error('Handyman scoring failed (non-fatal):', err.message);
     }
 
     return jsonResponse({ bookingId: booking.id }, 201);
