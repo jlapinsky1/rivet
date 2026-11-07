@@ -580,7 +580,7 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
               {(isHandyman ? [
                 { num: '1', icon: CameraIcon, title: 'Show Us the Work', desc: 'Snap a photo and describe what needs doing.' },
                 { num: '2', icon: ClipboardIcon, title: 'Get a Clear Price', desc: 'No surprises, no hidden fees.' },
-                { num: '3', icon: CalendarIcon, title: 'Pick a Time', desc: 'Choose a day that works and we'll be there.' },
+                { num: '3', icon: CalendarIcon, title: 'Pick a Time', desc: "Choose a day that works and we'll be there." },
               ] : [
                 { num: '1', icon: CameraIcon, title: 'Snap a Few Photos', desc: 'Show us what needs to go.' },
                 { num: '2', icon: ClipboardIcon, title: 'Get a Firm Price', desc: 'No surprises, no upsells.' },
