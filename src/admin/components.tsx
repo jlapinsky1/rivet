@@ -54,10 +54,12 @@ export function billingStatusLabel(status: BillingStatus) {
 
 export function RecPill({ rec, compact, sendPrice, lookFirst }: { rec: Recommendation; compact?: boolean; sendPrice?: number; lookFirst?: string }) {
   const copy = recCopy(rec, undefined, rec === 'take_at_price' ? sendPrice : undefined, sendPrice, lookFirst);
+  // In compact (list row) mode, truncate verbose lookFirst text to just the action word.
+  const label = compact && rec === 'review' ? (lookFirst ? 'Look first' : 'Review') : copy.label;
   return (
     <span className={`rec-pill ${rec} ${compact ? 'compact' : ''}`}>
       <span className="pill-icon">{recIcon(rec)}</span>
-      {copy.label}
+      {label}
     </span>
   );
 }
