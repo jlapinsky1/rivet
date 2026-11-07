@@ -95,6 +95,7 @@ export function WorkScreen({ onOpenItem }: { onOpenItem: (item: WorkItem) => voi
   };
 
   const filtered = workItems.filter((item) => {
+    if (item.opStatus === 'declined') return false;
     const status = statusMap[filter];
     if (status && item.opStatus !== status) return false;
     if (sourceFilter !== 'All') {
