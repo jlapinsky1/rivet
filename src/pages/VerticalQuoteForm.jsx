@@ -255,7 +255,7 @@ export default function VerticalQuoteForm({ config, businessName, businessSlug }
 
       const repo = await getRepo();
       const result = await repo.createBooking({
-        sessionId: sid, idempotencyKey,
+        sessionId: sid, idempotencyKey, businessSlug,
         customerName: `${form.firstName} ${form.lastName}`.trim(),
         customerPhone: form.phone, customerEmail: form.email,
         address: form.address, city: form.city, state: form.state, zip: form.zip,

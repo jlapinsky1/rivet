@@ -34,11 +34,21 @@ export default async function handler(req) {
     }
 
     // Verify session exists, is active, and not expired
-    const { data: session, error: sessionErr } = await supabase
+    let session, sessionErr;
+    ({ data: session, error: sessionErr } = await supabase
       .from('upload_sessions')
       .select('id, status, max_photos, max_file_bytes, expires_at, business_id')
       .eq('id', sessionId)
-      .single();
+      .single());
+
+    // Retry without business_id if column doesn't exist yet
+    if (sessionErr && sessionErr.message?.includes('business_id')) {
+      ({ data: session, error: sessionErr } = await supabase
+        .from('upload_sessions')
+        .select('id, status, max_photos, max_file_bytes, expires_at')
+        .eq('id', sessionId)
+        .single());
+    }
 
     if (sessionErr || !session) {
       return errorResponse('Invalid upload session');

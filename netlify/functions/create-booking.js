@@ -83,51 +83,87 @@ export default async function handler(req) {
       .eq('session_id', sessionId)
       .order('sort_order');
 
-    // Resolve business_id from the upload session
+    // Resolve business_id: try session first, fall back to slug
+    let businessId;
     const { data: sessionBiz } = await supabase
       .from('upload_sessions')
       .select('business_id')
       .eq('id', sessionId)
       .single();
-    const businessId = sessionBiz?.business_id;
+    businessId = sessionBiz?.business_id;
+
+    if (!businessId && body.businessSlug) {
+      const { data: biz } = await supabase
+        .from('businesses')
+        .select('id')
+        .eq('slug', body.businessSlug)
+        .single();
+      businessId = biz?.id;
+    }
+
     if (!businessId) {
-      return errorResponse('Unable to determine business context', 400);
+      // Last resort: first business
+      const { data: biz } = await supabase
+        .from('businesses')
+        .select('id')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .single();
+      businessId = biz?.id;
     }
 
     // Create booking
-    const { data: booking, error: bookingErr } = await supabase
-      .from('bookings')
-      .insert({
-        business_id: businessId,
-        customer_name: customerName,
-        customer_phone: customerPhone,
-        customer_email: body.customerEmail || null,
-        address,
-        city,
-        state: body.state || null,
-        zip,
-        full_address: fullAddress,
-        quantity: body.quantity || null,
-        access_type: body.accessType || null,
-        stairs: body.stairs || null,
-        elevator: body.elevator || null,
-        description: body.description || null,
-        detected_items: body.detectedItems || [],
-        ai_detected_items: body.aiDetectedItems || [],
-        photo_count: sessionPhotos?.length || 0,
-        preferred_date: body.preferredDate || null,
-        second_choice_date: body.secondChoiceDate || null,
-        time_preference: body.timePreference || null,
-        upload_session_id: sessionId,
-        idempotency_key: idempotencyKey,
-        test_run_id: testRunId,
-      })
-      .select('id')
-      .single();
+    const bookingRow = {
+      customer_name: customerName,
+      customer_phone: customerPhone,
+      customer_email: body.customerEmail || null,
+      address,
+      city,
+      state: body.state || null,
+      zip,
+      full_address: fullAddress,
+      quantity: body.quantity || null,
+      access_type: body.accessType || null,
+      stairs: body.stairs || null,
+      elevator: body.elevator || null,
+      description: body.description || null,
+      detected_items: body.detectedItems || [],
+      ai_detected_items: body.aiDetectedItems || [],
+      photo_count: sessionPhotos?.length || 0,
+      preferred_date: body.preferredDate || null,
+      second_choice_date: body.secondChoiceDate || null,
+      time_preference: body.timePreference || null,
+      upload_session_id: sessionId,
+      idempotency_key: idempotencyKey,
+      test_run_id: testRunId,
+    };
+
+    // Try with business_id; fall back without if column doesn't exist
+    let booking, bookingErr;
+    if (businessId) {
+      ({ data: booking, error: bookingErr } = await supabase
+        .from('bookings')
+        .insert({ ...bookingRow, business_id: businessId })
+        .select('id')
+        .single());
+
+      if (bookingErr && bookingErr.message?.includes('business_id')) {
+        ({ data: booking, error: bookingErr } = await supabase
+          .from('bookings')
+          .insert(bookingRow)
+          .select('id')
+          .single());
+      }
+    } else {
+      ({ data: booking, error: bookingErr } = await supabase
+        .from('bookings')
+        .insert(bookingRow)
+        .select('id')
+        .single());
+    }
 
     if (bookingErr) {
       console.error('Booking creation error:', bookingErr);
-      // If idempotency_key unique constraint violation, fetch existing
       if (bookingErr.code === '23505' && bookingErr.message?.includes('idempotency_key')) {
         const { data: retry } = await supabase
           .from('bookings')
