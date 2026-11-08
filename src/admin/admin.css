@@ -1389,12 +1389,12 @@ img { display: block; max-width: 100%; }
   width: 100%;
   min-height: 90px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--text-secondary, #9ca3af);
   border-radius: 8px;
   font-size: 13px;
   font-family: inherit;
   color: var(--text-primary);
-  background: var(--surface);
+  background: #fff;
   resize: vertical;
   box-sizing: border-box;
   line-height: 1.5;

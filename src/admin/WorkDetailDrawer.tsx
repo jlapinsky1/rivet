@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import type { WorkItem } from './types';
 import type { ReasonCode } from '../estimator/types';
 import type { OwnerAction, DecisionSnapshot } from '../estimator/types';
@@ -51,6 +51,14 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   const [contractorNotes, setContractorNotes] = useState(item.contractorNotes ?? '');
   const [scopeAnalysis, setScopeAnalysis] = useState(item.scopeAnalysis ?? null);
   const [scopeLoading, setScopeLoading] = useState(false);
+
+  // Auto-generate scope analysis when drawer opens for a review job with no stored analysis
+  useEffect(() => {
+    if (item.recommendation === 'review' && !item.scopeAnalysis) {
+      void refreshScope();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function refreshScope(notes?: string) {
     setScopeLoading(true);
@@ -353,6 +361,16 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
                   </p>
                 </div>
               </div>
+              {item.photos.length > 1 && (
+                <div className="detail-section">
+                  <div className="section-heading"><h3>Photos</h3><span>{item.photos.length} submitted</span></div>
+                  <div className="photo-gallery">
+                    {item.photos.map((src, i) => (
+                      <img key={i} src={src} alt={`${item.title} photo ${i + 1}`} loading="lazy" />
+                    ))}
+                  </div>
+                </div>
+              )}
               {scopeAnalysis?.readyToQuote ? (
                 <div className="detail-section scope-ready">
                   <div className="scope-ready-badge">Ready to quote</div>
@@ -382,21 +400,12 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
                         ))}
                       </ul>
                     </>
-                  ) : (
-                    <div className="scope-generate">
-                      <p className="review-contact-note">
-                        Ask what specifically needs to be done, how big the area is, and whether something is broken, unfinished, or starting from scratch.
-                      </p>
-                      <button className="btn-generate-scope" onClick={() => refreshScope()}>
-                        Generate questions
-                      </button>
-                    </div>
-                  )}
+                  ) : null}
                 </div>
               )}
               <div className="detail-section">
                 <div className="section-heading"><h3>Your notes</h3></div>
-                <p className="review-contact-note">Log what the customer told you after follow-up.</p>
+                <p className="review-contact-note">Add anything the customer told you. Rivet will review the full picture and either generate a quote or flag what's still needed.</p>
                 <textarea
                   className="contractor-notes-input"
                   value={contractorNotes}
@@ -409,7 +418,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
                   onClick={() => refreshScope(contractorNotes)}
                   disabled={scopeLoading || contractorNotes === (item.contractorNotes ?? '')}
                 >
-                  {scopeLoading ? <><Loader2 size={14} className="spin" /> Saving...</> : 'Save'}
+                  {scopeLoading ? <><Loader2 size={14} className="spin" /> Reviewing...</> : 'Save'}
                 </button>
               </div>
             </>
@@ -510,8 +519,8 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
             </div>
           )}
 
-          {/* Photo gallery */}
-          {item.photos.length > 1 && (
+          {/* Photo gallery — review jobs show photos in the review section above */}
+          {item.photos.length > 1 && item.recommendation !== 'review' && (
             <div className="detail-section">
               <div className="section-heading"><h3>Photos</h3><span>{item.photos.length} photos</span></div>
               <div className="photo-gallery">
