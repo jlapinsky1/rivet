@@ -624,3 +624,123 @@ The global `X-Frame-Options: DENY` on `/*` is overridden by the route-specific `
 - Netlify Function required for AI extraction (`netlify dev` for local)
 - `complete-job` flow does not yet auto-populate `quotedPrice` on `actual_outcomes` from `bookings.approved_quote` — requires wiring in `completeJobCore.js`
 - `buildFeedbackRecords` loads all runs for a business — may need pagination for high-volume accounts
+
+---
+
+## Agent Framework
+
+Rivet's AI capabilities run through a structured agent framework. The UI, MCP, and any other channel are just consumers — the power is the pricing engine and agent backend.
+
+### Design Philosophy
+
+**Code is plumbing. Logic lives in `.md` resource files.**
+
+TypeScript files define registration, routing, and the main loop. All rules, question patterns, decision heuristics, and business logic are written in Markdown files inside skill directories. This means:
+- Adding a new capability = write a `.md` file, not TypeScript
+- Logic is readable and editable by non-engineers
+- Skills compose: one agent can hold multiple skills
+
+### Cascade
+
+```
+Main Loop (loop.ts)
+  └── Agent (agents/*.ts)         ← scoped function, model, skill list, tool allowlist
+        └── Skill (skills/*.ts)   ← instructions + resources map
+              └── Resources.md    ← ALL logic/rules/patterns (Markdown, not code)
+              └── Tools           ← optional, filtered by agent allowlist
+```
+
+### Multi-Model Routing
+
+| Model | When | Cost | Pattern |
+|-------|------|------|---------|
+| `claude-haiku-4-5-20251001` | Single-pass, focused tasks | ~$0.001/call | Pre-inject all skill content into system prompt; single API call; no tool use |
+| `claude-sonnet-4-6` | Tool-use loops, deep reasoning | ~$0.01–0.10/call | Tool-use loop with `skill_resource` for dynamic loading; `complete_task` control tool to exit |
+
+**Haiku path**: All skill content (instructions + all resources) pre-loaded into the system prompt. No tool calls. One API call. Use when the task is well-defined and content is bounded.
+
+**Sonnet path**: Tool-use loop (max 12 iterations, 24 tool calls). Agent loads skill resources on-demand via `skill_resource` tool. Exits via `complete_task` control signal or when `stop_reason !== 'tool_use'`.
+
+### File Structure
+
+```
+netlify/functions/
+  agent.ts                          ← Netlify entry point; POST router; bootstraps via side-effect imports
+  _shared/agent/
+    types.ts                        ← Core types: Agent, Skill, AgentTool, AgentContext, AgentResult, MODELS
+    loop.ts                         ← THE one main loop (Haiku + Sonnet paths)
+    registry/
+      agentRegistry.ts              ← registerAgent / getAgent / listAgents
+      skillRegistry.ts              ← registerSkill / catalogText / loadSkillBody / preloadContent
+      toolRegistry.ts               ← addTool / anthropicTools / executeTool (enforces allowlist)
+    tools/
+      index.ts                      ← Side-effect import: registers all built-in tools
+      skillResource.ts              ← skill_resource tool (Sonnet): load, list, resource actions
+      completeTask.ts               ← complete_task control tool: exits Sonnet loop
+    agents/
+      jobAdvisor.ts                 ← Job Advisor agent (Haiku, scope-clarifier skill)
+    skills/
+      scopeClarifier.ts             ← First live skill; question-patterns.md holds all logic
+```
+
+### Registration Pattern
+
+All registration happens as side effects on import. No explicit wiring needed in the router.
+
+```typescript
+// agent.ts (router)
+import './_shared/agent/tools/index';        // registers skill_resource + complete_task
+import './_shared/agent/agents/jobAdvisor';  // registers scope-clarifier skill + job-advisor agent
+
+// agents/jobAdvisor.ts
+registerSkill(scopeClarifierSkill);
+registerAgent(jobAdvisor);
+```
+
+The router calls `getAgent('job-advisor')` and `runAgent(agent, message, context)`. That's it.
+
+### Tool Allowlist Enforcement
+
+Each agent declares `tools: string[]`. The registry rejects any tool call not in that list:
+
+```typescript
+// executeTool in toolRegistry.ts
+if (!allowlist.includes(name)) {
+  return { content: `Tool '${name}' not in allowlist`, isError: true };
+}
+```
+
+Haiku agents set `tools: []` — no tool use, all skill content pre-injected.
+
+### How to Add a New Agent
+
+1. **Write the resource file** — `skills/mySkill/resources/my-rules.md` with all logic
+2. **Create the skill** — `skills/mySkill.ts` exports a `Skill` with `instructions` and `resources` map
+3. **Create the agent** — `agents/myAgent.ts`, call `registerSkill(...)` and `registerAgent(...)`, declare `model`, `skills`, `tools`
+4. **Import in router** — `import './_shared/agent/agents/myAgent'` in `agent.ts`
+5. **Add a task case** — handle `task: 'my-task'` in the router switch, call `runAgent`
+
+### Live Skills
+
+#### `scope-clarifier`
+- **Purpose**: Generate specific clarifying questions for a review job before the owner contacts the customer
+- **Model**: Haiku (single-pass)
+- **Resource**: `resources/question-patterns.md` — per-trade question patterns (deck, drywall, fence, door, TV mount, general), always-add rules, photo judgment
+- **Output**: `{ questions: string[], context: string }` — 3–5 specific questions + 1–2 sentence context
+
+### UI Integration Pattern
+
+The UI is just a distribution channel. Hooks call `/.netlify/functions/agent` and consume the result:
+
+```
+WorkDetailDrawer (review job)
+  └── useJobAdvisor hook            ← fires once when drawer opens for a review job
+        └── POST /.netlify/functions/agent { task: 'clarify-scope', businessId, jobTitle, ... }
+              └── job-advisor agent → scope-clarifier skill → question-patterns.md
+                    └── returns { questions, context }
+        └── renders questions as "What to find out" checklist
+```
+
+**`src/hooks/useJobAdvisor.ts`** — React hook; `enabled` controls whether the call fires (review jobs only); fires once on mount; returns `{ advice, loading, error }`.
+
+The same agent endpoint is callable from MCP, Claude connectors, or any other channel with no code changes.

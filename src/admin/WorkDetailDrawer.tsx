@@ -9,6 +9,7 @@ import { useWorkItemsContext } from './WorkItemsContext';
 import { useGoalData } from './useGoalData';
 import { useSettings } from './useSettings';
 import { recCopy, recIcon, reasonGlyph, sourceLabel, StatusBadge, BillingBadge } from './components';
+import { useJobAdvisor } from '../hooks/useJobAdvisor';
 import { ArrowRight, ChevronDown, CircleHelp, Clock3, Loader2, MapPin, Phone, Mail, FileText, Building2, User, X } from 'lucide-react';
 import { getRepo } from '../utils/repository';
 import { buildEstimate } from '../utils/estimateBuilder';
@@ -46,6 +47,17 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   const { business, user } = useAuth();
   const businessId = business?.businessId ?? 'default';
   const userId = user?.id ?? 'owner';
+
+  // Job Advisor agent — fires for review jobs only, generates specific clarifying questions
+  const { advice: agentAdvice, loading: agentLoading } = useJobAdvisor({
+    enabled: item.recommendation === 'review',
+    businessId,
+    jobTitle: item.title,
+    customerDescription: item.description,
+    customerNotes: item.customerNotes,
+    photoCount: item.photos.length,
+    lookFirst: item.lookFirst,
+  });
 
   // Context for decision snapshot (captures "it was Thursday, 15h left, needed $1k")
   const { workItems } = useWorkItemsContext();
@@ -304,15 +316,64 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
               </div>
             </div>
           ) : (
-            <div className="detail-section review-contact-prompt">
-              <div className="section-heading"><h3>Contact customer</h3></div>
-              <p className="review-contact-note">Don't send a number yet. Reach out to get the details you need first.</p>
-            </div>
+            <>
+              <div className="detail-section review-contact-prompt">
+                <div className="section-heading"><h3>Contact customer</h3></div>
+                <p className="review-contact-note">Don't send a number yet. You need more info before you can price this.</p>
+                {(item.customerNotes || item.scope) && (
+                  <div className="review-customer-said">
+                    <span className="context-label">What they said</span>
+                    <p>{item.customerNotes || item.scope}</p>
+                  </div>
+                )}
+                <div className="review-photo-note">
+                  <span className="context-label">What they shared</span>
+                  <p>{item.photos.length === 0
+                    ? 'No photos attached.'
+                    : item.photos.length === 1
+                      ? '1 photo — not enough to scope this remotely.'
+                      : `${item.photos.length} photos attached.`}
+                  </p>
+                </div>
+              </div>
+              <div className="detail-section">
+                <div className="section-heading"><h3>What to find out</h3></div>
+                {agentLoading ? (
+                  <div className="agent-loading">
+                    <Loader2 size={15} className="spin" />
+                    <span>Analyzing request...</span>
+                  </div>
+                ) : agentAdvice && agentAdvice.questions.length > 0 ? (
+                  <>
+                    {agentAdvice.context && (
+                      <p className="review-contact-note">{agentAdvice.context}</p>
+                    )}
+                    <ul className="reason-list">
+                      {agentAdvice.questions.map((q, i) => (
+                        <li key={i} className="caution">
+                          <span className="reason-icon caution">{reasonGlyph('caution')}</span>
+                          {q}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  <ul className="reason-list">
+                    {item.reasons.filter(r => r.icon === 'caution' || r.icon === 'x').map((reason, i) => (
+                      <li key={i} className={reason.icon === 'caution' ? 'caution' : 'pass'}>
+                        <span className={`reason-icon ${reason.icon === 'caution' ? 'caution' : 'pass'}`}>{reasonGlyph(reason.icon)}</span>
+                        {reason.text}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </>
           )}
+          {item.recommendation !== 'review' && (
           <div className="detail-section">
             <div className="section-heading"><h3>{
               item.recommendation === 'take' || item.recommendation === 'take_at_price' ? 'Why send this number'
-              : item.recommendation === 'review' ? 'What to look at'
               : 'Why pass'
             }</h3></div>
             <ul className="reason-list">
@@ -323,12 +384,9 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
                 </li>
               ))}
             </ul>
-            <p className="confidence-note"><CircleHelp size={16} /> {
-              item.recommendation === 'review'
-                ? (item.lookFirst ? `Check this before you send a number: ${item.lookFirst}.` : copy.sentence)
-                : copy.sentence
-            }</p>
+            <p className="confidence-note"><CircleHelp size={16} /> {copy.sentence}</p>
           </div>
+          )}
 
           {/* Price editor */}
           {item.recommendation !== 'review' && <div className="detail-section quote-editor">
