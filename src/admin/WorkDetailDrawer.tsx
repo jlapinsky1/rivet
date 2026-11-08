@@ -63,7 +63,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   async function refreshScope(notes?: string) {
     setScopeLoading(true);
     try {
-      const res = await fetch('/.netlify/functions/agent', {
+      const res = await fetch(`${import.meta.env.VITE_AGENTS_URL ?? 'https://rivet-agents.onrender.com'}/agent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
