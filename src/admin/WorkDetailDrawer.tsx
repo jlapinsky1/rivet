@@ -331,7 +331,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
                   <p>{item.photos.length === 0
                     ? 'No photos attached.'
                     : item.photos.length === 1
-                      ? '1 photo — not enough to scope this remotely.'
+                      ? '1 photo submitted. Not enough to scope this remotely.'
                       : `${item.photos.length} photos attached.`}
                   </p>
                 </div>
@@ -358,14 +358,9 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
                     </ul>
                   </>
                 ) : (
-                  <ul className="reason-list">
-                    {item.reasons.filter(r => r.icon === 'caution' || r.icon === 'x').map((reason, i) => (
-                      <li key={i} className={reason.icon === 'caution' ? 'caution' : 'pass'}>
-                        <span className={`reason-icon ${reason.icon === 'caution' ? 'caution' : 'pass'}`}>{reasonGlyph(reason.icon)}</span>
-                        {reason.text}
-                      </li>
-                    ))}
-                  </ul>
+                  <p className="review-contact-note">
+                    Ask what specifically needs to be done, how big the area is, and whether something is broken, unfinished, or starting from scratch. Request a few photos from different angles before you come out.
+                  </p>
                 )}
               </div>
             </>
