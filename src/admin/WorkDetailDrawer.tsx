@@ -163,7 +163,9 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   const priceStatus = price >= item.price ? 'take' : price >= item.price * 0.82 ? 'review' : 'pass';
   const priceMessage = priceStatus === 'take' ? 'Recommended price for this job.' : priceStatus === 'review' ? 'Below your target earnings rate.' : 'We recommend passing at this price.';
   const isCommercial = item.source === 'commercial_work_order';
-  const copy = recCopy(item.recommendation, item.rate, item.suggestedPrice, item.price, item.lookFirst, item.walkAwayPrice);
+  // When agent says readyToQuote, treat the job as quotable in the UI (recommendation stays 'review' in DB)
+  const effectiveRec = (scopeAnalysis ?? item.scopeAnalysis)?.readyToQuote ? 'take' as const : item.recommendation;
+  const copy = recCopy(effectiveRec, item.rate, item.suggestedPrice, item.price, item.lookFirst, item.walkAwayPrice);
 
   const contactHref = item.phone
     ? `tel:${item.phone.replace(/\s/g, '')}`
@@ -171,14 +173,14 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
       ? `mailto:${item.email}`
       : null;
 
-  const ctaLabel = item.recommendation === 'review'
+  const ctaLabel = effectiveRec === 'review'
     ? (item.phone ? `Call ${item.phone}` : item.email ? `Email ${item.email}` : 'Contact Customer')
     : isCommercial
       ? `Accept Work Order - $${price.toLocaleString()}`
       : `Create Quote - $${price.toLocaleString()}`;
 
   function requestApprove() {
-    if (recReasonPrompt(item.recommendation, 'approve')) {
+    if (recReasonPrompt(effectiveRec, 'approve')) {
       setActionPrompt({ intent: 'approve' });
       return;
     }
@@ -264,7 +266,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
     }
   }
 
-  const pendingRecPrompt = actionPrompt ? recReasonPrompt(item.recommendation, actionPrompt.intent) : null;
+  const pendingRecPrompt = actionPrompt ? recReasonPrompt(effectiveRec, actionPrompt.intent) : null;
 
   return (
     <div className="drawer-backdrop" onMouseDown={onClose}>
@@ -297,14 +299,14 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
           </div>
         </div>
         <div className="drawer-scroll">
-          <div className={`drawer-rec ${item.recommendation}`}>
+          <div className={`drawer-rec ${effectiveRec}`}>
             <div className="rec-badge-large">
-              <span className="rec-icon-large">{recIcon(item.recommendation)}</span>
+              <span className="rec-icon-large">{recIcon(effectiveRec)}</span>
               <span className="rec-label-large">{copy.label.toUpperCase()}</span>
             </div>
             <p>{copy.sentence}</p>
           </div>
-          {item.recommendation !== 'review' && (
+          {effectiveRec !== 'review' && (
             <div className="drawer-insight">
               <div className="drawer-insight-block">
                 <span className="insight-rate">{item.rate}</span>
@@ -324,7 +326,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
               </div>
             </div>
           )}
-          {item.recommendation !== 'review' ? (
+          {effectiveRec !== 'review' ? (
             <div className="detail-section">
               <div className="section-heading"><h3>Estimate</h3><span>At recommended price</span></div>
               <div className="estimate-breakdown">
@@ -423,10 +425,10 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
               </div>
             </>
           )}
-          {item.recommendation !== 'review' && (
+          {effectiveRec !== 'review' && (
           <div className="detail-section">
             <div className="section-heading"><h3>{
-              item.recommendation === 'take' || item.recommendation === 'take_at_price' ? 'Why send this number'
+              effectiveRec === 'take' || effectiveRec === 'take_at_price' ? 'Why send this number'
               : 'Why pass'
             }</h3></div>
             <ul className="reason-list">
@@ -442,7 +444,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
           )}
 
           {/* Price editor */}
-          {item.recommendation !== 'review' && <div className="detail-section quote-editor">
+          {effectiveRec !== 'review' && <div className="detail-section quote-editor">
             <div className="section-heading"><h3>Set your price</h3><span>Change it if needed</span></div>
             <label htmlFor="price" className="quote-label">Your {isCommercial ? 'invoice' : 'quote'} amount</label>
             <div className="price-input">
@@ -520,7 +522,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
           )}
 
           {/* Photo gallery — review jobs show photos in the review section above */}
-          {item.photos.length > 1 && item.recommendation !== 'review' && (
+          {item.photos.length > 1 && effectiveRec !== 'review' && (
             <div className="detail-section">
               <div className="section-heading"><h3>Photos</h3><span>{item.photos.length} photos</span></div>
               <div className="photo-gallery">
@@ -583,12 +585,12 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
           <button className="btn-secondary" onClick={requestDecline} disabled={actionLoading || !!actionPrompt}>
             Decline
           </button>
-          {item.recommendation === 'review' && contactHref ? (
-            <a className={`btn-primary-cta ${item.recommendation}`} href={contactHref}>
+          {effectiveRec === 'review' && contactHref ? (
+            <a className={`btn-primary-cta ${effectiveRec}`} href={contactHref}>
               {ctaLabel}<ArrowRight size={17} />
             </a>
           ) : (
-            <button className={`btn-primary-cta ${item.recommendation}`} onClick={requestApprove} disabled={actionLoading || !!actionPrompt}>
+            <button className={`btn-primary-cta ${effectiveRec}`} onClick={requestApprove} disabled={actionLoading || !!actionPrompt}>
               {actionLoading ? (
                 <><Loader2 size={17} className="spin" /> Processing...</>
               ) : (

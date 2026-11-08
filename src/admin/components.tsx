@@ -92,9 +92,10 @@ export function MetricCard({ value, label, detail, icon: Icon, accent, progress 
 }
 
 export function WorkRecommendationCard({ item, onView }: { item: WorkItem; onView: () => void }) {
-  const copy = recCopy(item.recommendation, item.rate, item.suggestedPrice, item.price, item.lookFirst, item.walkAwayPrice);
+  const effectiveRec = item.scopeAnalysis?.readyToQuote ? 'take' as const : item.recommendation;
+  const copy = recCopy(effectiveRec, item.rate, item.suggestedPrice, item.price, item.lookFirst, item.walkAwayPrice);
   return (
-    <section className={`hero-card ${item.recommendation}`}>
+    <section className={`hero-card ${effectiveRec}`}>
       <div className="hero-accent-bar" />
       <div className="hero-body">
         <div className="hero-top">
@@ -120,12 +121,12 @@ export function WorkRecommendationCard({ item, onView }: { item: WorkItem; onVie
         </div>
         <div className="hero-recommendation">
           <div className="rec-badge-large">
-            <span className="rec-icon-large">{recIcon(item.recommendation)}</span>
+            <span className="rec-icon-large">{recIcon(effectiveRec)}</span>
             <span className="rec-label-large">{copy.label.toUpperCase()}</span>
           </div>
           <p className="hero-sentence">{copy.sentence}</p>
         </div>
-        {item.recommendation !== 'review' ? (
+        {effectiveRec !== 'review' ? (
           <div className="hero-insight">
             <div className="insight-primary">
               <span className="insight-rate">{item.rate}</span>
