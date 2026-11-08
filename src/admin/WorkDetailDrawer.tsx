@@ -353,41 +353,50 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
                   </p>
                 </div>
               </div>
-              <div className="detail-section">
-                <div className="section-heading"><h3>What to find out</h3></div>
-                {scopeLoading ? (
-                  <div className="agent-loading">
-                    <Loader2 size={15} className="spin" />
-                    <span>Analyzing request...</span>
-                  </div>
-                ) : scopeAnalysis && scopeAnalysis.questions.length > 0 ? (
-                  <>
-                    {scopeAnalysis.context && (
-                      <p className="review-contact-note">{scopeAnalysis.context}</p>
-                    )}
-                    <ul className="reason-list">
-                      {scopeAnalysis.questions.map((q, i) => (
-                        <li key={i} className="caution">
-                          <span className="reason-icon caution">{reasonGlyph('caution')}</span>
-                          {q}
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                ) : (
-                  <div className="scope-generate">
-                    <p className="review-contact-note">
-                      Ask what specifically needs to be done, how big the area is, and whether something is broken, unfinished, or starting from scratch.
-                    </p>
-                    <button className="btn-generate-scope" onClick={() => refreshScope()}>
-                      Generate questions
-                    </button>
-                  </div>
-                )}
-              </div>
+              {scopeAnalysis?.readyToQuote ? (
+                <div className="detail-section scope-ready">
+                  <div className="scope-ready-badge">Ready to quote</div>
+                  {scopeAnalysis.context && (
+                    <p className="review-contact-note">{scopeAnalysis.context}</p>
+                  )}
+                </div>
+              ) : (
+                <div className="detail-section">
+                  <div className="section-heading"><h3>What to find out</h3></div>
+                  {scopeLoading ? (
+                    <div className="agent-loading">
+                      <Loader2 size={15} className="spin" />
+                      <span>Analyzing request...</span>
+                    </div>
+                  ) : scopeAnalysis && scopeAnalysis.questions.length > 0 ? (
+                    <>
+                      {scopeAnalysis.context && (
+                        <p className="review-contact-note">{scopeAnalysis.context}</p>
+                      )}
+                      <ul className="reason-list">
+                        {scopeAnalysis.questions.map((q, i) => (
+                          <li key={i} className="caution">
+                            <span className="reason-icon caution">{reasonGlyph('caution')}</span>
+                            {q}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : (
+                    <div className="scope-generate">
+                      <p className="review-contact-note">
+                        Ask what specifically needs to be done, how big the area is, and whether something is broken, unfinished, or starting from scratch.
+                      </p>
+                      <button className="btn-generate-scope" onClick={() => refreshScope()}>
+                        Generate questions
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="detail-section">
                 <div className="section-heading"><h3>Your notes</h3></div>
-                <p className="review-contact-note">Log what the customer told you after follow-up. Saving will refresh the questions above.</p>
+                <p className="review-contact-note">Log what the customer told you after follow-up.</p>
                 <textarea
                   className="contractor-notes-input"
                   value={contractorNotes}
@@ -400,7 +409,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
                   onClick={() => refreshScope(contractorNotes)}
                   disabled={scopeLoading || contractorNotes === (item.contractorNotes ?? '')}
                 >
-                  {scopeLoading ? <><Loader2 size={14} className="spin" /> Refreshing questions...</> : 'Save and refresh questions'}
+                  {scopeLoading ? <><Loader2 size={14} className="spin" /> Saving...</> : 'Save'}
                 </button>
               </div>
             </>

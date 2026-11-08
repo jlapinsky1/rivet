@@ -45,7 +45,7 @@ function mapRow(row: Record<string, unknown>): WorkItem {
     estimationRunId: (row.estimation_run_id as string) ?? undefined,
     createdAt: (row.created_at as string) ?? undefined,
     completedAt: (row.completed_at as string) ?? undefined,
-    scopeAnalysis: (row.scope_analysis as { questions: string[]; context: string }) ?? undefined,
+    scopeAnalysis: (row.scope_analysis as { readyToQuote: boolean; questions: string[]; context: string }) ?? undefined,
     contractorNotes: (row.contractor_notes as string) ?? undefined,
   };
 }
