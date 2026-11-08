@@ -1,7 +1,6 @@
 import { jsonResponse, errorResponse } from './_shared/supabase.js';
 import { processBooking } from './_shared/processBooking.js';
-
-export { processBooking };
+import { runScopeAnalysis } from './_shared/agent/runScopeAnalysis';
 
 export default async function handler(req: Request) {
   if (req.method !== 'POST') return errorResponse('Method not allowed', 405);
@@ -11,6 +10,12 @@ export default async function handler(req: Request) {
     if (!bookingId || !businessId) return errorResponse('bookingId and businessId required');
 
     const result = await processBooking(bookingId, businessId);
+
+    // Run agent for new review jobs — writes scope_analysis to work_items
+    if (!result.alreadyProcessed && result.recommendation === 'review' && result.workItemId) {
+      await runScopeAnalysis(result.workItemId, businessId);
+    }
+
     return jsonResponse(result, (result as { alreadyProcessed?: boolean }).alreadyProcessed ? 200 : 201);
   } catch (err) {
     console.error('process-handyman-booking error:', err);

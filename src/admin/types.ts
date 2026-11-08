@@ -56,6 +56,8 @@ export type WorkItem = {
   estimationRunId?: string;
   createdAt?: string;
   completedAt?: string;
+  scopeAnalysis?: { questions: string[]; context: string };
+  contractorNotes?: string;
   /** When false, this job does not move this week's earned $ or hours left. */
   countsTowardCurrentWeek?: boolean;
 };

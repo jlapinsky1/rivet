@@ -18,32 +18,9 @@
 import './_shared/agent/tools/index';
 import './_shared/agent/agents/jobAdvisor';
 
-import { getAgent } from './_shared/agent/registry/agentRegistry';
-import { runAgent } from './_shared/agent/loop';
 import { jsonResponse, errorResponse } from './_shared/supabase.js';
-
-// ─── Task: clarify-scope ─────────────────────────────────────────────────────
-
-interface ClarifyScopeInput {
-  task: 'clarify-scope';
-  businessId: string;
-  jobTitle: string;
-  customerDescription?: string;
-  customerNotes?: string;
-  photoCount: number;
-  lookFirst?: string;
-}
-
-function buildScopeMessage(input: Omit<ClarifyScopeInput, 'task' | 'businessId'>): string {
-  const lines = [`Job: ${input.jobTitle}`];
-  if (input.customerDescription) lines.push(`Customer description: ${input.customerDescription}`);
-  if (input.customerNotes && input.customerNotes !== input.customerDescription) {
-    lines.push(`Additional notes: ${input.customerNotes}`);
-  }
-  lines.push(`Photos submitted: ${input.photoCount}`);
-  if (input.lookFirst) lines.push(`Known gap: ${input.lookFirst}`);
-  return lines.join('\n');
-}
+import { getServiceClient } from './_shared/supabase.js';
+import { runScopeAnalysis } from './_shared/agent/runScopeAnalysis';
 
 // ─── Router ──────────────────────────────────────────────────────────────────
 
@@ -63,32 +40,43 @@ export default async function handler(req: Request): Promise<Response> {
 
   try {
     switch (task) {
-      case 'clarify-scope': {
-        const input = body as ClarifyScopeInput;
-        const agent = getAgent('job-advisor');
-        if (!agent) return errorResponse('Agent not found', 500);
 
-        const result = await runAgent(
-          agent,
-          buildScopeMessage(input),
-          { businessId },
-        );
+      // ─── refresh-scope ───────────────────────────────────────────────────
+      // Saves contractor_notes (if provided), re-runs agent, updates scope_analysis.
+      // Called from the drawer when notes are saved or when generating for the first time.
+      case 'refresh-scope': {
+        const { workItemId, contractorNotes } = body as {
+          workItemId?: number;
+          contractorNotes?: string;
+        };
+        if (!workItemId) return errorResponse('workItemId is required');
 
-        if (result.error && !result.output) {
-          return errorResponse(`Agent error: ${result.error}`, 500);
+        const supabase = getServiceClient();
+
+        // Persist notes if provided
+        if (typeof contractorNotes === 'string') {
+          await supabase
+            .from('work_items')
+            .update({ contractor_notes: contractorNotes })
+            .eq('id', workItemId)
+            .eq('business_id', businessId);
         }
 
-        // Parse JSON from agent output — Haiku returns raw JSON text
-        let parsed: { questions: string[]; context: string };
-        try {
-          const match = result.output.match(/\{[\s\S]*\}/);
-          parsed = JSON.parse(match?.[0] ?? result.output);
-          if (!Array.isArray(parsed.questions)) parsed.questions = [];
-        } catch {
-          parsed = { questions: [], context: result.output };
-        }
+        // Run agent and write scope_analysis to DB
+        await runScopeAnalysis(workItemId, businessId);
 
-        return jsonResponse(parsed);
+        // Return the updated analysis
+        const { data: item } = await supabase
+          .from('work_items')
+          .select('scope_analysis, contractor_notes')
+          .eq('id', workItemId)
+          .eq('business_id', businessId)
+          .single();
+
+        return jsonResponse({
+          scopeAnalysis: item?.scope_analysis ?? { questions: [], context: '' },
+          contractorNotes: item?.contractor_notes ?? '',
+        });
       }
 
       default:

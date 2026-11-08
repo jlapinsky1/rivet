@@ -1364,3 +1364,61 @@ img { display: block; max-width: 100%; }
 .lab-reason-check .lab-reason-icon { background: var(--take-bg); color: var(--take); }
 .lab-reason-caution .lab-reason-icon { background: var(--review-bg); color: var(--review); }
 .lab-reason-x .lab-reason-icon { background: var(--pass-bg); color: var(--pass); }
+
+/* Scope analysis */
+.scope-generate {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.btn-generate-scope {
+  align-self: flex-start;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.btn-generate-scope:hover { background: var(--surface-hover); }
+
+/* Contractor notes */
+.contractor-notes-input {
+  width: 100%;
+  min-height: 90px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--surface);
+  resize: vertical;
+  box-sizing: border-box;
+  line-height: 1.5;
+}
+.contractor-notes-input::placeholder { color: var(--text-secondary); }
+.contractor-notes-input:focus {
+  outline: none;
+  border-color: var(--brand);
+}
+.btn-save-notes {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px 16px;
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-save-notes:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -9,7 +9,6 @@ import { useWorkItemsContext } from './WorkItemsContext';
 import { useGoalData } from './useGoalData';
 import { useSettings } from './useSettings';
 import { recCopy, recIcon, reasonGlyph, sourceLabel, StatusBadge, BillingBadge } from './components';
-import { useJobAdvisor } from '../hooks/useJobAdvisor';
 import { ArrowRight, ChevronDown, CircleHelp, Clock3, Loader2, MapPin, Phone, Mail, FileText, Building2, User, X } from 'lucide-react';
 import { getRepo } from '../utils/repository';
 import { buildEstimate } from '../utils/estimateBuilder';
@@ -48,16 +47,34 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   const businessId = business?.businessId ?? 'default';
   const userId = user?.id ?? 'owner';
 
-  // Job Advisor agent — fires for review jobs only, generates specific clarifying questions
-  const { advice: agentAdvice, loading: agentLoading } = useJobAdvisor({
-    enabled: item.recommendation === 'review',
-    businessId,
-    jobTitle: item.title,
-    customerDescription: item.description,
-    customerNotes: item.customerNotes,
-    photoCount: item.photos.length,
-    lookFirst: item.lookFirst,
-  });
+  // Contractor notes + scope analysis state
+  const [contractorNotes, setContractorNotes] = useState(item.contractorNotes ?? '');
+  const [scopeAnalysis, setScopeAnalysis] = useState(item.scopeAnalysis ?? null);
+  const [scopeLoading, setScopeLoading] = useState(false);
+
+  async function refreshScope(notes?: string) {
+    setScopeLoading(true);
+    try {
+      const res = await fetch('/.netlify/functions/agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task: 'refresh-scope',
+          businessId,
+          workItemId: item.id,
+          ...(typeof notes === 'string' ? { contractorNotes: notes } : {}),
+        }),
+      });
+      if (!res.ok) throw new Error(`Agent ${res.status}`);
+      const data = await res.json();
+      setScopeAnalysis(data.scopeAnalysis);
+      if (typeof notes === 'string') setContractorNotes(notes);
+    } catch (err) {
+      console.error('refresh-scope failed:', err);
+    } finally {
+      setScopeLoading(false);
+    }
+  }
 
   // Context for decision snapshot (captures "it was Thursday, 15h left, needed $1k")
   const { workItems } = useWorkItemsContext();
@@ -338,18 +355,18 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
               </div>
               <div className="detail-section">
                 <div className="section-heading"><h3>What to find out</h3></div>
-                {agentLoading ? (
+                {scopeLoading ? (
                   <div className="agent-loading">
                     <Loader2 size={15} className="spin" />
                     <span>Analyzing request...</span>
                   </div>
-                ) : agentAdvice && agentAdvice.questions.length > 0 ? (
+                ) : scopeAnalysis && scopeAnalysis.questions.length > 0 ? (
                   <>
-                    {agentAdvice.context && (
-                      <p className="review-contact-note">{agentAdvice.context}</p>
+                    {scopeAnalysis.context && (
+                      <p className="review-contact-note">{scopeAnalysis.context}</p>
                     )}
                     <ul className="reason-list">
-                      {agentAdvice.questions.map((q, i) => (
+                      {scopeAnalysis.questions.map((q, i) => (
                         <li key={i} className="caution">
                           <span className="reason-icon caution">{reasonGlyph('caution')}</span>
                           {q}
@@ -358,10 +375,33 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
                     </ul>
                   </>
                 ) : (
-                  <p className="review-contact-note">
-                    Ask what specifically needs to be done, how big the area is, and whether something is broken, unfinished, or starting from scratch. Request a few photos from different angles before you come out.
-                  </p>
+                  <div className="scope-generate">
+                    <p className="review-contact-note">
+                      Ask what specifically needs to be done, how big the area is, and whether something is broken, unfinished, or starting from scratch.
+                    </p>
+                    <button className="btn-generate-scope" onClick={() => refreshScope()}>
+                      Generate questions
+                    </button>
+                  </div>
                 )}
+              </div>
+              <div className="detail-section">
+                <div className="section-heading"><h3>Your notes</h3></div>
+                <p className="review-contact-note">Log what the customer told you after follow-up. Saving will refresh the questions above.</p>
+                <textarea
+                  className="contractor-notes-input"
+                  value={contractorNotes}
+                  onChange={e => setContractorNotes(e.target.value)}
+                  placeholder="e.g. Customer called back, said the deck boards on the east side are rotted but the frame is solid..."
+                  rows={4}
+                />
+                <button
+                  className="btn-save-notes"
+                  onClick={() => refreshScope(contractorNotes)}
+                  disabled={scopeLoading || contractorNotes === (item.contractorNotes ?? '')}
+                >
+                  {scopeLoading ? <><Loader2 size={14} className="spin" /> Refreshing questions...</> : 'Save and refresh questions'}
+                </button>
               </div>
             </>
           )}
