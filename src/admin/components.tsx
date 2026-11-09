@@ -138,8 +138,8 @@ export function WorkRecommendationCard({ item, onView }: { item: WorkItem; onVie
                 <span className="hero-eval-label">Total time</span>
               </div>
               <div className="hero-eval-stat">
-                <span className="hero-eval-value">{item.confidence}%</span>
-                <span className="hero-eval-label">Confidence</span>
+                <span className="hero-eval-value">{item.price > 0 ? Math.round((item.profit / item.price) * 100) : 0}%</span>
+                <span className="hero-eval-label">Profit margin</span>
               </div>
             </div>
           </div>

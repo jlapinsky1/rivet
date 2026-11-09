@@ -342,6 +342,10 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
                   <span className="eval-stat-value">${estimatedProfit.toLocaleString()}</span>
                   <span className="eval-stat-label">After direct expenses</span>
                 </div>
+                <div className="eval-secondary-stat">
+                  <span className="eval-stat-value">{price > 0 ? Math.round((estimatedProfit / price) * 100) : 0}%</span>
+                  <span className="eval-stat-label">Profit margin</span>
+                </div>
               </div>
 
               {/* Single outcome signal */}
