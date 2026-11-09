@@ -342,78 +342,47 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
                   <span className="eval-stat-value">${estimatedProfit.toLocaleString()}</span>
                   <span className="eval-stat-label">After direct expenses</span>
                 </div>
-                <div className="eval-secondary-stat">
-                  <span className="eval-stat-value">{item.hours}</span>
-                  <span className="eval-stat-label">Total time committed</span>
-                </div>
               </div>
 
-              {/* Evaluation signals */}
+              {/* Single outcome signal */}
               <div className="eval-signals">
-                {(effectiveRec === 'take' || effectiveRec === 'take_at_price') && (
+                {effectiveRec === 'take' && (
                   <div className="eval-signal positive">
                     <span className="signal-glyph">✓</span>
                     <span>Meets your pricing goals</span>
                   </div>
                 )}
-                {item.confidence >= 70 && (
-                  <div className="eval-signal positive">
-                    <span className="signal-glyph">✓</span>
-                    <span>Estimate is {item.confidence}% confident</span>
-                  </div>
-                )}
-                {item.reasons.filter(r => r.icon !== 'check').map((r, i) => (
-                  <div key={i} className={`eval-signal ${r.icon === 'caution' ? 'caution' : 'negative'}`}>
-                    <span className="signal-glyph">{reasonGlyph(r.icon)}</span>
-                    <span>{r.text}</span>
-                  </div>
-                ))}
-                {item.confidence < 70 && (
+                {effectiveRec === 'take_at_price' && (
                   <div className="eval-signal caution">
                     <span className="signal-glyph">!</span>
-                    <span>Estimate confidence is {item.confidence}% — confirm scope before quoting</span>
+                    <span>Below your target rate — but covers your costs</span>
+                  </div>
+                )}
+                {effectiveRec === 'pass' && (
+                  <div className="eval-signal negative">
+                    <span className="signal-glyph">×</span>
+                    <span>Not worth taking at this price</span>
                   </div>
                 )}
               </div>
 
-              {/* Estimate breakdown */}
-              <div className="eval-breakdown">
-                <span className="eval-breakdown-label">Estimate breakdown</span>
-                <div className="breakdown-row">
-                  <span>Job price</span>
-                  <strong>${(item.suggestedPrice ?? item.price).toLocaleString()}</strong>
-                </div>
-                {item.costs > 0 && (
-                  <div className="breakdown-row">
-                    <span>Travel and materials</span>
-                    <strong className="breakdown-neg">−${item.costs.toLocaleString()}</strong>
-                  </div>
-                )}
-                <div className="breakdown-row">
-                  <span>On-site work</span>
-                  <strong>{item.hours}</strong>
-                </div>
-                <div className="breakdown-row">
-                  <span>Travel</span>
-                  <strong>{item.travel}</strong>
-                </div>
-              </div>
-
-              {/* Pricing calculations — collapsed */}
-              <button className="eval-pricing-toggle" onClick={() => setShowAnalysis(!showAnalysis)}>
-                Pricing calculations <ChevronDown size={14} className={showAnalysis ? 'flip' : ''} />
-              </button>
-              {showAnalysis && (
-                <div className="eval-pricing-detail">
-                  <div className="analysis-row"><span>Profit per hour</span><strong>{item.rate}</strong></div>
-                  {item.costBreakdown.map((line) => (
-                    <div key={line.label} className="analysis-row"><span>{line.label}</span><strong>{line.value ?? '-'}</strong></div>
-                  ))}
-                  {item.walkAwayPrice != null && item.walkAwayPrice < (item.suggestedPrice ?? item.price) && (
-                    <div className="analysis-row"><span>Don't go below</span><strong>${item.walkAwayPrice.toLocaleString()}</strong></div>
+              {/* Cost breakdown — collapsed */}
+              {item.costBreakdown.length > 0 && (
+                <>
+                  <button className="eval-pricing-toggle" onClick={() => setShowAnalysis(!showAnalysis)}>
+                    Cost breakdown <ChevronDown size={14} className={showAnalysis ? 'flip' : ''} />
+                  </button>
+                  {showAnalysis && (
+                    <div className="eval-pricing-detail">
+                      {item.costBreakdown.map((line) => (
+                        <div key={line.label} className="analysis-row"><span>{line.label}</span><strong>{line.value ?? '-'}</strong></div>
+                      ))}
+                      {item.walkAwayPrice != null && item.walkAwayPrice < (item.suggestedPrice ?? item.price) && (
+                        <div className="analysis-row"><span>Don't go below</span><strong>${item.walkAwayPrice.toLocaleString()}</strong></div>
+                      )}
+                    </div>
                   )}
-                  <div className="analysis-row"><span>Confidence</span><strong>{item.confidence}%</strong></div>
-                </div>
+                </>
               )}
             </div>
           )}
