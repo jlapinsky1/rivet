@@ -94,6 +94,9 @@ export function MetricCard({ value, label, detail, icon: Icon, accent, progress 
 export function WorkRecommendationCard({ item, onView }: { item: WorkItem; onView: () => void }) {
   const effectiveRec = item.scopeAnalysis?.readyToQuote ? 'take' as const : item.recommendation;
   const copy = recCopy(effectiveRec, item.rate, item.suggestedPrice, item.price, item.lookFirst, item.walkAwayPrice);
+  const rawSummary = (item.contractorNotes || item.customerNotes || item.description || '').trim();
+  const jobSummary = rawSummary.length > 130 ? rawSummary.slice(0, 130).trimEnd() + '…' : rawSummary;
+  const sentenceIsRedundant = !item.walkAwayPrice && (effectiveRec === 'take' || effectiveRec === 'take_at_price');
   return (
     <section className={`hero-card ${effectiveRec}`}>
       <div className="hero-accent-bar" />
@@ -124,7 +127,8 @@ export function WorkRecommendationCard({ item, onView }: { item: WorkItem; onVie
             <span className="rec-icon-large">{recIcon(effectiveRec)}</span>
             <span className="rec-label-large">{copy.label.toUpperCase()}</span>
           </div>
-          <p className="hero-sentence">{copy.sentence}</p>
+          {!sentenceIsRedundant && <p className="hero-sentence">{copy.sentence}</p>}
+          {jobSummary && <p className="hero-sentence">{jobSummary}</p>}
         </div>
         {effectiveRec !== 'review' ? (
           <div className="hero-insight">

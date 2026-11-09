@@ -183,6 +183,9 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   // When agent says readyToQuote, treat the job as quotable in the UI (recommendation stays 'review' in DB)
   const effectiveRec = (scopeAnalysis ?? item.scopeAnalysis)?.readyToQuote ? 'take' as const : item.recommendation;
   const copy = recCopy(effectiveRec, item.rate, item.suggestedPrice, item.price, item.lookFirst, item.walkAwayPrice);
+  const rawSummary = (item.contractorNotes || item.customerNotes || item.description || '').trim();
+  const jobSummary = rawSummary.length > 130 ? rawSummary.slice(0, 130).trimEnd() + '…' : rawSummary;
+  const sentenceIsRedundant = !item.walkAwayPrice && (effectiveRec === 'take' || effectiveRec === 'take_at_price');
 
   const contactHref = item.phone
     ? `tel:${item.phone.replace(/\s/g, '')}`
@@ -311,7 +314,9 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
             <span><Clock3 size={13} /> {item.travel}</span>
           </div>
           <div className="drawer-status-row">
-            <StatusBadge status={item.opStatus} />
+            {(scopeAnalysis ?? item.scopeAnalysis)?.readyToQuote && item.opStatus === 'needs_review'
+              ? <span className="status-badge quoted">Ready to Quote</span>
+              : <StatusBadge status={item.opStatus} />}
             <BillingBadge status={item.billingStatus} />
           </div>
         </div>
@@ -321,7 +326,8 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
               <span className="rec-icon-large">{recIcon(effectiveRec)}</span>
               <span className="rec-label-large">{copy.label.toUpperCase()}</span>
             </div>
-            <p>{copy.sentence}</p>
+            {!sentenceIsRedundant && <p>{copy.sentence}</p>}
+            {jobSummary && <p>{jobSummary}</p>}
           </div>
 
           {/* Quotable job: evaluation card */}
