@@ -74,7 +74,7 @@ export const TASK_COMPONENTS: Record<TaskComponentCode, TaskComponentDef> = {
     code: 'install_structural_lumber',
     description: 'Install joists, beams, ledger boards, or heavy framing',
     labor: { baseHours: 0.50, hoursPerUnit: 0.60, minimumHours: 0.75 },
-    materials: { allowancePerUnit: 18 },
+    materials: { allowancePerUnit: 35 },
     validationStatus: 'needs_domain_validation',
   },
 
@@ -82,7 +82,7 @@ export const TASK_COMPONENTS: Record<TaskComponentCode, TaskComponentDef> = {
     code: 'install_decking',
     description: 'Lay deck boards, porch flooring, or similar surface material',
     labor: { baseHours: 0.50, hoursPerUnit: 0.15, minimumHours: 0.50 },
-    materials: { allowancePerUnit: 6 },
+    materials: { allowancePerUnit: 22 },
     validationStatus: 'needs_domain_validation',
   },
 

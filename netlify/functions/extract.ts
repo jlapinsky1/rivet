@@ -24,11 +24,11 @@ Determine what work needs to happen.
 ### A. Check for known assemblies
 If the job clearly matches a common scope, identify it:
 
-DRYWALL: SMALL_DRYWALL_PATCH, MEDIUM_DRYWALL_PATCH, DRYWALL_SECTION_REPLACEMENT
-DOORS: STANDARD_EXTERIOR_DOOR, OVERSIZED_EXTERIOR_DOOR, FRENCH_DOOR_REPLACEMENT
-DECK: DECK_BOARD_REPLACEMENT, DECK_STRUCTURAL_REPAIR, DECK_SECTION_REBUILD
-FENCE: FENCE_POST_RESET, FENCE_PANEL_REPLACEMENT, FENCE_SECTION_REBUILD
-TV MOUNT: STANDARD_TV_MOUNT, TV_MOUNT_ABOVE_FIREPLACE, TV_MOUNT_CONCEALED_WIRING
+DRYWALL: SMALL_DRYWALL_PATCH (under ~12"), MEDIUM_DRYWALL_PATCH (12-24" or multiple small), DRYWALL_SECTION_REPLACEMENT (exceeds 24" or full stud bay)
+DOORS: STANDARD_EXTERIOR_DOOR (single pre-hung), OVERSIZED_EXTERIOR_DOOR (non-standard size), FRENCH_DOOR_REPLACEMENT (double/french)
+DECK: DECK_BOARD_REPLACEMENT (surface decking boards only — 1×4, 2×6, composite, any count), DECK_STRUCTURAL_REPAIR (joists, beams, ledger, posts), DECK_SECTION_REBUILD (major section including structure)
+FENCE: FENCE_POST_RESET (leaning/reset posts), FENCE_PANEL_REPLACEMENT (boards or panels, no post work), FENCE_SECTION_REBUILD (posts + panels)
+TV MOUNT: STANDARD_TV_MOUNT (stud wall), TV_MOUNT_ABOVE_FIREPLACE, TV_MOUNT_CONCEALED_WIRING (in-wall cable)
 
 ### B. Decompose into task components
 Whether or not an assembly matches, identify the individual work tasks:
