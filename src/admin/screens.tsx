@@ -42,9 +42,9 @@ export function HomeScreen({ onOpenItem }: { onOpenItem: (item: WorkItem) => voi
           icon={Clock3}
         />
         <MetricCard
-          value={goal.neededPerHour > 0 ? `$${goal.neededPerHour}/hr` : '--'}
-          label="Needed to hit your goal"
-          detail="From remaining time"
+          value={goal.earnedThisWeek >= goal.weeklyTarget ? 'Goal reached' : `$${Math.max(0, goal.weeklyTarget - goal.earnedThisWeek).toLocaleString()}`}
+          label="Still needed this week"
+          detail={goal.earnedThisWeek >= goal.weeklyTarget ? `${fmt(goal.weeklyTarget)} goal hit` : `${goal.availableHours} hrs remaining`}
           icon={Zap}
           accent
         />
@@ -159,8 +159,8 @@ export function WorkScreen({ onOpenItem }: { onOpenItem: (item: WorkItem) => voi
                 <small>{item.customerName}{item.customerSub ? ` · ${item.customerSub}` : ''}</small>
               </div>
               <div className="work-list-econ">
-                <span>${item.profit} profit</span>
-                <small>{item.rate} · {item.hours}</small>
+                <span>${item.profit.toLocaleString()} after costs</span>
+                <small>{item.hours}</small>
               </div>
               <div className="work-list-rec"><RecPill rec={item.recommendation} compact sendPrice={item.suggestedPrice ?? item.price} lookFirst={item.lookFirst} /></div>
               <StatusBadge status={item.opStatus} />

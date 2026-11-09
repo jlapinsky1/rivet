@@ -77,6 +77,10 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
       const data = await res.json();
       setScopeAnalysis(data.scopeAnalysis);
       if (typeof notes === 'string') setContractorNotes(notes);
+      // If the agent says scope is clear, re-run the estimator with enriched info
+      if (data.scopeAnalysis?.readyToQuote) {
+        void reEstimate();
+      }
     } catch (err) {
       console.error('refresh-scope failed:', err);
     } finally {
@@ -85,7 +89,21 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   }
 
   // Context for decision snapshot (captures "it was Thursday, 15h left, needed $1k")
-  const { workItems } = useWorkItemsContext();
+  const { workItems, refresh } = useWorkItemsContext();
+
+  async function reEstimate() {
+    try {
+      const res = await fetch('/api/re-estimate-job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workItemId: item.id, businessId }),
+      });
+      if (!res.ok) throw new Error(`re-estimate ${res.status}`);
+      await refresh();
+    } catch (err) {
+      console.error('re-estimate failed:', err);
+    }
+  }
   const { settings: businessSettings } = useSettings();
   const goal = useGoalData(businessSettings);
 
@@ -159,7 +177,6 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   }, [item.estimationRunId, item.price, businessId, userId]);
 
   const estimatedProfit = price - item.costs;
-  const hourlyRate = item.hoursNum > 0 ? Math.round(estimatedProfit / item.hoursNum) : 0;
   const priceStatus = price >= item.price ? 'take' : price >= item.price * 0.82 ? 'review' : 'pass';
   const priceMessage = priceStatus === 'take' ? 'Recommended price for this job.' : priceStatus === 'review' ? 'Below your target earnings rate.' : 'We recommend passing at this price.';
   const isCommercial = item.source === 'commercial_work_order';
@@ -307,19 +324,97 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
             <p>{copy.sentence}</p>
           </div>
 
-          {/* Quotable job: clean narrative summary */}
+          {/* Quotable job: evaluation card */}
           {effectiveRec !== 'review' && (
-            <div className="detail-section job-summary">
-              {(scopeAnalysis?.context || item.customerNotes || item.scope) && (
-                <p className="summary-scope">{scopeAnalysis?.context || item.customerNotes || item.scope}</p>
-              )}
-              <div className="summary-facts">
-                <span><MapPin size={13} /> {item.travel}</span>
-                <span className="dot-sep" />
-                <span><Clock3 size={13} /> About {item.hours}</span>
-                {item.costs > 0 && <><span className="dot-sep" /><span>${item.costs.toLocaleString()} in costs</span></>}
+            <div className="detail-section quote-eval">
+              <div className="eval-header">
+                <span className="eval-eyebrow">Quote Evaluation</span>
+                <span className={`eval-outcome-badge ${effectiveRec}`}>
+                  {effectiveRec === 'take' ? 'Good to quote' : effectiveRec === 'take_at_price' ? 'Send this number' : 'Pass'}
+                </span>
               </div>
-              <p className="summary-price">Rivet recommends <strong>${(item.suggestedPrice ?? item.price).toLocaleString()}</strong></p>
+              <div className="eval-price-block">
+                <span className="eval-price-label">Recommended quote</span>
+                <span className="eval-price">${(item.suggestedPrice ?? item.price).toLocaleString()}</span>
+              </div>
+              <div className="eval-secondary-row">
+                <div className="eval-secondary-stat">
+                  <span className="eval-stat-value">${estimatedProfit.toLocaleString()}</span>
+                  <span className="eval-stat-label">After direct expenses</span>
+                </div>
+                <div className="eval-secondary-stat">
+                  <span className="eval-stat-value">{item.hours}</span>
+                  <span className="eval-stat-label">Total time committed</span>
+                </div>
+              </div>
+
+              {/* Evaluation signals */}
+              <div className="eval-signals">
+                {(effectiveRec === 'take' || effectiveRec === 'take_at_price') && (
+                  <div className="eval-signal positive">
+                    <span className="signal-glyph">✓</span>
+                    <span>Meets your pricing goals</span>
+                  </div>
+                )}
+                {item.confidence >= 70 && (
+                  <div className="eval-signal positive">
+                    <span className="signal-glyph">✓</span>
+                    <span>Estimate is {item.confidence}% confident</span>
+                  </div>
+                )}
+                {item.reasons.filter(r => r.icon !== 'check').map((r, i) => (
+                  <div key={i} className={`eval-signal ${r.icon === 'caution' ? 'caution' : 'negative'}`}>
+                    <span className="signal-glyph">{reasonGlyph(r.icon)}</span>
+                    <span>{r.text}</span>
+                  </div>
+                ))}
+                {item.confidence < 70 && (
+                  <div className="eval-signal caution">
+                    <span className="signal-glyph">!</span>
+                    <span>Estimate confidence is {item.confidence}% — confirm scope before quoting</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Estimate breakdown */}
+              <div className="eval-breakdown">
+                <span className="eval-breakdown-label">Estimate breakdown</span>
+                <div className="breakdown-row">
+                  <span>Job price</span>
+                  <strong>${(item.suggestedPrice ?? item.price).toLocaleString()}</strong>
+                </div>
+                {item.costs > 0 && (
+                  <div className="breakdown-row">
+                    <span>Travel and materials</span>
+                    <strong className="breakdown-neg">−${item.costs.toLocaleString()}</strong>
+                  </div>
+                )}
+                <div className="breakdown-row">
+                  <span>On-site work</span>
+                  <strong>{item.hours}</strong>
+                </div>
+                <div className="breakdown-row">
+                  <span>Travel</span>
+                  <strong>{item.travel}</strong>
+                </div>
+              </div>
+
+              {/* Pricing calculations — collapsed */}
+              <button className="eval-pricing-toggle" onClick={() => setShowAnalysis(!showAnalysis)}>
+                Pricing calculations <ChevronDown size={14} className={showAnalysis ? 'flip' : ''} />
+              </button>
+              {showAnalysis && (
+                <div className="eval-pricing-detail">
+                  <div className="analysis-row"><span>Profit per hour</span><strong>{item.rate}</strong></div>
+                  {item.costBreakdown.map((line) => (
+                    <div key={line.label} className="analysis-row"><span>{line.label}</span><strong>{line.value ?? '-'}</strong></div>
+                  ))}
+                  {item.walkAwayPrice != null && item.walkAwayPrice < (item.suggestedPrice ?? item.price) && (
+                    <div className="analysis-row"><span>Don't go below</span><strong>${item.walkAwayPrice.toLocaleString()}</strong></div>
+                  )}
+                  <div className="analysis-row"><span>Confidence</span><strong>{item.confidence}%</strong></div>
+                </div>
+              )}
             </div>
           )}
 
@@ -453,7 +548,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
               <span className="impact-icon">{priceStatus === 'take' ? '\u2713' : priceStatus === 'review' ? '!' : '\u00d7'}</span>
               <div>
                 <strong>{priceMessage}</strong>
-                <small>${estimatedProfit.toLocaleString()} estimated profit · ${hourlyRate}/hr</small>
+                <small>${estimatedProfit.toLocaleString()} after direct expenses</small>
               </div>
             </div>
           </div>}
@@ -498,37 +593,6 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
             </div>
           )}
 
-          {/* Collapsed math — all financial details, closed by default */}
-          {effectiveRec !== 'review' && (
-            <>
-              <button className="advanced-toggle" onClick={() => setShowAnalysis(!showAnalysis)}>
-                See the math <ChevronDown size={17} className={showAnalysis ? 'flip' : ''} />
-              </button>
-              {showAnalysis && (
-                <div className="full-analysis">
-                  <div className="analysis-row"><span>Estimated profit</span><strong>${item.profit}</strong></div>
-                  <div className="analysis-row"><span>Profit per hour</span><strong>{item.rate}</strong></div>
-                  {item.costBreakdown.map((line) => (
-                    <div key={line.label} className="analysis-row"><span>{line.label}</span><strong>{line.value ?? '-'}</strong></div>
-                  ))}
-                  {item.walkAwayPrice != null && item.walkAwayPrice < (item.suggestedPrice ?? item.price) && (
-                    <div className="analysis-row"><span>Don't go below</span><strong>${item.walkAwayPrice.toLocaleString()}</strong></div>
-                  )}
-                  <div className="analysis-row"><span>Confidence</span><strong>{item.confidence}%</strong></div>
-                  {item.reasons.length > 0 && (
-                    <ul className="reason-list" style={{ marginTop: '12px' }}>
-                      {item.reasons.map((reason, i) => (
-                        <li key={i} className={reason.icon === 'caution' ? 'caution' : reason.icon === 'x' ? 'pass' : ''}>
-                          <span className={`reason-icon ${reason.icon === 'caution' ? 'caution' : reason.icon === 'x' ? 'pass' : ''}`}>{reasonGlyph(reason.icon)}</span>
-                          {reason.text}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
-            </>
-          )}
         </div>
 
         {/* Action feedback */}

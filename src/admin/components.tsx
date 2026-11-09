@@ -128,21 +128,19 @@ export function WorkRecommendationCard({ item, onView }: { item: WorkItem; onVie
         </div>
         {effectiveRec !== 'review' ? (
           <div className="hero-insight">
-            <div className="insight-primary">
-              <span className="insight-rate">{item.rate}</span>
-              <span className="insight-rate-label">Profit per hour</span>
-            </div>
-            <div className="insight-secondary">
-              <span className="insight-profit">${item.profit}</span>
-              <span className="insight-detail">estimated profit</span>
-              <span className="insight-bullet">·</span>
-              <span className="insight-detail">{item.hours}</span>
-              <span className="insight-bullet">·</span>
-              <span className="insight-detail">{item.travel}</span>
-            </div>
-            <div className="insight-confidence">
-              <span className="confidence-label">Estimate confidence</span>
-              <span className="confidence-value">{item.confidence}%</span>
+            <div className="hero-eval-stats">
+              <div className="hero-eval-stat">
+                <span className="hero-eval-value">${item.profit.toLocaleString()}</span>
+                <span className="hero-eval-label">After direct expenses</span>
+              </div>
+              <div className="hero-eval-stat">
+                <span className="hero-eval-value">{item.hours}</span>
+                <span className="hero-eval-label">Total time</span>
+              </div>
+              <div className="hero-eval-stat">
+                <span className="hero-eval-value">{item.confidence}%</span>
+                <span className="hero-eval-label">Confidence</span>
+              </div>
             </div>
           </div>
         ) : (
@@ -172,8 +170,8 @@ export function WorkRow({ item, onClick }: { item: WorkItem; onClick: () => void
         <small>{item.customerName}{item.customerSub ? ` · ${item.customerSub}` : ''} · {item.travel}</small>
       </div>
       <div className="lead-numbers">
-        <strong>${item.profit} profit</strong>
-        <small>{item.hours} · {item.rate}</small>
+        <strong>${item.profit.toLocaleString()} after costs</strong>
+        <small>{item.hours}</small>
       </div>
       <RecPill rec={item.recommendation} compact sendPrice={item.suggestedPrice ?? item.price} lookFirst={item.lookFirst} />
       <ArrowRight className="lead-chevron" size={18} />

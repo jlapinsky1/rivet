@@ -566,6 +566,78 @@ img { display: block; max-width: 100%; }
 }
 .analysis-row span { color: var(--text-muted); font-size: 12.5px; }
 .analysis-row strong { color: var(--text-primary); font-size: 13px; font-weight: 700; }
+
+/* ── Quote Evaluation Card ───────────────────────────────────────────── */
+.quote-eval { display: flex; flex-direction: column; gap: 0; padding: 0 !important; overflow: hidden; }
+.eval-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px 12px; border-bottom: 1px solid var(--border-light);
+}
+.eval-eyebrow { font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); }
+.eval-outcome-badge {
+  font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.eval-outcome-badge.take { background: rgba(34,197,94,.15); color: #16a34a; }
+.eval-outcome-badge.take_at_price { background: rgba(234,179,8,.13); color: #b45309; }
+.eval-outcome-badge.pass { background: rgba(239,68,68,.12); color: #dc2626; }
+.eval-price-block { display: flex; flex-direction: column; gap: 2px; padding: 18px 20px 14px; }
+.eval-price-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .07em; }
+.eval-price { font-size: 36px; font-weight: 800; color: var(--text-primary); line-height: 1.1; font-family: "Manrope", sans-serif; }
+.eval-secondary-row {
+  display: flex; gap: 0; border-top: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
+}
+.eval-secondary-stat {
+  flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 12px 20px;
+}
+.eval-secondary-stat + .eval-secondary-stat { border-left: 1px solid var(--border-light); }
+.eval-stat-value { font-size: 18px; font-weight: 700; color: var(--text-primary); font-family: "Manrope", sans-serif; }
+.eval-stat-label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+.eval-signals { display: flex; flex-direction: column; gap: 0; padding: 0 20px; margin: 14px 0 2px; }
+.eval-signal {
+  display: flex; align-items: flex-start; gap: 8px; font-size: 13px;
+  padding: 7px 0; border-bottom: 1px solid var(--border-light);
+}
+.eval-signal:last-child { border-bottom: none; }
+.eval-signal.positive { color: #15803d; }
+.eval-signal.caution { color: #b45309; }
+.eval-signal.negative { color: #dc2626; }
+.signal-glyph { font-size: 13px; font-weight: 700; min-width: 16px; margin-top: 1px; }
+.eval-breakdown {
+  display: flex; flex-direction: column; gap: 0;
+  margin: 4px 20px 14px; border: 1px solid var(--border-light); border-radius: 8px; overflow: hidden;
+}
+.eval-breakdown-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--text-muted); padding: 10px 14px 8px; background: var(--bg-muted);
+  border-bottom: 1px solid var(--border-light);
+}
+.breakdown-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 14px; border-bottom: 1px solid var(--border-light); font-size: 13px;
+}
+.breakdown-row:last-child { border-bottom: none; }
+.breakdown-row span { color: var(--text-secondary); }
+.breakdown-row strong { color: var(--text-primary); font-weight: 600; }
+.breakdown-neg { color: var(--text-muted) !important; }
+.eval-pricing-toggle {
+  width: 100%; display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 20px; border: 0; border-top: 1px solid var(--border-light);
+  background: transparent; color: var(--text-muted); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: color .15s;
+}
+.eval-pricing-toggle:hover { color: var(--text-secondary); }
+.eval-pricing-toggle .flip { transform: rotate(180deg); transition: transform .2s ease; }
+.eval-pricing-detail { padding: 0 20px 16px; }
+
+/* ── Hero card eval stats (replaces hourly rate) ─────────────────────── */
+.hero-eval-stats { display: flex; gap: 0; }
+.hero-eval-stat { flex: 1; display: flex; flex-direction: column; gap: 2px; padding-right: 16px; }
+.hero-eval-stat + .hero-eval-stat { padding-left: 16px; padding-right: 0; border-left: 1px solid var(--border-light); }
+.hero-eval-value { font-size: 18px; font-weight: 700; color: var(--text-primary); font-family: "Manrope", sans-serif; }
+.hero-eval-label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+
 .drawer-actions {
   display: flex; gap: 10px; padding: 16px 28px;
   border-top: 1px solid var(--border-light); background: var(--bg-surface);
