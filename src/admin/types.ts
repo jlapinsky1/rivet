@@ -11,6 +11,28 @@ export type ReasonItem = { icon: 'check' | 'caution' | 'x'; text: string };
 
 export type EstimateLine = { label: string; value: string | null };
 
+export type MaterialLine = {
+  name: string;
+  description?: string;
+  quantity: number;
+  unit: string;
+  unit_price_low: number;
+  unit_price_mid: number;
+  unit_price_high: number;
+  total_mid: number;
+  source_url?: string;
+  confidence: 'high' | 'medium' | 'low';
+};
+
+export type MaterialsBom = {
+  materials: MaterialLine[];
+  total_low: number;
+  total_mid: number;
+  total_high: number;
+  region?: string;
+  notes?: string;
+};
+
 export type WorkItem = {
   id: number;
   title: string;
@@ -58,6 +80,7 @@ export type WorkItem = {
   completedAt?: string;
   scopeAnalysis?: { readyToQuote: boolean; questions: string[]; context: string };
   contractorNotes?: string;
+  materialsBom?: MaterialsBom;
   /** When false, this job does not move this week's earned $ or hours left. */
   countsTowardCurrentWeek?: boolean;
 };

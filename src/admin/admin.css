@@ -631,6 +631,33 @@ img { display: block; max-width: 100%; }
 .eval-pricing-toggle .flip { transform: rotate(180deg); transition: transform .2s ease; }
 .eval-pricing-detail { padding: 0 20px 16px; }
 
+/* ── Materials BOM panel ─────────────────────────────────────────────── */
+.bom-section { border-top: 1px solid var(--border-light); }
+.bom-header { display: flex; align-items: center; justify-content: space-between; padding-right: 20px; }
+.bom-header .eval-pricing-toggle { border-top: 0; flex: 1; }
+.bom-price-btn {
+  font-size: 11px; font-weight: 600; padding: 5px 12px; border-radius: 6px;
+  border: 1px solid var(--border-medium); background: transparent;
+  color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 5px;
+  transition: background .15s, color .15s; white-space: nowrap;
+}
+.bom-price-btn:hover:not(:disabled) { background: var(--surface-hover); color: var(--text-primary); }
+.bom-price-btn:disabled { opacity: 0.5; cursor: default; }
+.bom-panel { padding: 0 20px 16px; }
+.bom-region { font-size: 11px; color: var(--text-muted); margin: 0 0 10px; }
+.bom-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.bom-table th { text-align: left; color: var(--text-muted); font-weight: 600; font-size: 10px; text-transform: uppercase; padding: 0 6px 6px 0; border-bottom: 1px solid var(--border-light); }
+.bom-table th:last-child { width: 20px; }
+.bom-row td { padding: 7px 6px 7px 0; border-bottom: 1px solid var(--border-light); vertical-align: top; }
+.bom-name { display: block; font-weight: 500; color: var(--text-primary); }
+.bom-desc { display: block; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.bom-row.confidence-low .bom-name { color: var(--text-secondary); }
+.bom-link { color: var(--text-muted); display: flex; align-items: center; }
+.bom-link:hover { color: var(--accent); }
+.bom-total-row td { padding: 8px 6px 2px 0; font-weight: 700; color: var(--text-primary); font-size: 13px; border-top: 2px solid var(--border-medium); }
+.bom-range-row td { font-size: 11px; color: var(--text-muted); padding: 2px 0 8px; }
+.bom-notes { font-size: 11px; color: var(--text-muted); margin: 10px 0 0; font-style: italic; }
+
 /* ── Hero card eval stats (replaces hourly rate) ─────────────────────── */
 .hero-eval-stats { display: flex; gap: 0; }
 .hero-eval-stat { flex: 1; display: flex; flex-direction: column; gap: 2px; padding-right: 16px; }

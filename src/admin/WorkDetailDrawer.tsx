@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import type { WorkItem } from './types';
+import type { WorkItem, MaterialsBom } from './types';
 import type { ReasonCode } from '../estimator/types';
 import type { OwnerAction, DecisionSnapshot } from '../estimator/types';
 import { createAdjustmentEntry, saveAdjustment, saveOwnerDecision } from '../estimator/persistence';
@@ -9,7 +9,8 @@ import { useWorkItemsContext } from './WorkItemsContext';
 import { useGoalData } from './useGoalData';
 import { useSettings } from './useSettings';
 import { recCopy, recIcon, reasonGlyph, sourceLabel, StatusBadge, BillingBadge } from './components';
-import { ArrowRight, ChevronDown, Clock3, Loader2, MapPin, Phone, Mail, FileText, Building2, User, X } from 'lucide-react';
+import { ArrowRight, ChevronDown, Clock3, ExternalLink, Loader2, MapPin, Phone, Mail, FileText, Building2, User, X } from 'lucide-react';
+import { useMaterialPricer } from '../hooks/useMaterialPricer';
 import { getRepo } from '../utils/repository';
 import { buildEstimate } from '../utils/estimateBuilder';
 import { getSettings } from '../utils/storage';
@@ -51,6 +52,11 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   const [contractorNotes, setContractorNotes] = useState(item.contractorNotes ?? '');
   const [scopeAnalysis, setScopeAnalysis] = useState(item.scopeAnalysis ?? null);
   const [scopeLoading, setScopeLoading] = useState(false);
+
+  // Materials BOM
+  const [bom, setBom] = useState<MaterialsBom | null>(item.materialsBom ?? null);
+  const [showBom, setShowBom] = useState(false);
+  const { priceMaterials, loading: bomLoading } = useMaterialPricer(businessId);
 
   // Auto-generate scope analysis when drawer opens for a review job with no stored analysis
   useEffect(() => {
@@ -394,6 +400,73 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
                   )}
                 </>
               )}
+
+              {/* Materials BOM */}
+              <div className="bom-section">
+                <div className="bom-header">
+                  <button
+                    className="eval-pricing-toggle"
+                    onClick={() => {
+                      if (!bom) return;
+                      setShowBom(!showBom);
+                    }}
+                    disabled={!bom}
+                  >
+                    Materials list {bom && <ChevronDown size={14} className={showBom ? 'flip' : ''} />}
+                  </button>
+                  <button
+                    className="bom-price-btn"
+                    onClick={async () => {
+                      const result = await priceMaterials(item.id);
+                      if (result) { setBom(result); setShowBom(true); }
+                    }}
+                    disabled={bomLoading}
+                  >
+                    {bomLoading ? <><Loader2 size={13} className="spin" /> Pricing…</> : bom ? 'Refresh prices' : 'Price materials'}
+                  </button>
+                </div>
+                {bom && showBom && (
+                  <div className="bom-panel">
+                    {bom.region && <p className="bom-region">Prices: {bom.region}</p>}
+                    <table className="bom-table">
+                      <thead>
+                        <tr><th>Material</th><th>Qty</th><th>Unit $</th><th>Total</th><th></th></tr>
+                      </thead>
+                      <tbody>
+                        {bom.materials.map((line, i) => (
+                          <tr key={i} className={`bom-row confidence-${line.confidence}`}>
+                            <td>
+                              <span className="bom-name">{line.name}</span>
+                              {line.description && <span className="bom-desc">{line.description}</span>}
+                            </td>
+                            <td>{line.quantity} {line.unit}</td>
+                            <td>${line.unit_price_mid.toFixed(2)}</td>
+                            <td>${line.total_mid.toFixed(2)}</td>
+                            <td>
+                              {line.source_url && (
+                                <a href={line.source_url} target="_blank" rel="noopener noreferrer" className="bom-link">
+                                  <ExternalLink size={12} />
+                                </a>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bom-total-row">
+                          <td colSpan={3}>Estimated total</td>
+                          <td>${bom.total_mid.toFixed(2)}</td>
+                          <td></td>
+                        </tr>
+                        <tr className="bom-range-row">
+                          <td colSpan={5}>Range: ${bom.total_low.toFixed(2)} – ${bom.total_high.toFixed(2)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                    {bom.notes && <p className="bom-notes">{bom.notes}</p>}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { WorkItem } from '../admin/types';
+import type { WorkItem, MaterialsBom } from '../admin/types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthProvider';
 
@@ -47,6 +47,7 @@ function mapRow(row: Record<string, unknown>): WorkItem {
     completedAt: (row.completed_at as string) ?? undefined,
     scopeAnalysis: (row.scope_analysis as { readyToQuote: boolean; questions: string[]; context: string }) ?? undefined,
     contractorNotes: (row.contractor_notes as string) ?? undefined,
+    materialsBom: (row.materials_bom as MaterialsBom) ?? undefined,
   };
 }
 
