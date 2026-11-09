@@ -9,7 +9,7 @@ import { useWorkItemsContext } from './WorkItemsContext';
 import { useGoalData } from './useGoalData';
 import { useSettings } from './useSettings';
 import { recCopy, recIcon, reasonGlyph, sourceLabel, StatusBadge, BillingBadge } from './components';
-import { ArrowRight, ChevronDown, CircleHelp, Clock3, Loader2, MapPin, Phone, Mail, FileText, Building2, User, X } from 'lucide-react';
+import { ArrowRight, ChevronDown, Clock3, Loader2, MapPin, Phone, Mail, FileText, Building2, User, X } from 'lucide-react';
 import { getRepo } from '../utils/repository';
 import { buildEstimate } from '../utils/estimateBuilder';
 import { getSettings } from '../utils/storage';
@@ -306,43 +306,25 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
             </div>
             <p>{copy.sentence}</p>
           </div>
+
+          {/* Quotable job: clean narrative summary */}
           {effectiveRec !== 'review' && (
-            <div className="drawer-insight">
-              <div className="drawer-insight-block">
-                <span className="insight-rate">{item.rate}</span>
-                <span className="insight-rate-label">Profit per hour</span>
+            <div className="detail-section job-summary">
+              {(scopeAnalysis?.context || item.customerNotes || item.scope) && (
+                <p className="summary-scope">{scopeAnalysis?.context || item.customerNotes || item.scope}</p>
+              )}
+              <div className="summary-facts">
+                <span><MapPin size={13} /> {item.travel}</span>
+                <span className="dot-sep" />
+                <span><Clock3 size={13} /> About {item.hours}</span>
+                {item.costs > 0 && <><span className="dot-sep" /><span>${item.costs.toLocaleString()} in costs</span></>}
               </div>
-              <div className="drawer-insight-block">
-                <span className="insight-profit">${item.profit}</span>
-                <span className="insight-rate-label">Estimated profit</span>
-              </div>
-              <div className="drawer-insight-block">
-                <span className="insight-profit">{item.hours}</span>
-                <span className="insight-rate-label">Estimated time</span>
-              </div>
-              <div className="drawer-insight-block">
-                <span className="insight-profit">{item.travel}</span>
-                <span className="insight-rate-label">Travel</span>
-              </div>
+              <p className="summary-price">Rivet recommends <strong>${(item.suggestedPrice ?? item.price).toLocaleString()}</strong></p>
             </div>
           )}
-          {effectiveRec !== 'review' ? (
-            <div className="detail-section">
-              <div className="section-heading"><h3>Estimate</h3><span>At recommended price</span></div>
-              <div className="estimate-breakdown">
-                <div className="estimate-line"><span>Send this</span><strong>${(item.suggestedPrice ?? item.price).toLocaleString()}</strong></div>
-                {item.walkAwayPrice != null && item.walkAwayPrice < (item.suggestedPrice ?? item.price) && (
-                  <div className="estimate-line sub"><span>Don't go below</span><strong>${item.walkAwayPrice.toLocaleString()}</strong></div>
-                )}
-                {item.costBreakdown.map((line) => (
-                  <div key={line.label} className="estimate-line sub"><span>{line.label}</span><strong>{line.value ?? '-'}</strong></div>
-                ))}
-                <div className="estimate-line total"><span>Estimated profit</span><strong className="success-text">${item.profit}</strong></div>
-                <div className="estimate-line"><span>Profit per hour</span><strong>{item.rate}</strong></div>
-                <div className="estimate-line"><span>Estimate confidence</span><strong>{item.confidence}%</strong></div>
-              </div>
-            </div>
-          ) : (
+
+          {/* Review job UI */}
+          {effectiveRec === 'review' && (
             <>
               <div className="detail-section review-contact-prompt">
                 <div className="section-heading"><h3>Contact customer</h3></div>
@@ -425,23 +407,6 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
               </div>
             </>
           )}
-          {effectiveRec !== 'review' && (
-          <div className="detail-section">
-            <div className="section-heading"><h3>{
-              effectiveRec === 'take' || effectiveRec === 'take_at_price' ? 'Why send this number'
-              : 'Why pass'
-            }</h3></div>
-            <ul className="reason-list">
-              {item.reasons.map((reason, i) => (
-                <li key={i} className={reason.icon === 'caution' ? 'caution' : reason.icon === 'x' ? 'pass' : ''}>
-                  <span className={`reason-icon ${reason.icon === 'caution' ? 'caution' : reason.icon === 'x' ? 'pass' : ''}`}>{reasonGlyph(reason.icon)}</span>
-                  {reason.text}
-                </li>
-              ))}
-            </ul>
-            <p className="confidence-note"><CircleHelp size={16} /> {copy.sentence}</p>
-          </div>
-          )}
 
           {/* Price editor */}
           {effectiveRec !== 'review' && <div className="detail-section quote-editor">
@@ -493,7 +458,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
             </div>
           </div>}
 
-          {/* Context section: residential vs commercial */}
+          {/* Customer/commercial details */}
           {isCommercial ? (
             <div className="detail-section">
               <div className="section-heading"><h3>Work order details</h3></div>
@@ -521,7 +486,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
             </div>
           )}
 
-          {/* Photo gallery — review jobs show photos in the review section above */}
+          {/* Photo gallery */}
           {item.photos.length > 1 && effectiveRec !== 'review' && (
             <div className="detail-section">
               <div className="section-heading"><h3>Photos</h3><span>{item.photos.length} photos</span></div>
@@ -533,17 +498,36 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
             </div>
           )}
 
-          <button className="advanced-toggle" onClick={() => setShowAnalysis(!showAnalysis)}>
-            See full analysis <ChevronDown size={17} className={showAnalysis ? 'flip' : ''} />
-          </button>
-          {showAnalysis && (
-            <div className="full-analysis">
-              <div className="analysis-row"><span>System quote</span><strong>${item.price.toLocaleString()}</strong></div>
-              {item.suggestedPrice != null && (
-                <div className="analysis-row"><span>Send this week</span><strong>${item.suggestedPrice.toLocaleString()}</strong></div>
+          {/* Collapsed math — all financial details, closed by default */}
+          {effectiveRec !== 'review' && (
+            <>
+              <button className="advanced-toggle" onClick={() => setShowAnalysis(!showAnalysis)}>
+                See the math <ChevronDown size={17} className={showAnalysis ? 'flip' : ''} />
+              </button>
+              {showAnalysis && (
+                <div className="full-analysis">
+                  <div className="analysis-row"><span>Estimated profit</span><strong>${item.profit}</strong></div>
+                  <div className="analysis-row"><span>Profit per hour</span><strong>{item.rate}</strong></div>
+                  {item.costBreakdown.map((line) => (
+                    <div key={line.label} className="analysis-row"><span>{line.label}</span><strong>{line.value ?? '-'}</strong></div>
+                  ))}
+                  {item.walkAwayPrice != null && item.walkAwayPrice < (item.suggestedPrice ?? item.price) && (
+                    <div className="analysis-row"><span>Don't go below</span><strong>${item.walkAwayPrice.toLocaleString()}</strong></div>
+                  )}
+                  <div className="analysis-row"><span>Confidence</span><strong>{item.confidence}%</strong></div>
+                  {item.reasons.length > 0 && (
+                    <ul className="reason-list" style={{ marginTop: '12px' }}>
+                      {item.reasons.map((reason, i) => (
+                        <li key={i} className={reason.icon === 'caution' ? 'caution' : reason.icon === 'x' ? 'pass' : ''}>
+                          <span className={`reason-icon ${reason.icon === 'caution' ? 'caution' : reason.icon === 'x' ? 'pass' : ''}`}>{reasonGlyph(reason.icon)}</span>
+                          {reason.text}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               )}
-              <div className="analysis-row"><span>Confidence</span><strong>{item.confidence}%</strong></div>
-            </div>
+            </>
           )}
         </div>
 

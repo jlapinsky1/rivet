@@ -463,6 +463,12 @@ img { display: block; max-width: 100%; }
 .drawer-rec.review { background: var(--review-bg); border-color: var(--review-border); }
 .drawer-rec.pass { background: var(--pass-bg); border-color: var(--pass-border); }
 .drawer-rec p { margin: 10px 0 0; color: var(--text-primary); font-size: 13.5px; line-height: 1.5; font-weight: 500; }
+.job-summary { display: flex; flex-direction: column; gap: 10px; }
+.summary-scope { font-size: 14px; line-height: 1.6; color: var(--text-primary); margin: 0; }
+.summary-facts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); }
+.summary-facts svg { vertical-align: -2px; }
+.summary-price { font-size: 14px; color: var(--text-secondary); margin: 0; }
+.summary-price strong { color: var(--text-primary); font-size: 18px; font-weight: 700; }
 .drawer-insight {
   display: flex; gap: 28px; padding: 18px 20px;
   background: var(--bg-surface); border: 1px solid var(--border-light);
