@@ -21,7 +21,7 @@ export function truckHeadline(
   if (rec === 'pass') return 'Pass';
   if (rec === 'review') return 'Need more info';
   const send = truckSendPrice(rec, quote, suggestedPrice);
-  return send != null ? `Send $${send}` : 'Send';
+  return send != null ? `Quote $${send}` : 'Quote';
 }
 
 export function truckSentence(
@@ -38,13 +38,13 @@ export function truckSentence(
   }
   if (rec === 'review') {
     return lookFirst
-      ? `Reach out to the customer to find out ${lookFirst} before you send a number.`
-      : 'Get more details from the customer before you send a number.';
+      ? `Reach out to the customer to find out ${lookFirst} before quoting.`
+      : 'Get more details from the customer before quoting.';
   }
   const send = truckSendPrice(rec, quote, suggestedPrice);
-  if (send == null) return 'Send the quote.';
+  if (send == null) return 'Quote this job.';
   if (walkAwayPrice != null && walkAwayPrice < send) {
-    return `Send $${send}. If they push back, $${walkAwayPrice} is as low as you can go.`;
+    return `Quote $${send}. If they push back, $${walkAwayPrice} is as low as you can go.`;
   }
-  return `Send $${send}.`;
+  return `Quote $${send}.`;
 }
