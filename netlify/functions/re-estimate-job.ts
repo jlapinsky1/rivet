@@ -46,6 +46,14 @@ export default async function handler(req: Request) {
       customerNotes: item.customer_notes || undefined,
     });
 
+    const estimate = estimateHandymanJob(extraction);
+
+    // If a priced BOM exists, use it as the authoritative material cost
+    const bom = item.materials_bom as { total_low: number; total_mid: number; total_high: number } | null;
+    if (bom?.total_mid) {
+      estimate.materialCost = { low: bom.total_low, expected: bom.total_mid, high: bom.total_high };
+    }
+
     const { data: siblingItems } = await supabase
       .from('work_items')
       .select('op_status, profit, hours_num, created_at, completed_at')
@@ -66,7 +74,6 @@ export default async function handler(req: Request) {
     );
 
     const miles = parseInt(item.travel) || 0;
-    const estimate = estimateHandymanJob(extraction);
     const economicJob = applyCalibration(estimate, config, null, miles, ctx);
     const decision = deriveRecommendation(economicJob, config, ctx);
 
@@ -113,6 +120,7 @@ export default async function handler(req: Request) {
         ],
         reasons: decision.reasons,
         estimation_run_id: runId,
+        extraction_result: extraction,
       })
       .eq('id', workItemId)
       .eq('business_id', businessId);
