@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import type { ChatMessage } from './useAskRivet';
 
@@ -170,23 +170,80 @@ export function AskRivetPanel({
   );
 }
 
-/** Render message text with line breaks, stripping any chips block. */
+/**
+ * Render assistant message text with markdown-lite formatting:
+ * - **bold** → <strong>
+ * - ---**Section header** → styled section label
+ * - "N. **Title** | Customer | $Price | Status" → job tile card
+ * - blank lines → vertical spacing
+ * - strips <chips> blocks
+ */
 function MessageText({ text }: { text: string }) {
-  // Strip complete <chips>...</chips> blocks and any trailing incomplete one
   const display = text
     .replace(/<chips>[\s\S]*?<\/chips>/g, '')
     .replace(/<chips>[\s\S]*$/, '')
     .trim();
 
   if (!display) return null;
+
+  const lines = display.split('\n');
+  const nodes: React.ReactNode[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      nodes.push(<div key={i} className="ar-gap" />);
+      continue;
+    }
+
+    // Section header: "---**text**" or "---text"
+    if (trimmed.startsWith('---')) {
+      const headerText = trimmed.replace(/^-+\s*/, '');
+      nodes.push(
+        <div key={i} className="ar-section-header">
+          {renderInline(headerText)}
+        </div>,
+      );
+      continue;
+    }
+
+    // Numbered list item: "1. **Title** | Customer | $Price | Status"
+    const listMatch = trimmed.match(/^(\d+)\.\s+(.*)/);
+    if (listMatch) {
+      const content = listMatch[2];
+      const parts = content.split(' | ');
+      const title = parts[0].replace(/\*\*/g, '').trim();
+      const meta = parts.slice(1).join(' · ');
+      nodes.push(
+        <div key={i} className="ar-job-tile">
+          <div className="ar-job-tile-title">{title}</div>
+          {meta && <div className="ar-job-tile-meta">{meta}</div>}
+        </div>,
+      );
+      continue;
+    }
+
+    // Regular text line with inline bold
+    nodes.push(
+      <div key={i} className="ar-text-line">{renderInline(trimmed)}</div>,
+    );
+  }
+
+  return <div className="ar-msg">{nodes}</div>;
+}
+
+/** Split a string on **bold** markers and return mixed text/strong nodes. */
+function renderInline(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return (
     <>
-      {display.split('\n').map((line, i) => (
-        <span key={i}>
-          {i > 0 && <br />}
-          {line}
-        </span>
-      ))}
+      {parts.map((part, i) =>
+        part.startsWith('**') && part.endsWith('**')
+          ? <strong key={i}>{part.slice(2, -2)}</strong>
+          : <span key={i}>{part}</span>,
+      )}
     </>
   );
 }

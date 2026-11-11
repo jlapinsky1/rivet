@@ -119,17 +119,20 @@ export function useAskRivet() {
           for (const eventBlock of events) {
             const lines = eventBlock.split('\n');
             let eventType = '';
-            let data = '';
+            const dataParts: string[] = [];
 
             for (const line of lines) {
               if (line.startsWith('event: ')) {
                 eventType = line.slice(7).trim();
               } else if (line.startsWith('data: ')) {
-                // Accumulate multi-line data fields (SSE spec: each data: line
-                // is joined with \n). Handles newlines in streamed text tokens.
-                data = data ? data + '\n' + line.slice(6) : line.slice(6);
+                // Collect each data: line — joined with \n at the end.
+                // Using an array avoids the falsy-empty-string bug where
+                // `data ?` fails to accumulate blank lines (blank lines = \n\n).
+                dataParts.push(line.slice(6));
               }
             }
+
+            const data = dataParts.join('\n');
 
             if (!eventType) continue;
 
