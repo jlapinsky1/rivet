@@ -125,7 +125,9 @@ export function useAskRivet() {
               if (line.startsWith('event: ')) {
                 eventType = line.slice(7).trim();
               } else if (line.startsWith('data: ')) {
-                data = line.slice(6);
+                // Accumulate multi-line data fields (SSE spec: each data: line
+                // is joined with \n). Handles newlines in streamed text tokens.
+                data = data ? data + '\n' + line.slice(6) : line.slice(6);
               }
             }
 
