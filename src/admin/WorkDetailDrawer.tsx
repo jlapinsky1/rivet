@@ -418,7 +418,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
                     className="bom-price-btn"
                     onClick={async () => {
                       const result = await priceMaterials(item.id);
-                      if (result) { setBom(result); setShowBom(true); }
+                      if (result) { setBom(result); setShowBom(true); void reEstimate(); }
                     }}
                     disabled={bomLoading}
                   >
