@@ -5,6 +5,8 @@ import { WorkDetailDrawer } from './WorkDetailDrawer';
 import { WorkItemsProvider, useWorkItemsContext } from './WorkItemsContext';
 import { HomeScreen, WorkScreen, ScheduleScreen, CustomersScreen, ReportsScreen, SettingsScreen } from './screens';
 import { ChevronDown, ChevronRight, CircleHelp, LogOut, Menu, Plus, Settings, TrendingUp } from 'lucide-react';
+import { AskRivetPanel } from './AskRivetPanel';
+import { useAskRivet } from './useAskRivet';
 
 function Sidebar({ active, setActive, mobileOpen, closeMobile, businessName, businessInitials, onSignOut }: {
   active: string;
@@ -90,6 +92,8 @@ export default function RivetDashboard({ businessName, businessInitials, display
   const [selectedItem, setSelectedItem] = useState<WorkItem | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const askRivet = useAskRivet();
+
   const openItem = (item: WorkItem) => setSelectedItem(item);
   const closeItem = () => setSelectedItem(null);
 
@@ -133,6 +137,25 @@ export default function RivetDashboard({ businessName, businessInitials, display
           <MobileBottomNav active={active} setActive={setActive} />
         </main>
         {selectedItem && <DrawerWithRefresh item={selectedItem} onClose={closeItem} />}
+
+        {/* Ask Rivet FAB */}
+        {!askRivet.isOpen && (
+          <button className="ask-rivet-fab" onClick={askRivet.open} aria-label="Ask Rivet">
+            <span className="fab-star">✦</span>
+            <span className="fab-label">Ask Rivet</span>
+          </button>
+        )}
+
+        {/* Ask Rivet Panel */}
+        <AskRivetPanel
+          isOpen={askRivet.isOpen}
+          messages={askRivet.messages}
+          isStreaming={askRivet.isStreaming}
+          thinkingLabel={askRivet.thinkingLabel}
+          onSend={askRivet.sendMessage}
+          onClose={askRivet.close}
+          onNewConversation={askRivet.newConversation}
+        />
       </div>
     </WorkItemsProvider>
   );

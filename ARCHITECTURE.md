@@ -744,3 +744,80 @@ WorkDetailDrawer (review job)
 **`src/hooks/useJobAdvisor.ts`** — React hook; `enabled` controls whether the call fires (review jobs only); fires once on mount; returns `{ advice, loading, error }`.
 
 The same agent endpoint is callable from MCP, Claude connectors, or any other channel with no code changes.
+
+---
+
+## Ask Rivet — Conversational Agent
+
+A floating chat panel ("Ask Rivet") lets contractors manage their entire pipeline through natural language, mirroring the UI-based workflow without opening any drawer or clicking any button.
+
+### How it connects
+
+```
+Contractor UI (React)
+  └── AskRivetPanel.tsx + useAskRivet.ts
+        └── fetch POST rivet-agents/chat   ← SSE stream
+              └── contractor-advisor agent (Sonnet, tool-use loop)
+                    ├── skill: contractor-advisor/SKILL.md
+                    ├── resources: workflow-stages.md, priority-signals.md
+                    └── tools: list_work_items, get_work_item_detail,
+                                refresh_scope, price_materials, re_estimate_job,
+                                send_estimate, email_client, accept_work,
+                                reject_work, update_work_price, add_contractor_note
+```
+
+The UI calls `rivet-agents` directly (not via Netlify Functions) to avoid SSE timeout constraints on serverless functions.
+
+### SSE stream format
+
+```
+event: text   data: <token>              — streaming response text
+event: tool   data: <label>             — tool being called (UI shows thinking label)
+event: chips  data: ["chip1","chip2"]   — contextual follow-up suggestions
+event: id     data: <conversation_uuid> — persist to localStorage
+event: done   data:                     — stream complete
+```
+
+### Chip system
+
+The contractor-advisor skill instructs the agent to end every response with:
+```
+<chips>["Send the Acme Corp estimate", "What else needs attention?"]</chips>
+```
+
+The UI renders chips as pill buttons below each assistant message. Clicking sends it as the next user message — contractors rarely need to type. Initial chips shown on empty conversation:
+- "What should I work on this week?"
+- "Any estimates I need to send?"
+- "Are there jobs waiting on customer info?"
+- "Show me what's approved and ready to schedule"
+
+### Frontend files
+
+| File | Purpose |
+|------|---------|
+| `src/admin/useAskRivet.ts` | Hook: state management, SSE consumption, localStorage persistence |
+| `src/admin/AskRivetPanel.tsx` | Chat panel UI: messages, chips, thinking indicator, input row |
+| `src/admin/RivetDashboard.tsx` | Mounts panel + FAB trigger button |
+| `src/admin/admin.css` | Panel styles (dark theme, chip pills, streaming cursor) |
+
+### Conversation persistence
+
+Conversations saved to `contractor_conversations` Supabase table (in `rivet-agents`). `conversationId` returned as `event: id` and stored in browser `localStorage`. On panel open, `GET /conversation/{id}` restores history.
+
+### Actions available to the agent
+
+Every action available in the UI is also available to the agent:
+
+| Workflow step | UI action | Agent tool |
+|--------------|-----------|-----------|
+| Review incoming job | Scope analysis panel | `refresh_scope` |
+| Price materials | Materials BOM panel | `price_materials` |
+| Re-run estimate | Re-estimate button | `re_estimate_job` |
+| Send estimate to customer | Send Estimate button | `send_estimate` |
+| Email customer | Email button | `email_client` |
+| Accept job | Accept button | `accept_work` |
+| Decline job | Decline button | `reject_work` |
+| Adjust price | Price field | `update_work_price` |
+| Add note | Notes field | `add_contractor_note` |
+| Browse pipeline | Work items list | `list_work_items` |
+| View job detail | Job drawer | `get_work_item_detail` |
