@@ -117,7 +117,7 @@ export function WorkRecommendationCard({ item, onView }: { item: WorkItem; onVie
             </div>
           </div>
           <div className="hero-photo-strip">
-            {item.photos.slice(0, 3).map((src, i) => (
+            {(item.photos ?? []).slice(0, 3).map((src, i) => (
               <img key={i} src={src} alt={item.title} className="hero-thumb" loading="lazy" />
             ))}
           </div>
@@ -166,7 +166,9 @@ export function WorkRow({ item, onClick }: { item: WorkItem; onClick: () => void
   return (
     <button className="lead-row" onClick={onClick}>
       <div className="lead-thumb">
-        <img src={item.photos[0]} alt={item.title} loading="lazy" />
+        {item.photos?.[0]
+          ? <img src={item.photos[0]} alt={item.title} loading="lazy" />
+          : <div className="lead-thumb-placeholder" />}
       </div>
       <div className="lead-main">
         <div className="lead-source-row"><SourceTag source={item.source} /></div>
