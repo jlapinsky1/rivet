@@ -30,11 +30,21 @@ export function AskRivetPanel({
 }: Props) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastUserMsgRef = useRef<HTMLDivElement | null>(null);
+  const prevIsStreamingRef = useRef(false);
 
-  // Scroll to bottom as new content arrives
+  // Scroll: during streaming → follow bottom; when done → jump to start of exchange
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, thinkingLabel]);
+    const wasStreaming = prevIsStreamingRef.current;
+    prevIsStreamingRef.current = isStreaming;
+
+    if (isStreaming) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    } else if (wasStreaming) {
+      // Stream just finished — jump back to show the user's message at the top
+      lastUserMsgRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [messages, isStreaming, thinkingLabel]);
 
   // Focus input when panel opens
   useEffect(() => {
@@ -58,8 +68,16 @@ export function AskRivetPanel({
   }
 
   const isEmpty = messages.length === 0;
-  // Only show chips on the latest assistant message (last one in array)
   const lastMsgIndex = messages.length - 1;
+
+  // Chips shown in the fixed tray below the messages area
+  const trayChips = (() => {
+    if (isEmpty) return INITIAL_CHIPS;
+    if (isStreaming) return [];
+    const last = messages[lastMsgIndex];
+    if (last?.role === 'assistant' && last.chips?.length) return last.chips;
+    return [];
+  })();
 
   return (
     <>
@@ -84,32 +102,26 @@ export function AskRivetPanel({
           <p className="ask-rivet-subtitle">Your contractor assistant</p>
         </div>
 
-        {/* Messages */}
+        {/* Messages — scrollable area, no chips here */}
         <div className="ask-rivet-messages">
           {isEmpty ? (
             <div className="ask-rivet-empty">
               <p className="ask-rivet-intro">
                 Ask me what to work on, send estimates, or follow up with customers.
               </p>
-              <div className="ask-rivet-chips">
-                {INITIAL_CHIPS.map(chip => (
-                  <button
-                    key={chip}
-                    className="ask-rivet-chip"
-                    onClick={() => onSend(chip)}
-                    disabled={isStreaming}
-                  >
-                    {chip}
-                  </button>
-                ))}
-              </div>
             </div>
           ) : (
             messages.map((msg, i) => {
               const isLast = i === lastMsgIndex;
-              const showChips = isLast && msg.role === 'assistant' && msg.chips && msg.chips.length > 0 && !isStreaming;
+              // Attach ref to the most recent user message so we can scroll to it
+              const isLastUser = msg.role === 'user' &&
+                messages.slice(i + 1).every(m => m.role !== 'user');
               return (
-                <div key={i} className={`ask-rivet-message ${msg.role}`}>
+                <div
+                  key={i}
+                  ref={isLastUser ? lastUserMsgRef : null}
+                  className={`ask-rivet-message ${msg.role}`}
+                >
                   <div className="ask-rivet-bubble">
                     {msg.role === 'assistant' && isLast && isStreaming && thinkingLabel ? (
                       <>
@@ -126,25 +138,28 @@ export function AskRivetPanel({
                       <span className="ask-rivet-cursor" aria-hidden="true" />
                     )}
                   </div>
-                  {showChips && (
-                    <div className="ask-rivet-chips">
-                      {msg.chips!.map(chip => (
-                        <button
-                          key={chip}
-                          className="ask-rivet-chip"
-                          onClick={() => onSend(chip)}
-                        >
-                          {chip}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
               );
             })
           )}
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Chip tray — fixed between messages and input, always visible */}
+        {trayChips.length > 0 && (
+          <div className="ask-rivet-chips-tray">
+            {trayChips.map(chip => (
+              <button
+                key={chip}
+                className="ask-rivet-chip"
+                onClick={() => onSend(chip)}
+                disabled={isStreaming}
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Input */}
         <div className="ask-rivet-input-row">
