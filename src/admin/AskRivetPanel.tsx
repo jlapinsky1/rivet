@@ -17,6 +17,8 @@ type Props = {
   onSend: (text: string) => void;
   onClose: () => void;
   onNewConversation: () => void;
+  /** When true, renders as an inline full-screen view (mobile PWA primary tab) */
+  embedded?: boolean;
 };
 
 export function AskRivetPanel({
@@ -27,6 +29,7 @@ export function AskRivetPanel({
   onSend,
   onClose,
   onNewConversation,
+  embedded = false,
 }: Props) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -70,7 +73,7 @@ export function AskRivetPanel({
   const isEmpty = messages.length === 0;
   const lastMsgIndex = messages.length - 1;
 
-  // Chips shown in the fixed tray below the messages area
+  // Chips to show after the last assistant message (or initial chips when empty)
   const trayChips = (() => {
     if (isEmpty) return INITIAL_CHIPS;
     if (isStreaming) return [];
@@ -79,10 +82,13 @@ export function AskRivetPanel({
     return [];
   })();
 
+  const panelClass = embedded
+    ? 'ask-rivet-panel embedded'
+    : `ask-rivet-panel ${isOpen ? 'open' : ''}`;
+
   return (
     <>
-      {/* Slide-in panel */}
-      <div className={`ask-rivet-panel ${isOpen ? 'open' : ''}`} role="dialog" aria-label="Ask Rivet">
+      <div className={panelClass} role="dialog" aria-label="Ask Rivet">
         {/* Header */}
         <div className="ask-rivet-header">
           <div className="ask-rivet-title-row">
@@ -94,72 +100,87 @@ export function AskRivetPanel({
                   New conversation
                 </button>
               )}
-              <button className="ask-rivet-close" onClick={onClose} aria-label="Close">
-                <X size={18} />
-              </button>
+              {!embedded && (
+                <button className="ask-rivet-close" onClick={onClose} aria-label="Close">
+                  <X size={18} />
+                </button>
+              )}
             </div>
           </div>
           <p className="ask-rivet-subtitle">Your contractor assistant</p>
         </div>
 
-        {/* Messages — scrollable area, no chips here */}
+        {/* Messages + chips — all inside the scrollable area */}
         <div className="ask-rivet-messages">
           {isEmpty ? (
             <div className="ask-rivet-empty">
               <p className="ask-rivet-intro">
                 Ask me what to work on, send estimates, or follow up with customers.
               </p>
+              {/* Initial chips live in the scroll area on the empty state */}
+              <div className="ask-rivet-chips">
+                {INITIAL_CHIPS.map(chip => (
+                  <button
+                    key={chip}
+                    className="ask-rivet-chip"
+                    onClick={() => onSend(chip)}
+                    disabled={isStreaming}
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
             </div>
           ) : (
-            messages.map((msg, i) => {
-              const isLast = i === lastMsgIndex;
-              // Attach ref to the most recent user message so we can scroll to it
-              const isLastUser = msg.role === 'user' &&
-                messages.slice(i + 1).every(m => m.role !== 'user');
-              return (
-                <div
-                  key={i}
-                  ref={isLastUser ? lastUserMsgRef : null}
-                  className={`ask-rivet-message ${msg.role}`}
-                >
-                  <div className="ask-rivet-bubble">
-                    {msg.role === 'assistant' && isLast && isStreaming && thinkingLabel ? (
-                      <>
-                        {msg.content ? (
-                          <MessageText text={msg.content} />
-                        ) : (
-                          <span className="ask-rivet-thinking">{thinkingLabel}</span>
-                        )}
-                      </>
-                    ) : (
-                      <MessageText text={msg.content} />
-                    )}
-                    {msg.role === 'assistant' && isLast && isStreaming && !thinkingLabel && (
-                      <span className="ask-rivet-cursor" aria-hidden="true" />
-                    )}
+            <>
+              {messages.map((msg, i) => {
+                const isLast = i === lastMsgIndex;
+                const isLastUser = msg.role === 'user' &&
+                  messages.slice(i + 1).every(m => m.role !== 'user');
+                return (
+                  <div
+                    key={i}
+                    ref={isLastUser ? lastUserMsgRef : null}
+                    className={`ask-rivet-message ${msg.role}`}
+                  >
+                    <div className="ask-rivet-bubble">
+                      {msg.role === 'assistant' && isLast && isStreaming && thinkingLabel ? (
+                        <>
+                          {msg.content ? (
+                            <MessageText text={msg.content} />
+                          ) : (
+                            <span className="ask-rivet-thinking">{thinkingLabel}</span>
+                          )}
+                        </>
+                      ) : (
+                        <MessageText text={msg.content} />
+                      )}
+                      {msg.role === 'assistant' && isLast && isStreaming && !thinkingLabel && (
+                        <span className="ask-rivet-cursor" aria-hidden="true" />
+                      )}
+                    </div>
                   </div>
+                );
+              })}
+              {/* Chips scroll with the messages — no fixed tray crushing the layout */}
+              {trayChips.length > 0 && (
+                <div className="ask-rivet-chips ask-rivet-chips-inline">
+                  {trayChips.map(chip => (
+                    <button
+                      key={chip}
+                      className="ask-rivet-chip"
+                      onClick={() => onSend(chip)}
+                      disabled={isStreaming}
+                    >
+                      {chip}
+                    </button>
+                  ))}
                 </div>
-              );
-            })
+              )}
+            </>
           )}
           <div ref={messagesEndRef} />
         </div>
-
-        {/* Chip tray — fixed between messages and input, always visible */}
-        {trayChips.length > 0 && (
-          <div className="ask-rivet-chips-tray">
-            {trayChips.map(chip => (
-              <button
-                key={chip}
-                className="ask-rivet-chip"
-                onClick={() => onSend(chip)}
-                disabled={isStreaming}
-              >
-                {chip}
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* Input */}
         <div className="ask-rivet-input-row">
@@ -183,15 +204,18 @@ export function AskRivetPanel({
       </div>
     </>
   );
+
 }
 
 /**
  * Render assistant message text with markdown-lite formatting:
  * - **bold** → <strong>
- * - ---**Section header** → styled section label
+ * - "**Section header**" on its own line → styled section label
+ * - "---**Section header**" → styled section label
+ * - "- **Title** | Customer | $Price | Status" → job tile card
  * - "N. **Title** | Customer | $Price | Status" → job tile card
  * - blank lines → vertical spacing
- * - strips <chips> blocks
+ * - strips <chips> blocks and backticks
  */
 function MessageText({ text }: { text: string }) {
   const display = text
@@ -213,7 +237,7 @@ function MessageText({ text }: { text: string }) {
       continue;
     }
 
-    // Section header: "---**text**" or "---text"
+    // Section header: "---text" or standalone "**Bold Header**" line
     if (trimmed.startsWith('---')) {
       const headerText = trimmed.replace(/^-+\s*/, '');
       nodes.push(
@@ -223,14 +247,23 @@ function MessageText({ text }: { text: string }) {
       );
       continue;
     }
+    if (/^\*\*[^|]+\*\*$/.test(trimmed)) {
+      nodes.push(
+        <div key={i} className="ar-section-header">
+          {renderInline(trimmed)}
+        </div>,
+      );
+      continue;
+    }
 
-    // Numbered list item: "1. **Title** | Customer | $Price | Status"
-    const listMatch = trimmed.match(/^(\d+)\.\s+(.*)/);
-    if (listMatch) {
-      const content = listMatch[2];
+    // Job tile: "- **Title** | ..." or "N. **Title** | ..."
+    const tileMatch = trimmed.match(/^(?:-|\d+\.)\s+(.*)/);
+    if (tileMatch && tileMatch[1].includes(' | ')) {
+      const content = tileMatch[1];
       const parts = content.split(' | ');
-      const title = parts[0].replace(/\*\*/g, '').trim();
-      const meta = parts.slice(1).join(' · ');
+      // Strip bold markers and backticks from title; strip backticks from meta
+      const title = parts[0].replace(/\*\*/g, '').replace(/`/g, '').trim();
+      const meta = parts.slice(1).map(p => p.replace(/`/g, '').trim()).join(' · ');
       nodes.push(
         <div key={i} className="ar-job-tile">
           <div className="ar-job-tile-title">{title}</div>

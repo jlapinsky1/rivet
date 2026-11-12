@@ -4,7 +4,7 @@ import { navItems } from './types';
 import { WorkDetailDrawer } from './WorkDetailDrawer';
 import { WorkItemsProvider, useWorkItemsContext } from './WorkItemsContext';
 import { HomeScreen, WorkScreen, ScheduleScreen, CustomersScreen, ReportsScreen, SettingsScreen } from './screens';
-import { ChevronDown, ChevronRight, CircleHelp, LogOut, Menu, Plus, Settings, TrendingUp } from 'lucide-react';
+import { ChevronDown, ChevronRight, CircleHelp, LogOut, Menu, Plus, Settings, Sparkles, TrendingUp } from 'lucide-react';
 import { AskRivetPanel } from './AskRivetPanel';
 import { useAskRivet } from './useAskRivet';
 
@@ -62,9 +62,14 @@ function Sidebar({ active, setActive, mobileOpen, closeMobile, businessName, bus
 }
 
 function MobileBottomNav({ active, setActive }: { active: string; setActive: (label: string) => void }) {
-  const items = navItems.slice(0, 5);
+  // Work, Schedule, Customers, Reports (skip Home — Rivet chat replaces it on mobile)
+  const items = navItems.slice(1, 5);
   return (
     <nav className="mobile-bottom-nav">
+      <button className={active === 'Rivet' ? 'active' : ''} onClick={() => setActive('Rivet')}>
+        <Sparkles size={20} />
+        <span>Rivet</span>
+      </button>
       {items.map(({ label, icon: Icon, count }) => (
         <button key={label} className={active === label ? 'active' : ''} onClick={() => setActive(label)}>
           <Icon size={20} />
@@ -88,7 +93,10 @@ export default function RivetDashboard({ businessName, businessInitials, display
   displayName?: string;
   onSignOut: () => void;
 }) {
-  const [active, setActive] = useState('Home');
+  // On mobile, default to the Rivet chat tab (PWA entry point)
+  const [active, setActive] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 700px)').matches ? 'Rivet' : 'Home'
+  );
   const [selectedItem, setSelectedItem] = useState<WorkItem | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -100,6 +108,9 @@ export default function RivetDashboard({ businessName, businessInitials, display
   const greeting = displayName || businessName.split(' ')[0] || 'there';
   const topbarTitle = active === 'Home' ? `Good morning, ${greeting}` : active;
   const topbarCrumb = active === 'Home' ? 'Today' : active;
+
+  // On mobile, the Rivet chat tab renders the full-screen embedded panel
+  const isMobileRivetTab = active === 'Rivet';
 
   return (
     <WorkItemsProvider>
@@ -115,47 +126,65 @@ export default function RivetDashboard({ businessName, businessInitials, display
         />
         {mobileOpen && <div className="mobile-overlay" onClick={() => setMobileOpen(false)} />}
         <main className="main-content">
-          <header className="topbar">
-            <button className="mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu size={22} /></button>
-            <div className="topbar-title">
-              {active === 'Home' && <div className="breadcrumb">Home <ChevronRight size={14} /> {topbarCrumb}</div>}
-              <h1>{topbarTitle}</h1>
-            </div>
-            <div className="topbar-actions">
-              {active === 'Home' && <button className="btn-new-quote"><Plus size={17} /> <span>New quote</span></button>}
-              <button className="avatar">{businessInitials}</button>
-            </div>
-          </header>
-          <div className="main-scroll">
-            {active === 'Home' && <HomeScreen onOpenItem={openItem} />}
-            {active === 'Work' && <WorkScreen onOpenItem={openItem} />}
-            {active === 'Schedule' && <ScheduleScreen onOpenItem={openItem} />}
-            {active === 'Customers' && <CustomersScreen />}
-            {active === 'Reports' && <ReportsScreen />}
-            {active === 'Settings' && <SettingsScreen />}
-          </div>
+          {!isMobileRivetTab && (
+            <>
+              <header className="topbar">
+                <button className="mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu size={22} /></button>
+                <div className="topbar-title">
+                  {active === 'Home' && <div className="breadcrumb">Home <ChevronRight size={14} /> {topbarCrumb}</div>}
+                  <h1>{topbarTitle}</h1>
+                </div>
+                <div className="topbar-actions">
+                  {active === 'Home' && <button className="btn-new-quote"><Plus size={17} /> <span>New quote</span></button>}
+                  <button className="avatar">{businessInitials}</button>
+                </div>
+              </header>
+              <div className="main-scroll">
+                {active === 'Home' && <HomeScreen onOpenItem={openItem} />}
+                {active === 'Work' && <WorkScreen onOpenItem={openItem} />}
+                {active === 'Schedule' && <ScheduleScreen onOpenItem={openItem} />}
+                {active === 'Customers' && <CustomersScreen />}
+                {active === 'Reports' && <ReportsScreen />}
+                {active === 'Settings' && <SettingsScreen />}
+              </div>
+            </>
+          )}
           <MobileBottomNav active={active} setActive={setActive} />
         </main>
         {selectedItem && <DrawerWithRefresh item={selectedItem} onClose={closeItem} />}
 
-        {/* Ask Rivet FAB */}
-        {!askRivet.isOpen && (
+        {/* Mobile embedded Rivet chat (full-screen, above bottom nav) */}
+        {isMobileRivetTab && (
+          <AskRivetPanel
+            embedded
+            isOpen
+            messages={askRivet.messages}
+            isStreaming={askRivet.isStreaming}
+            thinkingLabel={askRivet.thinkingLabel}
+            onSend={askRivet.sendMessage}
+            onClose={() => {}}
+            onNewConversation={askRivet.newConversation}
+          />
+        )}
+
+        {/* Desktop: FAB + slide-in panel */}
+        {!isMobileRivetTab && !askRivet.isOpen && (
           <button className="ask-rivet-fab" onClick={askRivet.open} aria-label="Ask Rivet">
             <span className="fab-star">✦</span>
             <span className="fab-label">Ask Rivet</span>
           </button>
         )}
-
-        {/* Ask Rivet Panel */}
-        <AskRivetPanel
-          isOpen={askRivet.isOpen}
-          messages={askRivet.messages}
-          isStreaming={askRivet.isStreaming}
-          thinkingLabel={askRivet.thinkingLabel}
-          onSend={askRivet.sendMessage}
-          onClose={askRivet.close}
-          onNewConversation={askRivet.newConversation}
-        />
+        {!isMobileRivetTab && (
+          <AskRivetPanel
+            isOpen={askRivet.isOpen}
+            messages={askRivet.messages}
+            isStreaming={askRivet.isStreaming}
+            thinkingLabel={askRivet.thinkingLabel}
+            onSend={askRivet.sendMessage}
+            onClose={askRivet.close}
+            onNewConversation={askRivet.newConversation}
+          />
+        )}
       </div>
     </WorkItemsProvider>
   );

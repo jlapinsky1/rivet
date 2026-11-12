@@ -79,9 +79,9 @@ export function useAskRivet() {
       setIsStreaming(true);
       setThinkingLabel(null);
 
-      // Build the messages array to send (all previous + new user message)
-      // We exclude the placeholder we just added
-      const outgoing = [...messages, userMsg];
+      // Build the messages array to send (all previous + new user message).
+      // Strip the client-only `chips` field — the API only accepts role + content.
+      const outgoing = [...messages, userMsg].map(({ role, content }) => ({ role, content }));
 
       const controller = new AbortController();
       abortRef.current = controller;
