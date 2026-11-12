@@ -210,10 +210,12 @@ export function AskRivetPanel({
 /**
  * Render assistant message text with markdown-lite formatting:
  * - **bold** → <strong>
- * - ---**Section header** → styled section label
+ * - "**Section header**" on its own line → styled section label
+ * - "---**Section header**" → styled section label
+ * - "- **Title** | Customer | $Price | Status" → job tile card
  * - "N. **Title** | Customer | $Price | Status" → job tile card
  * - blank lines → vertical spacing
- * - strips <chips> blocks
+ * - strips <chips> blocks and backticks
  */
 function MessageText({ text }: { text: string }) {
   const display = text
@@ -235,7 +237,7 @@ function MessageText({ text }: { text: string }) {
       continue;
     }
 
-    // Section header: "---**text**" or "---text"
+    // Section header: "---text" or standalone "**Bold Header**" line
     if (trimmed.startsWith('---')) {
       const headerText = trimmed.replace(/^-+\s*/, '');
       nodes.push(
@@ -245,14 +247,23 @@ function MessageText({ text }: { text: string }) {
       );
       continue;
     }
+    if (/^\*\*[^|]+\*\*$/.test(trimmed)) {
+      nodes.push(
+        <div key={i} className="ar-section-header">
+          {renderInline(trimmed)}
+        </div>,
+      );
+      continue;
+    }
 
-    // Numbered list item: "1. **Title** | Customer | $Price | Status"
-    const listMatch = trimmed.match(/^(\d+)\.\s+(.*)/);
-    if (listMatch) {
-      const content = listMatch[2];
+    // Job tile: "- **Title** | ..." or "N. **Title** | ..."
+    const tileMatch = trimmed.match(/^(?:-|\d+\.)\s+(.*)/);
+    if (tileMatch && tileMatch[1].includes(' | ')) {
+      const content = tileMatch[1];
       const parts = content.split(' | ');
-      const title = parts[0].replace(/\*\*/g, '').trim();
-      const meta = parts.slice(1).join(' · ');
+      // Strip bold markers and backticks from title; strip backticks from meta
+      const title = parts[0].replace(/\*\*/g, '').replace(/`/g, '').trim();
+      const meta = parts.slice(1).map(p => p.replace(/`/g, '').trim()).join(' · ');
       nodes.push(
         <div key={i} className="ar-job-tile">
           <div className="ar-job-tile-title">{title}</div>
