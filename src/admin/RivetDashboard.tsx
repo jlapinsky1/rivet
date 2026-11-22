@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { WorkItem } from './types';
 import { navItems } from './types';
 import { WorkDetailDrawer } from './WorkDetailDrawer';
@@ -99,8 +99,21 @@ export default function RivetDashboard({ businessName, businessInitials, display
   );
   const [selectedItem, setSelectedItem] = useState<WorkItem | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [pendingSettingsSection, setPendingSettingsSection] = useState<string | undefined>();
 
   const askRivet = useAskRivet();
+
+  // When the agent emits a navigate event, flip to the target screen and
+  // optionally deep-link into a specific settings section.
+  useEffect(() => {
+    if (!askRivet.navigateTo) return;
+    const { screen, section } = askRivet.navigateTo;
+    setActive(screen);
+    if (screen === 'Settings' && section) {
+      setPendingSettingsSection(section);
+    }
+    askRivet.clearNavigate();
+  }, [askRivet.navigateTo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openItem = (item: WorkItem) => setSelectedItem(item);
   const closeItem = () => setSelectedItem(null);
@@ -145,7 +158,12 @@ export default function RivetDashboard({ businessName, businessInitials, display
                 {active === 'Schedule' && <ScheduleScreen onOpenItem={openItem} />}
                 {active === 'Customers' && <CustomersScreen />}
                 {active === 'Reports' && <ReportsScreen />}
-                {active === 'Settings' && <SettingsScreen />}
+                {active === 'Settings' && (
+                  <SettingsScreen
+                    initialSection={pendingSettingsSection}
+                    onSectionMounted={() => setPendingSettingsSection(undefined)}
+                  />
+                )}
               </div>
             </>
           )}

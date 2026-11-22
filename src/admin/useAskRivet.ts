@@ -24,7 +24,11 @@ const TOOL_THINKING: Record<string, string> = {
   'Updating price': 'Updating price...',
   'Saving note': 'Saving note...',
   'Searching for prices': 'Searching for prices...',
+  'Reading settings': 'Reading settings...',
+  'Saving settings': 'Saving settings...',
 };
+
+export type NavigateTarget = { screen: string; section?: string };
 
 export function useAskRivet() {
   const { business } = useAuth();
@@ -34,6 +38,7 @@ export function useAskRivet() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [thinkingLabel, setThinkingLabel] = useState<string | null>(null);
+  const [navigateTo, setNavigateTo] = useState<NavigateTarget | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(
     () => localStorage.getItem(CONV_KEY),
   );
@@ -57,6 +62,8 @@ export function useAskRivet() {
 
   const open = useCallback(() => setIsOpen(true), []);
   const close = useCallback(() => setIsOpen(false), []);
+
+  const clearNavigate = useCallback(() => setNavigateTo(null), []);
 
   const newConversation = useCallback(() => {
     abortRef.current?.abort();
@@ -165,6 +172,13 @@ export function useAskRivet() {
               } catch {
                 // Malformed chips JSON — ignore
               }
+            } else if (eventType === 'navigate') {
+              try {
+                const target = JSON.parse(data) as NavigateTarget;
+                setNavigateTo(target);
+              } catch {
+                // Malformed navigate JSON — ignore
+              }
             } else if (eventType === 'id') {
               const convId = data.trim();
               setConversationId(convId);
@@ -215,6 +229,8 @@ export function useAskRivet() {
     messages,
     isStreaming,
     thinkingLabel,
+    navigateTo,
+    clearNavigate,
     sendMessage,
     newConversation,
   };

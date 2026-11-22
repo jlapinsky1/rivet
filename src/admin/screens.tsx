@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { WorkItem, OperationalStatus } from './types';
 import { settingsNav } from './types';
 import { useCustomers } from '../hooks/useCustomers';
@@ -352,10 +352,24 @@ export function ReportsScreen() {
 }
 
 /* ===== SETTINGS ===== */
-export function SettingsScreen() {
-  const [activeSection, setActiveSection] = useState('Business');
+export function SettingsScreen({
+  initialSection,
+  onSectionMounted,
+}: {
+  initialSection?: string;
+  onSectionMounted?: () => void;
+} = {}) {
+  const [activeSection, setActiveSection] = useState(initialSection ?? 'Business');
   const { settings, saving, error: saveError, save } = useSettings();
   const { user } = useAuth();
+
+  // Apply agent-driven section navigation when initialSection changes.
+  useEffect(() => {
+    if (initialSection) {
+      setActiveSection(initialSection);
+      onSectionMounted?.();
+    }
+  }, [initialSection]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function field(key: string, fallback: any = '') {
     return settings[key] ?? fallback;

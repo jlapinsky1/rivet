@@ -5,8 +5,8 @@ import type { ChatMessage } from './useAskRivet';
 const INITIAL_CHIPS = [
   'What should I work on this week?',
   'Any estimates I need to send?',
-  'Are there jobs waiting on customer info?',
-  'Show me what\'s approved and ready to schedule',
+  'Help me set my weekly goal',
+  'What should my minimum hourly rate be?',
 ];
 
 type Props = {
