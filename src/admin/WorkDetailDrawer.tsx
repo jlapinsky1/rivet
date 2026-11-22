@@ -44,6 +44,15 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
+  // Close-out form — shown for in_progress / approved / scheduled jobs
+  const [showCloseOut, setShowCloseOut] = useState(false);
+  const [closeOutHours, setCloseOutHours] = useState('');
+  const [closeOutMaterials, setCloseOutMaterials] = useState('');
+  const [closeOutRevenue, setCloseOutRevenue] = useState(String(item.price));
+  const [closeOutNotes, setCloseOutNotes] = useState('');
+  const [closeOutLoading, setCloseOutLoading] = useState(false);
+  const [closeOutError, setCloseOutError] = useState<string | null>(null);
+
   const { business, user } = useAuth();
   const businessId = business?.businessId ?? 'default';
   const userId = user?.id ?? 'owner';
@@ -165,6 +174,40 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
       console.error('Failed to record owner decision:', err);
     }
   }, [item, buildDecisionSnapshot, businessId, userId]);
+
+  async function executeCloseOut() {
+    const hours = parseFloat(closeOutHours);
+    if (!hours || hours <= 0) {
+      setCloseOutError('Actual hours worked is required.');
+      return;
+    }
+    setCloseOutLoading(true);
+    setCloseOutError(null);
+    try {
+      const res = await fetch('/api/record-job-actuals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workItemId: item.id,
+          businessId,
+          actualLaborHours: hours,
+          actualMaterialCost: closeOutMaterials ? parseFloat(closeOutMaterials) : undefined,
+          finalRevenue: closeOutRevenue ? parseFloat(closeOutRevenue) : undefined,
+          notes: closeOutNotes || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `HTTP ${res.status}`);
+      }
+      onClose();
+      onActionComplete?.();
+    } catch (err: any) {
+      setCloseOutError(err.message || 'Close-out failed');
+    } finally {
+      setCloseOutLoading(false);
+    }
+  }
 
   const logPriceAdjustment = useCallback((newPrice: number, reasonCode: ReasonCode) => {
     if (!item.estimationRunId || newPrice === previousPriceRef.current) return;
@@ -582,7 +625,7 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
             </div>
             {showReasonPicker && pendingPrice !== null && (
               <div className="reason-picker">
-                <p>Why are you changing the price?</p>
+                <p>Why are you changing the price? <strong>(required)</strong></p>
                 <div className="reason-options">
                   {PRICE_REASON_LABELS.map(({ code, label }) => (
                     <button key={code} className="reason-option" onClick={() => {
@@ -594,6 +637,18 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
                     </button>
                   ))}
                 </div>
+                <button
+                  className="reason-picker-back"
+                  type="button"
+                  onClick={() => {
+                    // Revert price to previous value — user must pick a reason or undo
+                    setPrice(previousPriceRef.current);
+                    setShowReasonPicker(false);
+                    setPendingPrice(null);
+                  }}
+                >
+                  Revert price change
+                </button>
               </div>
             )}
             <div className={`price-impact ${priceStatus}`}>
@@ -645,6 +700,70 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
             </div>
           )}
 
+          {/* ── Close-out form — shown for jobs that are past the quote stage ── */}
+          {['approved', 'scheduled', 'in_progress'].includes(item.opStatus) && (
+            <div className="detail-section closeout-section">
+              <div className="section-heading">
+                <h3>Close out job</h3>
+                <span>Records actuals so estimates improve</span>
+              </div>
+              {!showCloseOut ? (
+                <button className="closeout-trigger-btn" onClick={() => setShowCloseOut(true)}>
+                  Mark job complete &amp; record actuals
+                </button>
+              ) : (
+                <div className="closeout-form">
+                  <p className="closeout-why">
+                    Actual hours are the most important signal for the estimation engine.
+                    Every job you close out makes future estimates more accurate.
+                  </p>
+                  <label>
+                    Hours actually worked <span className="req">*</span>
+                    <input
+                      type="number"
+                      step="0.25"
+                      min="0.25"
+                      placeholder="e.g. 3.5"
+                      value={closeOutHours}
+                      onChange={e => setCloseOutHours(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Materials cost (actual $)
+                    <input
+                      type="number"
+                      step="1"
+                      min="0"
+                      placeholder={`estimated $${item.costs}`}
+                      value={closeOutMaterials}
+                      onChange={e => setCloseOutMaterials(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Final amount charged ($)
+                    <input
+                      type="number"
+                      step="1"
+                      min="0"
+                      value={closeOutRevenue}
+                      onChange={e => setCloseOutRevenue(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Notes (optional)
+                    <textarea
+                      rows={2}
+                      placeholder="Anything unusual that affected time or cost…"
+                      value={closeOutNotes}
+                      onChange={e => setCloseOutNotes(e.target.value)}
+                    />
+                  </label>
+                  {closeOutError && <p className="closeout-error">{closeOutError}</p>}
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
 
         {/* Action feedback */}
@@ -681,24 +800,38 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
           </div>
         )}
 
-        <div className="drawer-actions">
-          <button className="btn-secondary" onClick={requestDecline} disabled={actionLoading || !!actionPrompt}>
-            Decline
-          </button>
-          {effectiveRec === 'review' && contactHref ? (
-            <a className={`btn-primary-cta ${effectiveRec}`} href={contactHref}>
-              {ctaLabel}<ArrowRight size={17} />
-            </a>
-          ) : (
-            <button className={`btn-primary-cta ${effectiveRec}`} onClick={requestApprove} disabled={actionLoading || !!actionPrompt}>
-              {actionLoading ? (
-                <><Loader2 size={17} className="spin" /> Processing...</>
-              ) : (
-                <>{ctaLabel}<ArrowRight size={17} /></>
-              )}
+        {/* Close-out action buttons — replace normal actions for in-progress jobs */}
+        {showCloseOut ? (
+          <div className="drawer-actions">
+            <button className="btn-secondary" onClick={() => setShowCloseOut(false)} disabled={closeOutLoading}>
+              Cancel
             </button>
-          )}
-        </div>
+            <button className="btn-primary-cta take" onClick={executeCloseOut} disabled={closeOutLoading || !closeOutHours}>
+              {closeOutLoading ? <><Loader2 size={17} className="spin" /> Saving...</> : <>Complete job &amp; save<ArrowRight size={17} /></>}
+            </button>
+          </div>
+        ) : (
+          <div className="drawer-actions">
+            <button className="btn-secondary" onClick={requestDecline} disabled={actionLoading || !!actionPrompt || showReasonPicker}>
+              Decline
+            </button>
+            {effectiveRec === 'review' && contactHref ? (
+              <a className={`btn-primary-cta ${effectiveRec}`} href={contactHref}>
+                {ctaLabel}<ArrowRight size={17} />
+              </a>
+            ) : (
+              <button className={`btn-primary-cta ${effectiveRec}`} onClick={requestApprove} disabled={actionLoading || !!actionPrompt || showReasonPicker}>
+                {actionLoading ? (
+                  <><Loader2 size={17} className="spin" /> Processing...</>
+                ) : showReasonPicker ? (
+                  <>Pick a reason above first</>
+                ) : (
+                  <>{ctaLabel}<ArrowRight size={17} /></>
+                )}
+              </button>
+            )}
+          </div>
+        )}
       </aside>
     </div>
   );

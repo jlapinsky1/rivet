@@ -151,6 +151,8 @@ function RequestDetail({ booking, onBack }) {
   const [dynamicTargets, setDynamicTargets] = useState(null);
   const [scheduleCtx, setScheduleCtx] = useState(null);
   const [showDecisionRules, setShowDecisionRules] = useState(false);
+  const [showDeclineModal, setShowDeclineModal] = useState(false);
+  const [declineReason, setDeclineReason] = useState('');
 
   // Stripe payment summary
   const [paymentSummary, setPaymentSummary] = useState(null);
@@ -388,6 +390,11 @@ function RequestDetail({ booking, onBack }) {
         await repo.updateBooking(data.id, { blocker_overrides: blockerOverrides });
       }
 
+      // Record the owner decision in the feedback loop (best-effort)
+      const token = await getAdminToken();
+      const ownerAction = approvedPrice !== estimate.recommendedPrice ? 'approved_adjusted' : 'approved';
+      await recordOwnerDecision(token, ownerAction, approvedPrice, approvedPrice, overrideReason || null);
+
       if (result.quoteToken) setLastQuoteToken(result.quoteToken);
       const quoteUrl = result.quoteToken
         ? `${window.location.origin}/quote/${result.quoteToken}`
@@ -406,7 +413,10 @@ function RequestDetail({ booking, onBack }) {
   }
 
   async function handleDecline() {
-    if (!confirm('Decline this request and email the customer?')) return;
+    if (!declineReason.trim()) {
+      setShowDeclineModal(true);
+      return;
+    }
 
     try {
       const token = await getAdminToken();
@@ -416,10 +426,13 @@ function RequestDetail({ booking, onBack }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ bookingId: data.id }),
+        body: JSON.stringify({ bookingId: data.id, reason: declineReason }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error || 'Failed to decline booking');
+
+      // Record the owner decision in the feedback loop (best-effort)
+      await recordOwnerDecision(token, 'declined', null, null, declineReason);
 
       if (body.emailSent) {
         alert('Request declined. The customer has been notified by email.');
@@ -428,9 +441,42 @@ function RequestDetail({ booking, onBack }) {
       } else {
         alert('Request declined.');
       }
+      setShowDeclineModal(false);
       onBack();
     } catch (err) {
       alert(`Decline failed: ${err.message}`);
+    }
+  }
+
+  /**
+   * Look up the work_item linked to this booking (via source_booking_id) and
+   * write an owner_decision row. Best-effort: failures are logged, not surfaced.
+   */
+  async function recordOwnerDecision(token, ownerAction, ownerPrice, quotedPrice, reasonText) {
+    try {
+      // Find work_item with source_booking_id = this booking
+      const { data: wi } = await supabase
+        .from('work_items')
+        .select('estimation_run_id, recommendation, price')
+        .eq('source_booking_id', data.id)
+        .maybeSingle();
+      if (!wi?.estimation_run_id) return; // no linked estimation run - skip silently
+
+      await fetch('/api/record-owner-decision', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          estimationRunId: wi.estimation_run_id,
+          ownerAction,
+          rivetRecommendation: wi.recommendation,
+          rivetPrice: wi.price,
+          ownerPrice,
+          quotedPrice,
+          reasonText: reasonText || null,
+        }),
+      });
+    } catch (err) {
+      console.error('recordOwnerDecision (non-fatal):', err.message);
     }
   }
 
@@ -937,7 +983,7 @@ function RequestDetail({ booking, onBack }) {
 
           {canDecline && (
             <button
-              onClick={handleDecline}
+              onClick={() => setShowDeclineModal(true)}
               className="w-full bg-red-50 text-red-700 border border-red-200 py-2.5 rounded-xl text-sm font-semibold hover:bg-red-100 transition-colors"
             >
               Decline &amp; Notify Customer
@@ -953,11 +999,66 @@ function RequestDetail({ booking, onBack }) {
             Decline this request and send the customer a courtesy email explaining we cannot take the job.
           </p>
           <button
-            onClick={handleDecline}
+            onClick={() => setShowDeclineModal(true)}
             className="w-full bg-red-50 text-red-700 border border-red-200 py-2.5 rounded-xl text-sm font-semibold hover:bg-red-100 transition-colors"
           >
             Decline &amp; Notify Customer
           </button>
+        </div>
+      )}
+
+      {/* ── Decline reason modal ── */}
+      {showDeclineModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md space-y-4">
+            <h3 className="font-bold text-gray-900 text-lg">Decline this request</h3>
+            <p className="text-sm text-gray-500">
+              The customer will receive a courtesy email. A reason is required — this helps the system
+              learn when to recommend passing on similar jobs in the future.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Why are you declining? <span className="text-red-500">*</span>
+              </label>
+              <select
+                className="w-full border rounded-lg px-3 py-2 text-sm mb-2"
+                value={declineReason.startsWith('select:') ? declineReason.slice(7) : ''}
+                onChange={e => e.target.value && setDeclineReason('select:' + e.target.value)}
+              >
+                <option value="">— pick a reason —</option>
+                <option value="Out of service area">Out of service area</option>
+                <option value="Job too small">Job too small to be profitable</option>
+                <option value="Job too large / outside scope">Job too large / outside our scope</option>
+                <option value="Fully booked">Fully booked for the requested dates</option>
+                <option value="Access issues">Access issues at the property</option>
+                <option value="Hazardous materials">Hazardous or prohibited materials</option>
+                <option value="Customer fit">Customer fit / other concern</option>
+                <option value="other">Other (describe below)</option>
+              </select>
+              <textarea
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+                rows={2}
+                value={declineReason.startsWith('select:') ? '' : declineReason}
+                onChange={e => setDeclineReason(e.target.value)}
+                placeholder="Add detail or write your own reason..."
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowDeclineModal(false); setDeclineReason(''); }}
+                className="flex-1 border rounded-xl py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDecline}
+                disabled={!declineReason.trim() || declineReason === 'select:'}
+                className="flex-1 bg-red-600 text-white rounded-xl py-2.5 text-sm font-bold disabled:opacity-40 hover:bg-red-700"
+              >
+                Confirm Decline
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

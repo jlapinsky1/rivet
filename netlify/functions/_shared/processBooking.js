@@ -1,4 +1,4 @@
-import { getServiceClient } from './supabase.js';
+import { getServiceClient, loadBusinessCalibration } from './supabase.js';
 import { extractJobFactsStub } from '../../../src/estimator/extract';
 import { estimateHandymanJob, applyCalibration } from '../../../src/estimator/estimator';
 import { deriveRecommendation } from '../../../src/estimator/decision';
@@ -82,7 +82,11 @@ export async function processBooking(bookingId, businessId) {
 
   const miles = Number(booking.distance_miles) || parseTravelMiles(null);
   const estimate = estimateHandymanJob(extraction);
-  const economicJob = applyCalibration(estimate, config, null, miles, ctx);
+  const projectFamily = extraction.tradeContexts[0] || 'general_handyman';
+  // Load calibration from completed-job actuals (returns null if < 3 samples)
+  const calibration = await loadBusinessCalibration(supabase, businessId, projectFamily)
+    ?? await loadBusinessCalibration(supabase, businessId); // fall back to overall if family sparse
+  const economicJob = applyCalibration(estimate, config, calibration, miles, ctx);
   const decision = deriveRecommendation(economicJob, config, ctx);
 
   const runId = crypto.randomUUID();
@@ -100,7 +104,9 @@ export async function processBooking(bookingId, businessId) {
     customer_inputs: { description, photos: [] },
     extraction,
     baseline_estimate: estimate,
-    calibration_applied: null,
+    calibration_applied: calibration
+      ? { laborMultiplier: calibration.laborMultiplier, materialMultiplier: calibration.materialMultiplier, sampleSize: calibration.sampleSize }
+      : null,
     economic_job: economicJob,
     decision_context: ctx,
     recommendation: decision.recommendation,
@@ -157,6 +163,7 @@ export async function processBooking(bookingId, businessId) {
     address: booking.full_address,
     service_type: 'Handyman',
     estimation_run_id: runId,
+    source_booking_id: bookingId,
   }).select('id').single();
 
   if (workErr) throw new Error(`work_items insert failed: ${workErr.message}`);

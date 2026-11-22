@@ -58,19 +58,52 @@ Universal decision engine
       ↓
 Send $ask / Look first / Pass  (internal: take | take_at_price | review | pass)
       ↓
-┌─────────────────────────────────────────┐
-│         Feedback Loop (4-part)          │
-│                                         │
-│  1. estimation_runs   (immutable)       │
-│  2. adjustment_entries (append-only)    │
-│  3. owner_decisions   (with snapshot)   │
-│  4. actual_outcomes   (with quotedPrice)│
-└─────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                  Feedback Loop (4-part)                  │
+│                                                          │
+│  1. estimation_runs    (immutable — baseline + econ job) │
+│  2. adjustment_entries (price/hour edits with reasons)   │
+│  3. owner_decisions    (approve/decline + DecisionSnap)  │
+│  4. actual_outcomes    (true labor hours + revenue)      │
+└──────────────────────────────────────────────────────────┘
       ↓
 buildFeedbackRecord → "Who was right?"
       ↓
-Future: calibration tuning from actuals
+loadBusinessCalibration (netlify/_shared/supabase.js)
+  reads estimation_runs + actual_outcomes
+  computes laborMultiplier + materialMultiplier (needs ≥ 3 samples)
+      ↓
+applyCalibration (estimator.ts) — ACTIVE on every new estimate
+  calibration_applied stored in estimation_runs for auditability
+      ↓
+weekly-tuning-report.ts (cron Mon 14:00 UTC)
+  reads owner_decisions → miss analysis → suggestedTunes email
 ```
+
+### Decision capture — all three paths write to owner_decisions
+
+| Path | File | Mechanism |
+|------|------|-----------|
+| Rivet dashboard (WorkDetailDrawer) | `src/admin/WorkDetailDrawer.tsx` | `saveOwnerDecision()` via persistence.ts |
+| Old admin queue (RequestQueue) | `src/pages/RequestQueue.jsx` | `POST /api/record-owner-decision` after looking up `work_items.source_booking_id` |
+| Chat agent (contractor-advisor) | `rivet-agents/tools/contractor_actions.py` | `POST /api/record-owner-decision` after accept/reject/price-update |
+
+### How actual_outcomes gets written (the write path)
+
+| Path | What it writes | When |
+|------|---------------|------|
+| WorkDetailDrawer close-out form → `POST /api/record-job-actuals` | `actual_labor_hours` (required), `actual_material_cost`, `final_revenue` | Contractor marks job complete in Rivet dashboard |
+| `completeJobCore.js` (residential booking completion) | `final_revenue` only (`actual_labor_hours = 0`) | Admin completes a booking via RequestQueue or dispatch |
+
+**Only rows with `actual_labor_hours > 0` feed the calibration multipliers.** Revenue-only rows from residential completion are stored for future price-accuracy analysis but excluded from the labor/material calibration calculation.
+
+This means: **calibration gets smarter as contractors close out jobs with real hours.** The first 3 close-outs activate calibration. After that, every job refines it.
+
+### Calibration rules
+- Min sample size: 3 jobs with `actual_labor_hours > 0`
+- Family-level calibration tried first; falls back to overall if family has < 3 samples
+- Multipliers clamped to [0.5, 2.0] to prevent runaway drift
+- `calibration_applied` written to `estimation_runs` on every estimate for full auditability
 
 ---
 

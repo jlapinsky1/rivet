@@ -12,6 +12,50 @@ import { getStripeClient, ikey } from './stripe.js';
 import { generateToken, sha256 } from './supabase.js';
 
 /**
+ * Write a revenue-only actual_outcomes row for the work_item linked to this booking.
+ * Gives the calibration engine a price-accuracy signal even before the contractor
+ * enters actual labor hours via the WorkDetailDrawer close-out form.
+ * actual_labor_hours = 0 is intentional: loadBusinessCalibration skips rows with
+ * actual_labor_hours = 0, so this row only contributes to revenue tracking until
+ * the contractor fills in real hours.
+ */
+async function recordBookingRevenue(supabase, bookingId, finalAmountCents) {
+  try {
+    const { data: wi } = await supabase
+      .from('work_items')
+      .select('id, estimation_run_id, price')
+      .eq('source_booking_id', bookingId)
+      .maybeSingle();
+
+    if (!wi?.estimation_run_id) return;
+
+    // Don't overwrite a row that already has actual_labor_hours recorded (close-out form)
+    const { data: existing } = await supabase
+      .from('actual_outcomes')
+      .select('id')
+      .eq('estimation_run_id', wi.estimation_run_id)
+      .maybeSingle();
+
+    if (existing) return;
+
+    await supabase.from('actual_outcomes').insert({
+      id: crypto.randomUUID(),
+      estimation_run_id: wi.estimation_run_id,
+      actual_labor_hours: 0,
+      actual_material_cost: 0,
+      actual_procurement_hours: 0,
+      final_revenue: finalAmountCents / 100,
+      return_trips: 0,
+      quoted_price: wi.price,
+      recorded_at: new Date().toISOString(),
+      notes: 'revenue recorded from booking completion; actual hours pending close-out',
+    });
+  } catch (err) {
+    console.error('recordBookingRevenue (non-fatal):', err.message);
+  }
+}
+
+/**
  * @param {object} opts
  * @param {object} opts.supabase         Service-role Supabase client
  * @param {object} opts.admin            Verified admin user object
@@ -134,6 +178,14 @@ export async function runCompleteJob({
     })
     .eq('id', bookingId)
     .neq('status', 'completed'); // idempotent - no-op if already completed
+
+  // ── Step 3b: Record revenue in actual_outcomes (feeds calibration engine) ────
+  // actual_labor_hours = 0 intentionally; contractor fills real hours later via
+  // the WorkDetailDrawer close-out form. loadBusinessCalibration() skips rows
+  // with actual_labor_hours = 0, so this is safe and idempotency-checked inside.
+  if (!isIdempotent) {
+    void recordBookingRevenue(supabase, bookingId, finalAmountCents);
+  }
 
   // ── Step 4: Update slot reservation ─────────────────────────────────────────
   await supabase

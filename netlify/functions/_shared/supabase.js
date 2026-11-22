@@ -195,3 +195,138 @@ export function jsonResponse(body, status = 200) {
 export function errorResponse(message, status = 400) {
   return jsonResponse({ error: message }, status);
 }
+
+/**
+ * Read calibration multipliers from the pre-computed cache table.
+ *
+ * The cache is written by recomputeCalibration() after every job close-out —
+ * this function is intentionally cheap: one indexed point-lookup.
+ *
+ * Returns null when:
+ *   • no cache row exists yet (first jobs haven't been closed out)
+ *   • confidence is 'insufficient' (< 3 samples — too noisy to trust)
+ *
+ * Callers should try the most-specific key first, fall back to broader:
+ *   loadBusinessCalibration(supabase, biz, 'deck_board_replacement')
+ *     ?? loadBusinessCalibration(supabase, biz, 'carpentry')
+ *     ?? loadBusinessCalibration(supabase, biz, 'all')
+ *
+ * @param {import('@supabase/supabase-js').SupabaseClient} supabase
+ * @param {string} businessId
+ * @param {string} [calibrationKey] - assembly code, trade family, or 'all'
+ * @returns {Promise<{businessId,projectFamily,laborMultiplier,materialMultiplier,sampleSize}|null>}
+ */
+export async function loadBusinessCalibration(supabase, businessId, calibrationKey) {
+  const key = calibrationKey ?? 'all';
+  const { data, error } = await supabase
+    .from('business_assembly_calibration')
+    .select('labor_multiplier, material_multiplier, sample_size, confidence')
+    .eq('business_id', businessId)
+    .eq('calibration_key', key)
+    .maybeSingle();
+
+  if (error || !data || data.confidence === 'insufficient') return null;
+
+  return {
+    businessId,
+    projectFamily: key,
+    laborMultiplier: data.labor_multiplier,
+    materialMultiplier: data.material_multiplier,
+    sampleSize: data.sample_size,
+  };
+}
+
+/**
+ * Recompute calibration for one (business, calibrationKey) pair and upsert the cache.
+ *
+ * Called after every job close-out in record-job-actuals.js.
+ * No human needed — the system heals itself.
+ *
+ * calibrationKey is either a trade family (e.g. 'plumbing') or the string 'all'
+ * for the global fallback that covers every trade.
+ *
+ * Bayesian shrinkage: blendedMultiplier = weight * rawMultiplier + (1 - weight) * 1.0
+ * where weight = min(n / 10, 1.0).  With 3 jobs the system applies 30% of the learned
+ * correction; at 10+ jobs it trusts the data fully.  This prevents early outliers from
+ * wrecking estimates for a whole trade.
+ *
+ * @param {import('@supabase/supabase-js').SupabaseClient} supabase
+ * @param {string} businessId
+ * @param {string} calibrationKey  - trade family or 'all'
+ */
+export async function recomputeCalibration(supabase, businessId, calibrationKey) {
+  try {
+    const key = calibrationKey ?? 'all';
+
+    // 1. Load all estimation runs matching this key for the business
+    const runsQuery = supabase
+      .from('estimation_runs')
+      .select('id, baseline_estimate')
+      .eq('business_id', businessId);
+    if (key !== 'all') runsQuery.eq('project_family', key);
+
+    const { data: runs } = await runsQuery;
+    if (!runs?.length) return;
+
+    // 2. Load actual outcomes — skip revenue-only placeholder rows (actual_labor_hours = 0)
+    const { data: outcomes } = await supabase
+      .from('actual_outcomes')
+      .select('estimation_run_id, actual_labor_hours, actual_material_cost')
+      .in('estimation_run_id', runs.map(r => r.id))
+      .gt('actual_labor_hours', 0);
+    if (!outcomes?.length) return;
+
+    // 3. Compute raw multipliers from (estimated vs actual) pairs
+    const runsById = new Map(runs.map(r => [r.id, r]));
+    const laborRatios = [];
+    const materialRatios = [];
+
+    for (const outcome of outcomes) {
+      const run = runsById.get(outcome.estimation_run_id);
+      if (!run?.baseline_estimate) continue;
+      const estLabor = run.baseline_estimate?.laborHours?.expected ?? 0;
+      const estMaterial = run.baseline_estimate?.materialCost?.expected ?? 0;
+      if (estLabor > 0) laborRatios.push(outcome.actual_labor_hours / estLabor);
+      if (estMaterial > 0 && outcome.actual_material_cost > 0) {
+        materialRatios.push(outcome.actual_material_cost / estMaterial);
+      }
+    }
+
+    const n = laborRatios.length;
+    if (n === 0) return;
+
+    // 4. Bayesian shrinkage — ramp trust from 0 → 100% as n grows 0 → 10
+    const mean = arr => arr.reduce((s, v) => s + v, 0) / arr.length;
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const weight = Math.min(n / 10, 1.0);
+
+    const blendedLabor = clamp(weight * mean(laborRatios) + (1 - weight) * 1.0, 0.5, 2.0);
+
+    let blendedMaterial = 1.0;
+    if (materialRatios.length >= 1) {
+      const matWeight = Math.min(materialRatios.length / 10, 1.0);
+      blendedMaterial = clamp(matWeight * mean(materialRatios) + (1 - matWeight) * 1.0, 0.5, 2.0);
+    }
+
+    // 5. Confidence tier drives how the estimator weights the correction
+    let confidence;
+    if (n < 3)       confidence = 'insufficient'; // calibration not applied
+    else if (n < 6)  confidence = 'low';           // 30% blend (weight ≈ 0.3–0.5)
+    else if (n < 10) confidence = 'medium';        // 60% blend (weight ≈ 0.6–0.9)
+    else             confidence = 'high';           // full trust
+
+    // 6. Write cache — fast lookup for every future estimate
+    await supabase.from('business_assembly_calibration').upsert({
+      business_id:         businessId,
+      calibration_key:     key,
+      labor_multiplier:    blendedLabor,
+      material_multiplier: blendedMaterial,
+      sample_size:         n,
+      confidence,
+      computed_at:         new Date().toISOString(),
+    }, { onConflict: 'business_id,calibration_key' });
+
+  } catch (err) {
+    console.error('recomputeCalibration (non-fatal):', err.message, { businessId, calibrationKey });
+  }
+}

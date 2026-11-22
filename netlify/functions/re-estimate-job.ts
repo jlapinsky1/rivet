@@ -1,4 +1,4 @@
-import { jsonResponse, errorResponse, getServiceClient } from './_shared/supabase.js';
+import { jsonResponse, errorResponse, getServiceClient, loadBusinessCalibration } from './_shared/supabase.js';
 import { extractJobFactsStub } from '../../src/estimator/extract';
 import { estimateHandymanJob, applyCalibration } from '../../src/estimator/estimator';
 import { deriveRecommendation } from '../../src/estimator/decision';
@@ -74,7 +74,11 @@ export default async function handler(req: Request) {
     );
 
     const miles = parseInt(item.travel) || 0;
-    const economicJob = applyCalibration(estimate, config, null, miles, ctx);
+    const projectFamily = extraction.tradeContexts[0] || 'general_handyman';
+    // Load calibration from completed-job actuals; fall back to overall if family sparse
+    const calibration = await (loadBusinessCalibration as any)(supabase, businessId, projectFamily)
+      ?? await (loadBusinessCalibration as any)(supabase, businessId);
+    const economicJob = applyCalibration(estimate, config, calibration, miles, ctx);
     const decision = deriveRecommendation(economicJob, config, ctx);
 
     const displayPrice = decision.suggestedPrice ?? Math.round(economicJob.evaluatedPrice);
@@ -93,7 +97,9 @@ export default async function handler(req: Request) {
       customer_inputs: { description: enrichedDescription, photos: [] },
       extraction,
       baseline_estimate: estimate,
-      calibration_applied: null,
+      calibration_applied: calibration
+        ? { laborMultiplier: (calibration as any).laborMultiplier, materialMultiplier: (calibration as any).materialMultiplier, sampleSize: (calibration as any).sampleSize }
+        : null,
       economic_job: economicJob,
       decision_context: ctx,
       recommendation: decision.recommendation,
