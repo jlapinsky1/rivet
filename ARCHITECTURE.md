@@ -764,7 +764,8 @@ Contractor UI (React)
                                 refresh_scope, price_materials, re_estimate_job,
                                 send_estimate, email_client, accept_work,
                                 reject_work, update_work_price, add_contractor_note,
-                                get_settings, update_settings
+                                get_settings, update_settings,
+                                get_service_area, update_service_area
 ```
 
 The UI calls `rivet-agents` directly (not via Netlify Functions) to avoid SSE timeout constraints on serverless functions.
@@ -827,3 +828,5 @@ Every action available in the UI is also available to the agent:
 | View job detail | Job drawer | `get_work_item_detail` |
 | Read settings | Settings screen | `get_settings` |
 | Update settings | Settings screen | `update_settings` (also emits `navigate` → Settings) |
+| Read service area | Settings > Service Area | `get_service_area` |
+| Update service area | Settings > Service Area | `update_service_area` (emits `navigate` → Service Area) |

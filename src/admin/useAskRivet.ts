@@ -26,6 +26,8 @@ const TOOL_THINKING: Record<string, string> = {
   'Searching for prices': 'Searching for prices...',
   'Reading settings': 'Reading settings...',
   'Saving settings': 'Saving settings...',
+  'Reading service area': 'Reading service area...',
+  'Saving service area': 'Saving service area...',
 };
 
 export type NavigateTarget = { screen: string; section?: string };
