@@ -61,6 +61,8 @@ src/admin/useWorkItems.ts   — Work items hook used by admin dashboard (also Su
 src/admin/useAskRivet.ts    — Ask Rivet chat hook: SSE stream, navigate event → navigateTo/clearNavigate
 src/admin/AskRivetPanel.tsx — Chat panel UI (messages, chips, thinking indicator, embedded mobile mode)
 src/admin/RivetDashboard.tsx — Dashboard shell; watches navigateTo to flip screen + set pendingSettingsSection
+src/admin/screens.tsx       — All screen + settings components; ProfitabilityPlanner (dark slider card),
+                              MileageCalculator (inline in Pricing & Costs); BUILT_SECTIONS gates nav visibility
 src/estimator/              — Pipeline + weekContext, truckCopy, simulate, applyLiveRecommendations, decisionFeedback, tuningReport
 src/estimator/__tests__     — estimator / decision / pipeline / week / sim / feedback / tuning
 netlify/functions/weekly-tuning-report.ts — Monday miss rollup (email if TUNING_REPORT_EMAIL)

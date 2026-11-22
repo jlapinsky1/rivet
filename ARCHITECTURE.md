@@ -764,6 +764,7 @@ Contractor UI (React)
                                 refresh_scope, price_materials, re_estimate_job,
                                 send_estimate, email_client, accept_work,
                                 reject_work, update_work_price, add_contractor_note,
+                                navigate_settings,
                                 get_settings, update_settings,
                                 get_service_area, update_service_area
 ```
@@ -781,7 +782,7 @@ event: id        data: <conversation_uuid>               — persist to localSto
 event: done      data:                                   — stream complete
 ```
 
-The `navigate` event is emitted by the agent backend (`runtime/loop.py`) when a tool result carries a `_navigate` key. The backend pops it and emits it as a separate SSE event before forwarding the clean result to Claude. The frontend (`useAskRivet.ts`) handles it by flipping `active` to the target screen and optionally deep-linking to a settings section via `pendingSettingsSection` in `RivetDashboard.tsx`.
+The `navigate` event is emitted by the agent backend (`runtime/loop.py`) when a tool result carries a `_navigate` key. Tools that emit it: `navigate_settings` (no data change — opens a panel on demand), `update_settings`, and `update_service_area`. The frontend (`useAskRivet.ts`) handles it by flipping `active` to the target screen and optionally deep-linking to a settings section via `pendingSettingsSection` in `RivetDashboard.tsx`.
 
 ### Chip system
 
@@ -826,7 +827,34 @@ Every action available in the UI is also available to the agent:
 | Add note | Notes field | `add_contractor_note` |
 | Browse pipeline | Work items list | `list_work_items` |
 | View job detail | Job drawer | `get_work_item_detail` |
+| Navigate to a settings panel | Settings (any section) | `navigate_settings` (no data change) |
 | Read settings | Settings screen | `get_settings` |
 | Update settings | Settings screen | `update_settings` (also emits `navigate` → Settings) |
 | Read service area | Settings > Service Area | `get_service_area` |
 | Update service area | Settings > Service Area | `update_service_area` (emits `navigate` → Service Area) |
+
+### Settings screen sections
+
+Only sections with real content appear in the nav (`BUILT_SECTIONS` set in `screens.tsx`). Unbuilt sections in `settingsNav` are hidden automatically.
+
+| Section | What it does |
+|---------|-------------|
+| Business | Business name, home base address, phone, email |
+| Profitability Planner | Interactive dark-card sliders: hours/week + monthly profit + margin → shows required revenue and $/hr. Saves `weeklyGoal`, `weeklyHours`, `minimumMargin` together |
+| Goals & Capacity | Direct numeric inputs for `weeklyGoal` and `weeklyHours` |
+| Pricing & Costs | Hourly rate, minimum job size, helper rate, material markup; inline Mileage Calculator widget |
+| Advanced Engine | `minimumMargin`, `minimumJobProfit`, `dailyCapacityLimit` |
+| Quote Form | Public form publish toggle, URL, embed snippets, branding, photos, field config, notifications |
+| Service Area | Radius mode (center ZIP + miles) or ZIP list mode; excluded and temporarily unavailable ZIPs; test panel |
+| Decision Lab | Internal estimation lab (access-gated: `localStorage.rivet_lab = '1'`) |
+
+### Mileage Calculator (inline in Pricing & Costs)
+
+Vehicle preset selector (diesel truck / gas truck / van / SUV / car) with realistic MPG defaults. Contractor enters local gas price → calculator shows fuel + maintenance breakdown per mile → "Use this rate" applies the result to `mileageRate`. Ask Rivet can walk through the same calculation conversationally and save via `update_settings`.
+
+### Internal Netlify endpoints used by agent backend
+
+| Endpoint | Auth | Purpose |
+|----------|------|---------|
+| `GET/PUT /api/agent/service-area` | None (service-to-service) | Service area config read/write for agent tools |
+| `POST /api/re-estimate-job` | None (service-to-service) | Trigger re-estimate from agent |

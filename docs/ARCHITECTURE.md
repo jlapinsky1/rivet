@@ -213,6 +213,8 @@ rivet/
 │   │   ├── create-booking.js         #   Public: submit booking + lead notification
 │   │   ├── get-business-config.js    #   Public: tenant form config (unauthenticated)
 │   │   ├── stripe-webhook.js         #   Stripe event handler
+│   │   ├── admin-service-area.js     #   Admin: JWT-auth service area read/write (Netlify Blobs)
+│   │   ├── agent-service-area.js     #   Agent: service-to-service service area read/write (no JWT)
 │   │   └── ...                       #   (see API_REFERENCE.md)
 │   └── netlify.toml                  # Deploy config, redirects, headers
 │
@@ -220,7 +222,8 @@ rivet/
 │   ├── admin/                        # Rivet admin dashboard (TypeScript)
 │   │   ├── RivetApp.tsx              #   Auth gate (login screen + session check)
 │   │   ├── RivetDashboard.tsx        #   Dashboard shell (sidebar, topbar, routing, navigate handler)
-│   │   ├── screens.tsx               #   Home, Work, Schedule, Customers, Reports, Settings
+│   │   ├── screens.tsx               #   Home, Work, Schedule, Customers, Reports, Settings;
+│   │   │                             #   includes ProfitabilityPlanner + MileageCalculator components
 │   │   ├── WorkDetailDrawer.tsx      #   Quote / decline + rec-miss reasons
 │   │   ├── components.tsx            #   Shared UI (MetricCard, RecPill, WorkRow, etc.)
 │   │   ├── types.ts                  #   WorkItem, Company, Customer types + mock data
