@@ -24,6 +24,7 @@ const TOOL_THINKING: Record<string, string> = {
   'Updating price': 'Updating price...',
   'Saving note': 'Saving note...',
   'Searching for prices': 'Searching for prices...',
+  'Opening settings': 'Opening settings...',
   'Reading settings': 'Reading settings...',
   'Saving settings': 'Saving settings...',
   'Reading service area': 'Reading service area...',
