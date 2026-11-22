@@ -41,7 +41,6 @@ export default function AdminLogin({ onLogin }) {
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
-              autoFocus
             />
           </div>
           <div>
