@@ -137,6 +137,7 @@ export const navItems: { label: string; icon: LucideIcon; count?: number }[] = [
 
 export const settingsNav = [
   'Business',
+  'Profitability Planner',
   'Goals & Capacity',
   'Pricing & Costs',
   'Services',
