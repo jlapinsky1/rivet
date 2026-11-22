@@ -142,6 +142,7 @@ export const settingsNav = [
   'Services',
   'Decision Rules',
   'Quote Form',
+  'Service Area',
   'Commercial',
   'Notifications',
   'Integrations',

@@ -14,6 +14,7 @@ import {
   User, Wallet, Zap, Briefcase, DollarSign, Target, Percent, Clock,
 } from 'lucide-react';
 import { getDefaultQuoteFormConfig, mergeQuoteFormConfig } from '../utils/quoteFormConfig';
+import ServiceAreaAdmin from '../pages/ServiceAreaAdmin';
 
 /* ===== HOME ===== */
 export function HomeScreen({ onOpenItem }: { onOpenItem: (item: WorkItem) => void }) {
@@ -439,7 +440,10 @@ export function SettingsScreen({
           {activeSection === 'Quote Form' && (
             <QuoteFormSettings settings={settings} onSave={save} />
           )}
-          {!['Business', 'Goals & Capacity', 'Pricing & Costs', 'Advanced Engine', 'Quote Form', 'Decision Lab'].includes(activeSection) && (
+          {activeSection === 'Service Area' && (
+            <ServiceAreaAdmin />
+          )}
+          {!['Business', 'Goals & Capacity', 'Pricing & Costs', 'Advanced Engine', 'Quote Form', 'Service Area', 'Decision Lab'].includes(activeSection) && (
             <div className="settings-section">
               <h3>{activeSection}</h3>
               <p className="settings-placeholder">Configuration for {activeSection.toLowerCase()} will appear here.</p>
