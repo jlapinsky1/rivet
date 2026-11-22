@@ -275,8 +275,10 @@ export default async function handler(req) {
         .single();
 
       const qfc = bizSettings?.settings?.quoteFormConfig;
-      if (qfc?.notifications?.emailOnRequest) {
-        let notifyEmail = qfc.notifications.notifyEmail;
+      // Default is to notify — only skip if explicitly set to false
+      const shouldNotify = qfc == null ? true : (qfc?.notifications?.emailOnRequest ?? true);
+      if (shouldNotify) {
+        let notifyEmail = qfc?.notifications?.notifyEmail;
         if (!notifyEmail && bizSettings?.owner_user_id) {
           const { data: ownerData } = await supabase.auth.admin.getUserById(bizSettings.owner_user_id);
           notifyEmail = ownerData?.user?.email;
@@ -285,7 +287,7 @@ export default async function handler(req) {
           const resendKey = process.env.RESEND_API_KEY;
           const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@myrivet.io';
           if (resendKey) {
-            fetch('https://api.resend.com/emails', {
+            await fetch('https://api.resend.com/emails', {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${resendKey}`,
