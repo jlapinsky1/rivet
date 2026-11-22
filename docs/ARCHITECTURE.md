@@ -399,7 +399,9 @@ When a tenant disables the photos step (`steps.photos.enabled: false`):
 
 ### Lead Notifications
 
-When `quoteFormConfig.notifications.emailOnRequest` is true, `create-booking.js` sends a fire-and-forget email to the operator via Resend after booking creation. The recipient is `notifications.notifyEmail` or, if null, the business owner's auth email (resolved via `businesses.owner_user_id` → `auth.users`).
+`create-booking.js` sends an **awaited** Resend email to the operator after booking creation. The notification fires when `quoteFormConfig.notifications.emailOnRequest` is true, or when `quoteFormConfig` is null (never saved — defaults to notify). The recipient is `notifications.notifyEmail` or, if null, the business owner's auth email (resolved via `businesses.owner_user_id` → `auth.users`).
+
+The fetch must be `await`ed — an unawaited fire-and-forget fetch can be killed by the serverless runtime before Resend receives it.
 
 ---
 
