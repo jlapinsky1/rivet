@@ -195,7 +195,7 @@ The codebase prefers explicit code over clever abstractions. Two verticals use a
 ## Directory Structure
 
 ```
-junk-removal-quoter/
+rivet/
 ├── netlify/
 │   ├── functions/                    # ~50 serverless API endpoints
 │   │   ├── process-handyman-booking.ts
@@ -219,7 +219,7 @@ junk-removal-quoter/
 ├── src/
 │   ├── admin/                        # Rivet admin dashboard (TypeScript)
 │   │   ├── RivetApp.tsx              #   Auth gate (login screen + session check)
-│   │   ├── RivetDashboard.tsx        #   Dashboard shell (sidebar, topbar, routing)
+│   │   ├── RivetDashboard.tsx        #   Dashboard shell (sidebar, topbar, routing, navigate handler)
 │   │   ├── screens.tsx               #   Home, Work, Schedule, Customers, Reports, Settings
 │   │   ├── WorkDetailDrawer.tsx      #   Quote / decline + rec-miss reasons
 │   │   ├── components.tsx            #   Shared UI (MetricCard, RecPill, WorkRow, etc.)
@@ -228,6 +228,8 @@ junk-removal-quoter/
 │   │   ├── useWorkItems.ts           #   Hook: tenant work items + live recs
 │   │   ├── useGoalData.ts            #   Hook: this-week earnings, hours left, pace
 │   │   ├── useSettings.ts            #   Hook: read/write business settings (DB + localStorage)
+│   │   ├── useAskRivet.ts            #   Hook: chat state, SSE stream, navigate event handling
+│   │   ├── AskRivetPanel.tsx         #   Chat panel UI (messages, chips, thinking indicator)
 │   │   └── admin.css                 #   Custom CSS design system (1000+ lines, CSS vars)
 │   ├── estimator/                    # Handyman estimate + Send / Look first / Pass
 │   │   ├── estimator.ts              #   Hours/materials (AI never returns these)

@@ -763,7 +763,8 @@ Contractor UI (React)
                     └── tools: list_work_items, get_work_item_detail,
                                 refresh_scope, price_materials, re_estimate_job,
                                 send_estimate, email_client, accept_work,
-                                reject_work, update_work_price, add_contractor_note
+                                reject_work, update_work_price, add_contractor_note,
+                                get_settings, update_settings
 ```
 
 The UI calls `rivet-agents` directly (not via Netlify Functions) to avoid SSE timeout constraints on serverless functions.
@@ -771,12 +772,15 @@ The UI calls `rivet-agents` directly (not via Netlify Functions) to avoid SSE ti
 ### SSE stream format
 
 ```
-event: text   data: <token>              — streaming response text
-event: tool   data: <label>             — tool being called (UI shows thinking label)
-event: chips  data: ["chip1","chip2"]   — contextual follow-up suggestions
-event: id     data: <conversation_uuid> — persist to localStorage
-event: done   data:                     — stream complete
+event: text      data: <token>                           — streaming response text
+event: tool      data: <label>                           — tool being called (UI shows thinking label)
+event: chips     data: ["chip1","chip2"]                 — contextual follow-up suggestions
+event: navigate  data: {"screen":"...","section":"..."}  — navigate UI to screen/section after action
+event: id        data: <conversation_uuid>               — persist to localStorage
+event: done      data:                                   — stream complete
 ```
+
+The `navigate` event is emitted by the agent backend (`runtime/loop.py`) when a tool result carries a `_navigate` key. The backend pops it and emits it as a separate SSE event before forwarding the clean result to Claude. The frontend (`useAskRivet.ts`) handles it by flipping `active` to the target screen and optionally deep-linking to a settings section via `pendingSettingsSection` in `RivetDashboard.tsx`.
 
 ### Chip system
 
@@ -788,16 +792,16 @@ The contractor-advisor skill instructs the agent to end every response with:
 The UI renders chips as pill buttons below each assistant message. Clicking sends it as the next user message — contractors rarely need to type. Initial chips shown on empty conversation:
 - "What should I work on this week?"
 - "Any estimates I need to send?"
-- "Are there jobs waiting on customer info?"
-- "Show me what's approved and ready to schedule"
+- "Help me set my weekly goal"
+- "What should my minimum hourly rate be?"
 
 ### Frontend files
 
 | File | Purpose |
 |------|---------|
-| `src/admin/useAskRivet.ts` | Hook: state management, SSE consumption, localStorage persistence |
-| `src/admin/AskRivetPanel.tsx` | Chat panel UI: messages, chips, thinking indicator, input row |
-| `src/admin/RivetDashboard.tsx` | Mounts panel + FAB trigger button |
+| `src/admin/useAskRivet.ts` | Hook: state management, SSE consumption, localStorage persistence; exposes `navigateTo` + `clearNavigate` for the `navigate` event |
+| `src/admin/AskRivetPanel.tsx` | Chat panel UI: messages, chips, thinking indicator, input row; `embedded` prop for mobile full-screen tab |
+| `src/admin/RivetDashboard.tsx` | Mounts panel + FAB; watches `askRivet.navigateTo` to flip screen + set `pendingSettingsSection` |
 | `src/admin/admin.css` | Panel styles (dark theme, chip pills, streaming cursor) |
 
 ### Conversation persistence
@@ -821,3 +825,5 @@ Every action available in the UI is also available to the agent:
 | Add note | Notes field | `add_contractor_note` |
 | Browse pipeline | Work items list | `list_work_items` |
 | View job detail | Job drawer | `get_work_item_detail` |
+| Read settings | Settings screen | `get_settings` |
+| Update settings | Settings screen | `update_settings` (also emits `navigate` → Settings) |
