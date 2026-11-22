@@ -381,7 +381,17 @@ export function SettingsScreen({
   }
 
   const labEnabled = useMemo(() => isDecisionLabEnabled(user?.email), [user?.email]);
-  const visibleNav = useMemo(() => labEnabled ? settingsNav : settingsNav.filter(s => s !== 'Decision Lab'), [labEnabled]);
+
+  // Only show sections that have actual content built. Unbuilt placeholder sections
+  // are excluded from the nav entirely so contractors don't see empty pages.
+  const BUILT_SECTIONS = new Set([
+    'Business', 'Goals & Capacity', 'Pricing & Costs', 'Advanced Engine',
+    'Quote Form', 'Service Area', 'Decision Lab',
+  ]);
+  const visibleNav = useMemo(
+    () => settingsNav.filter(s => BUILT_SECTIONS.has(s) && (s !== 'Decision Lab' || labEnabled)),
+    [labEnabled], // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   return (
     <div className="dashboard settings-dashboard">
@@ -442,12 +452,6 @@ export function SettingsScreen({
           )}
           {activeSection === 'Service Area' && (
             <ServiceAreaAdmin />
-          )}
-          {!['Business', 'Goals & Capacity', 'Pricing & Costs', 'Advanced Engine', 'Quote Form', 'Service Area', 'Decision Lab'].includes(activeSection) && (
-            <div className="settings-section">
-              <h3>{activeSection}</h3>
-              <p className="settings-placeholder">Configuration for {activeSection.toLowerCase()} will appear here.</p>
-            </div>
           )}
         </div>
       </div>
