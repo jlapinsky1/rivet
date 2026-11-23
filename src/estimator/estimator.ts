@@ -12,6 +12,7 @@ import type {
   Range,
   BreakdownEntry,
   ConditionCode,
+  ReliabilityTier,
 } from './types';
 import { ESTIMATOR_VERSION } from './types';
 
@@ -107,6 +108,48 @@ function deduplicateUnknownConfidence(
   return { penalty, deduped, missingInputs };
 }
 
+// ─── Reliability Tier ───
+//
+// Product-facing signal derived from estimation path + confidence + risk flags.
+// Keep the mapping conservative: when empirical data shows actual coverage rates
+// per tier, update the thresholds here — the type and product layer stay stable.
+
+const BLOCKER_FLAGS = new Set([
+  'no_tasks_extracted',
+  'unknown_job_family',
+  'poor_component_coverage',
+]);
+
+const DEGRADING_FLAGS = new Set([
+  'hidden_water_damage',
+  'unknown_substrate',
+  'unsupported_task_component',
+]);
+
+function computeReliabilityTier(
+  confidence: number,
+  estimationPath: 'assembly' | 'component',
+  riskFlags: string[],
+): ReliabilityTier {
+  // Blockers: job scope is unresolvable — quote is not actionable without a site visit
+  if (riskFlags.some(f => BLOCKER_FLAGS.has(f))) return 'unknown';
+
+  const hasDegrading = riskFlags.some(f => DEGRADING_FLAGS.has(f));
+
+  if (estimationPath === 'assembly') {
+    // Assembly path is structurally more reliable — known unit with historical ranges
+    if (confidence >= 0.80 && !hasDegrading) return 'high';
+    if (confidence >= 0.60) return 'medium';
+    return 'low';
+  }
+
+  // Component path: inherently wider uncertainty than a matched assembly.
+  // Cap at 'medium' until empirical coverage data justifies 'high'.
+  if (confidence >= 0.80 && !hasDegrading) return 'medium';
+  if (confidence >= 0.60) return 'low';
+  return 'unknown';
+}
+
 // ─── Project Overhead ───
 
 const PROJECT_SETUP_HOURS = 0.25;
@@ -163,6 +206,7 @@ function estimateViaAssembly(extraction: ExtractionResult): EstimatorOutput {
 
   confidence = Math.max(0.05, Math.min(1.0, confidence));
 
+  const dedupedRiskFlags = [...new Set(riskFlags)];
   return {
     estimationPath: 'assembly',
     assemblyUsed: assembly.code,
@@ -170,8 +214,9 @@ function estimateViaAssembly(extraction: ExtractionResult): EstimatorOutput {
     laborHours: orderRange(clampRange(laborHours)),
     materialCost: orderRange(clampRange(materialCost)),
     breakdown,
-    riskFlags: [...new Set(riskFlags)],
+    riskFlags: dedupedRiskFlags,
     confidence,
+    reliabilityTier: computeReliabilityTier(confidence, 'assembly', dedupedRiskFlags),
     missingInputs,
     estimatorVersion: ESTIMATOR_VERSION,
   };
@@ -320,14 +365,16 @@ function estimateViaComponents(extraction: ExtractionResult): EstimatorOutput {
 
   confidence = Math.max(0.05, Math.min(1.0, confidence));
 
+  const dedupedRiskFlags = [...new Set(riskFlags)];
   return {
     estimationPath: 'component',
     tradeContexts: extraction.tradeContexts,
     laborHours: orderRange(clampRange(totalLaborHours)),
     materialCost: orderRange(clampRange(totalMaterialCost)),
     breakdown,
-    riskFlags: [...new Set(riskFlags)],
+    riskFlags: dedupedRiskFlags,
     confidence,
+    reliabilityTier: computeReliabilityTier(confidence, 'component', dedupedRiskFlags),
     missingInputs,
     estimatorVersion: ESTIMATOR_VERSION,
   };

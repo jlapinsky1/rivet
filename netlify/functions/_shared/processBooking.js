@@ -83,9 +83,13 @@ export async function processBooking(bookingId, businessId) {
   const miles = Number(booking.distance_miles) || parseTravelMiles(null);
   const estimate = estimateHandymanJob(extraction);
   const projectFamily = extraction.tradeContexts[0] || 'general_handyman';
-  // Load calibration from completed-job actuals (returns null if < 3 samples)
-  const calibration = await loadBusinessCalibration(supabase, businessId, projectFamily)
-    ?? await loadBusinessCalibration(supabase, businessId); // fall back to overall if family sparse
+  // Hierarchical lookup: assembly (most specific) → trade family → global fallback
+  // Each level is only applied if that key has confidence >= 'low' (≥ 3 samples)
+  const assemblyUsed = estimate.assemblyUsed ?? null;
+  const calibration =
+    (assemblyUsed ? await loadBusinessCalibration(supabase, businessId, assemblyUsed) : null)
+    ?? await loadBusinessCalibration(supabase, businessId, projectFamily)
+    ?? await loadBusinessCalibration(supabase, businessId, 'all');
   const economicJob = applyCalibration(estimate, config, calibration, miles, ctx);
   const decision = deriveRecommendation(economicJob, config, ctx);
 

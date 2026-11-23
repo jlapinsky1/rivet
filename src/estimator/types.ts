@@ -170,6 +170,22 @@ export type BreakdownEntry = {
   deltaMaterialCost: number;
 };
 
+/**
+ * Product-facing reliability signal derived from estimation path, confidence, and risk flags.
+ *
+ * Intentionally separate from the raw confidence score:
+ *   high    — assembly path, clean conditions, confidence ≥ 0.80. Quote it.
+ *   medium  — assembly path with some uncertainty, OR component path with high confidence.
+ *             Quote it with a caveat range.
+ *   low     — wide uncertainty. Quote it but flag that the range is wide.
+ *   unknown — job scope couldn't be decomposed. Need a site visit before committing to a price.
+ *
+ * The mapping from confidence → reliabilityTier is intentionally conservative today.
+ * When empirical close-out data shows the actual coverage rate per tier, update
+ * computeReliabilityTier() in estimator.ts — the type and the product layer don't change.
+ */
+export type ReliabilityTier = 'high' | 'medium' | 'low' | 'unknown';
+
 export type EstimatorOutput = {
   estimationPath: 'assembly' | 'component';
   assemblyUsed?: string;
@@ -179,6 +195,7 @@ export type EstimatorOutput = {
   breakdown: BreakdownEntry[];
   riskFlags: string[];
   confidence: number;
+  reliabilityTier: ReliabilityTier;
   missingInputs: string[];
   estimatorVersion: string;
 };

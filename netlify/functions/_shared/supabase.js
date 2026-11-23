@@ -242,28 +242,42 @@ export async function loadBusinessCalibration(supabase, businessId, calibrationK
  * Called after every job close-out in record-job-actuals.js.
  * No human needed — the system heals itself.
  *
- * calibrationKey is either a trade family (e.g. 'plumbing') or the string 'all'
- * for the global fallback that covers every trade.
+ * calibrationKey can be:
+ *   • an assembly code  (e.g. 'exterior_door_replacement') — set isAssembly: true
+ *   • a trade family    (e.g. 'plumbing')
+ *   • 'all'             — global fallback covering every trade
  *
- * Bayesian shrinkage: blendedMultiplier = weight * rawMultiplier + (1 - weight) * 1.0
- * where weight = min(n / 10, 1.0).  With 3 jobs the system applies 30% of the learned
- * correction; at 10+ jobs it trusts the data fully.  This prevents early outliers from
- * wrecking estimates for a whole trade.
+ * Robust aggregation scales with sample size to resist outliers:
+ *   n < 6:   median              — one bad close-out cannot move the estimate
+ *   6–19:    trimmed mean        — drop 1 from each tail
+ *   20+:     10% trimmed mean    — drop top/bottom 10%
+ *
+ * Bayesian shrinkage on top: blended = weight × robust + (1 − weight) × 1.0
+ * where weight = min(n / 10, 1.0).
  *
  * @param {import('@supabase/supabase-js').SupabaseClient} supabase
  * @param {string} businessId
- * @param {string} calibrationKey  - trade family or 'all'
+ * @param {string} calibrationKey  - assembly code, trade family, or 'all'
+ * @param {{ isAssembly?: boolean }} [opts]
  */
-export async function recomputeCalibration(supabase, businessId, calibrationKey) {
+export async function recomputeCalibration(supabase, businessId, calibrationKey, { isAssembly = false } = {}) {
   try {
     const key = calibrationKey ?? 'all';
 
-    // 1. Load all estimation runs matching this key for the business
+    // 1. Load estimation runs for this business matching this key
     const runsQuery = supabase
       .from('estimation_runs')
       .select('id, baseline_estimate')
       .eq('business_id', businessId);
-    if (key !== 'all') runsQuery.eq('project_family', key);
+
+    if (key === 'all') {
+      // no additional filter — covers all trades
+    } else if (isAssembly) {
+      // filter by assemblyUsed stored inside the JSONB baseline_estimate
+      runsQuery.filter('baseline_estimate->>assemblyUsed', 'eq', key);
+    } else {
+      runsQuery.eq('project_family', key);
+    }
 
     const { data: runs } = await runsQuery;
     if (!runs?.length) return;
@@ -276,7 +290,7 @@ export async function recomputeCalibration(supabase, businessId, calibrationKey)
       .gt('actual_labor_hours', 0);
     if (!outcomes?.length) return;
 
-    // 3. Compute raw multipliers from (estimated vs actual) pairs
+    // 3. Compute raw ratios from (estimated vs actual) pairs
     const runsById = new Map(runs.map(r => [r.id, r]));
     const laborRatios = [];
     const materialRatios = [];
@@ -295,27 +309,42 @@ export async function recomputeCalibration(supabase, businessId, calibrationKey)
     const n = laborRatios.length;
     if (n === 0) return;
 
-    // 4. Bayesian shrinkage — ramp trust from 0 → 100% as n grows 0 → 10
-    const mean = arr => arr.reduce((s, v) => s + v, 0) / arr.length;
+    // 4. Robust aggregation — strategy scales with n to resist outliers
+    function robustMean(arr) {
+      if (arr.length === 0) return 1.0;
+      const sorted = [...arr].sort((a, b) => a - b);
+      const len = sorted.length;
+      if (len < 6) {
+        // median: one outlier cannot move the result
+        const mid = Math.floor(len / 2);
+        return len % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+      }
+      // trimmed mean: drop 1 from each tail (small-N) or 10% from each tail (large-N)
+      const drop = len < 20 ? 1 : Math.floor(len * 0.10);
+      const trimmed = sorted.slice(drop, len - drop);
+      return trimmed.reduce((s, v) => s + v, 0) / trimmed.length;
+    }
+
+    // 5. Bayesian shrinkage — ramp trust from 0 → 100% as n grows 0 → 10
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
     const weight = Math.min(n / 10, 1.0);
 
-    const blendedLabor = clamp(weight * mean(laborRatios) + (1 - weight) * 1.0, 0.5, 2.0);
+    const blendedLabor = clamp(weight * robustMean(laborRatios) + (1 - weight) * 1.0, 0.5, 2.0);
 
     let blendedMaterial = 1.0;
     if (materialRatios.length >= 1) {
       const matWeight = Math.min(materialRatios.length / 10, 1.0);
-      blendedMaterial = clamp(matWeight * mean(materialRatios) + (1 - matWeight) * 1.0, 0.5, 2.0);
+      blendedMaterial = clamp(matWeight * robustMean(materialRatios) + (1 - matWeight) * 1.0, 0.5, 2.0);
     }
 
-    // 5. Confidence tier drives how the estimator weights the correction
+    // 6. Confidence tier
     let confidence;
     if (n < 3)       confidence = 'insufficient'; // calibration not applied
-    else if (n < 6)  confidence = 'low';           // 30% blend (weight ≈ 0.3–0.5)
-    else if (n < 10) confidence = 'medium';        // 60% blend (weight ≈ 0.6–0.9)
-    else             confidence = 'high';           // full trust
+    else if (n < 6)  confidence = 'low';           // median + 30–50% shrinkage
+    else if (n < 10) confidence = 'medium';        // trimmed mean + 60–90% shrinkage
+    else             confidence = 'high';           // trimmed mean + full trust
 
-    // 6. Write cache — fast lookup for every future estimate
+    // 7. Write cache — single indexed lookup at every future estimate
     await supabase.from('business_assembly_calibration').upsert({
       business_id:         businessId,
       calibration_key:     key,

@@ -75,9 +75,12 @@ export default async function handler(req: Request) {
 
     const miles = parseInt(item.travel) || 0;
     const projectFamily = extraction.tradeContexts[0] || 'general_handyman';
-    // Load calibration from completed-job actuals; fall back to overall if family sparse
-    const calibration = await (loadBusinessCalibration as any)(supabase, businessId, projectFamily)
-      ?? await (loadBusinessCalibration as any)(supabase, businessId);
+    // Hierarchical lookup: assembly (most specific) → trade family → global fallback
+    const assemblyUsed = estimate.assemblyUsed ?? null;
+    const calibration =
+      (assemblyUsed ? await (loadBusinessCalibration as any)(supabase, businessId, assemblyUsed) : null)
+      ?? await (loadBusinessCalibration as any)(supabase, businessId, projectFamily)
+      ?? await (loadBusinessCalibration as any)(supabase, businessId, 'all');
     const economicJob = applyCalibration(estimate, config, calibration, miles, ctx);
     const decision = deriveRecommendation(economicJob, config, ctx);
 

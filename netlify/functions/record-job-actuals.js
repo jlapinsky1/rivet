@@ -79,15 +79,22 @@ export default async function handler(req) {
         try {
           const { data: run } = await supabase
             .from('estimation_runs')
-            .select('project_family')
+            .select('project_family, baseline_estimate')
             .eq('id', item.estimation_run_id)
             .single();
 
           const family = run?.project_family ?? 'general_handyman';
-          await Promise.all([
+          const assemblyUsed = run?.baseline_estimate?.assemblyUsed ?? null;
+
+          // Recompute all three tiers: assembly (most specific) → family → global
+          const calTasks = [
             recomputeCalibration(supabase, businessId, family),
             recomputeCalibration(supabase, businessId, 'all'),
-          ]);
+          ];
+          if (assemblyUsed) {
+            calTasks.push(recomputeCalibration(supabase, businessId, assemblyUsed, { isAssembly: true }));
+          }
+          await Promise.all(calTasks);
         } catch (calErr) {
           console.error('recomputeCalibration (non-fatal):', calErr.message);
         }
