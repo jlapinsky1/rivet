@@ -91,7 +91,7 @@ export async function processBooking(bookingId, businessId) {
     ?? await loadBusinessCalibration(supabase, businessId, projectFamily)
     ?? await loadBusinessCalibration(supabase, businessId, 'all');
   const economicJob = applyCalibration(estimate, config, calibration, miles, ctx);
-  const decision = deriveRecommendation(economicJob, config, ctx);
+  const decision = deriveRecommendation(economicJob, config, ctx, estimate.reliabilityTier);
 
   const runId = crypto.randomUUID();
   const displayPrice = decision.suggestedPrice ?? Math.round(economicJob.evaluatedPrice);

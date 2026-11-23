@@ -82,7 +82,7 @@ export default async function handler(req: Request) {
       ?? await (loadBusinessCalibration as any)(supabase, businessId, projectFamily)
       ?? await (loadBusinessCalibration as any)(supabase, businessId, 'all');
     const economicJob = applyCalibration(estimate, config, calibration, miles, ctx);
-    const decision = deriveRecommendation(economicJob, config, ctx);
+    const decision = deriveRecommendation(economicJob, config, ctx, (estimate as any).reliabilityTier);
 
     const displayPrice = decision.suggestedPrice ?? Math.round(economicJob.evaluatedPrice);
 

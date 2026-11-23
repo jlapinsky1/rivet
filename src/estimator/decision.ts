@@ -4,6 +4,7 @@ import type {
   DecisionContext,
   Recommendation,
   ReasonItem,
+  ReliabilityTier,
 } from './types';
 
 export type DecisionResult = {
@@ -78,12 +79,24 @@ export function deriveRecommendation(
   job: EconomicJob,
   config: BusinessEconomicsConfig,
   context: DecisionContext,
+  reliabilityTier?: ReliabilityTier,
 ): DecisionResult {
   const reasons: ReasonItem[] = [];
   let forceReview = false;
   let forcePass = false;
   let reprice = false;
   const sendPrice = Math.round(job.minimumAcceptablePrice);
+
+  // ── I5: Reliability safety gate ──────────────────────────────────────────────
+  // 'unknown' means job scope is unresolvable from the description alone.
+  // Sending a price without seeing the job is a liability. Force review.
+  // 'low' means the range is wide — allow a quote but surface the uncertainty.
+  if (reliabilityTier === 'unknown') {
+    forceReview = true;
+    reasons.unshift({ icon: 'caution', text: 'Reliability unknown — verify full scope before sending a price' });
+  } else if (reliabilityTier === 'low') {
+    reasons.push({ icon: 'caution', text: 'Estimate range is wide — price may need adjustment once on site' });
+  }
 
   const hasContext = context.remainingCapacityHours > 0;
   const doesNotFit = hasContext && job.capacityHours > context.remainingCapacityHours;

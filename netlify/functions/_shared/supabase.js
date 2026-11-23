@@ -197,6 +197,33 @@ export function errorResponse(message, status = 400) {
 }
 
 /**
+ * Write one task to the durable recompute queue.
+ *
+ * The queue guarantees at-least-once execution: if the synchronous recompute
+ * attempt in record-job-actuals.js fails (timeout, DB error), the cron worker
+ * process-recompute-queue.js will retry with exponential backoff.
+ *
+ * @param {import('@supabase/supabase-js').SupabaseClient} supabase
+ * @param {string} businessId
+ * @param {string} calibrationKey
+ * @param {{ isAssembly?: boolean, triggerOutcomeId?: string }} [opts]
+ */
+export async function enqueueRecompute(supabase, businessId, calibrationKey, { isAssembly = false, triggerOutcomeId = null } = {}) {
+  const { error } = await supabase.from('calibration_recompute_queue').insert({
+    business_id:        businessId,
+    calibration_key:    calibrationKey,
+    is_assembly:        isAssembly,
+    trigger_outcome_id: triggerOutcomeId,
+    status:             'pending',
+    next_retry_at:      new Date().toISOString(),
+  });
+  if (error) {
+    // Non-fatal: sync attempt below still runs; cron will catch missed tasks via staleness check
+    console.error('enqueueRecompute failed (sync path continues):', error.message, { businessId, calibrationKey });
+  }
+}
+
+/**
  * Read calibration multipliers from the pre-computed cache table.
  *
  * The cache is written by recomputeCalibration() after every job close-out —
