@@ -218,8 +218,8 @@ export async function enqueueRecompute(supabase, businessId, calibrationKey, { i
     next_retry_at:      new Date().toISOString(),
   });
   if (error) {
-    // Non-fatal: sync attempt below still runs; cron will catch missed tasks via staleness check
-    console.error('enqueueRecompute failed (sync path continues):', error.message, { businessId, calibrationKey });
+    // Throw so callers can treat queue durability as a hard requirement
+    throw new Error(`enqueueRecompute failed for key "${calibrationKey}": ${error.message}`);
   }
 }
 

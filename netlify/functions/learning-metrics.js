@@ -7,9 +7,13 @@
  *
  * SLO-1: Learning capture completeness — >= 95% of completed jobs have
  *         actual_labor_hours > 0 within 7 days.
+ *         Cohort: bookings completed > 7 days ago that have a linked
+ *         work_item (via source_booking_id) → estimation_run_id →
+ *         actual_outcomes with actual_labor_hours > 0.
  *
  * SLO-2: Calibration freshness latency — p95 <= 5 min from learning-grade
  *         close-out to cache update availability.
+ *         Lag = max(0, outcomeAt - calibAt). Positive = cache is stale.
  *
  * SLO-3: Recompute success rate — >= 99.5% of tasks succeed within 24h.
  *         Dead-letter count > 0 is an immediate alert condition.
@@ -37,10 +41,44 @@ export default async function handler(req) {
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const oneDayAgo   = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
-  // Run all queries in parallel
+  // ── SLO-1 cohort: bookings completed > 7 days ago ───────────────────────────
+  // A3 fix: align numerator and denominator to the same population.
+  // Step 1: get booking IDs in the cohort
+  const { data: completedBookings } = await supabase
+    .from('bookings')
+    .select('id')
+    .eq('status', 'completed')
+    .lte('completed_at', sevenDaysAgo);
+
+  const bookingIds = (completedBookings || []).map(b => b.id);
+
+  // Step 2: find work items linked to those bookings that have an estimation_run_id
+  let runIds = [];
+  if (bookingIds.length > 0) {
+    const { data: linkedItems } = await supabase
+      .from('work_items')
+      .select('estimation_run_id')
+      .in('source_booking_id', bookingIds)
+      .not('estimation_run_id', 'is', null);
+    runIds = (linkedItems || []).map(w => w.estimation_run_id).filter(Boolean);
+  }
+
+  // Step 3: count which of those runs have a learning-grade actual
+  let withActuals = 0;
+  if (runIds.length > 0) {
+    const { count } = await supabase
+      .from('actual_outcomes')
+      .select('id', { count: 'exact', head: true })
+      .in('estimation_run_id', runIds)
+      .gt('actual_labor_hours', 0);
+    withActuals = count ?? 0;
+  }
+
+  const totalCompleted = bookingIds.length;
+  const captureRate = totalCompleted > 0 ? withActuals / totalCompleted : null;
+
+  // Run remaining queries in parallel
   const [
-    completedJobsResult,
-    learningActualsResult,
     latestCalibratedResult,
     latestOutcomeResult,
     queuePendingResult,
@@ -50,19 +88,6 @@ export default async function handler(req) {
     calibCoverageResult,
     recommendationDistResult,
   ] = await Promise.allSettled([
-
-    // SLO-1 denominator: completed bookings older than 7 days
-    supabase
-      .from('bookings')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'completed')
-      .lte('completed_at', sevenDaysAgo),
-
-    // SLO-1 numerator: learning-grade actuals (actual_labor_hours > 0)
-    supabase
-      .from('actual_outcomes')
-      .select('id', { count: 'exact', head: true })
-      .gt('actual_labor_hours', 0),
 
     // SLO-2: most recent calibration cache update
     supabase
@@ -107,7 +132,7 @@ export default async function handler(req) {
       .in('status', ['failed', 'dead_letter'])
       .gte('updated_at', oneDayAgo),
 
-    // Calibration coverage: how many keys exist and what are their confidence tiers?
+    // Calibration coverage: confidence tiers and freshness
     supabase
       .from('business_assembly_calibration')
       .select('calibration_key, confidence, sample_size, computed_at')
@@ -121,17 +146,20 @@ export default async function handler(req) {
 
   ]);
 
-  // ── SLO-1 ──
-  const totalCompleted = completedJobsResult.status === 'fulfilled' ? (completedJobsResult.value.count ?? 0) : null;
-  const withActuals    = learningActualsResult.status === 'fulfilled' ? (learningActualsResult.value.count ?? 0) : null;
-  const captureRate    = (totalCompleted && withActuals !== null) ? withActuals / Math.max(totalCompleted, 1) : null;
-
-  // ── SLO-2 ──
-  const latestCalibAt  = latestCalibratedResult.status === 'fulfilled' ? latestCalibratedResult.value.data?.computed_at : null;
+  // ── SLO-2: A2 fix — lag = max(0, outcomeAt - calibAt) ──────────────────────
+  // Positive lag means the cache is stale relative to the latest close-out.
+  // Negative (calibAt > outcomeAt) means cache is fresher than latest outcome — lag = 0.
+  const latestCalibAt   = latestCalibratedResult.status === 'fulfilled' ? latestCalibratedResult.value.data?.computed_at : null;
   const latestOutcomeAt = latestOutcomeResult.status === 'fulfilled' ? latestOutcomeResult.value.data?.recorded_at : null;
-  let freshnessMins = null;
+
+  let lagMins = null;
+  let slo2Met = null;
   if (latestCalibAt && latestOutcomeAt) {
-    freshnessMins = Math.round((new Date(latestCalibAt).getTime() - new Date(latestOutcomeAt).getTime()) / 60000);
+    lagMins = Math.max(0, Math.round((new Date(latestOutcomeAt).getTime() - new Date(latestCalibAt).getTime()) / 60000));
+    slo2Met = lagMins <= 5;
+  } else if (!latestOutcomeAt) {
+    // No learning-grade outcomes yet — SLO not applicable
+    slo2Met = null;
   }
 
   // ── SLO-3 ──
@@ -143,7 +171,7 @@ export default async function handler(req) {
   const successRate24h = total24h > 0 ? (succeeded24h ?? 0) / total24h : null;
 
   // ── Recommendation distribution (SLO-5 signal) ──
-  const recDist: Record<string, number> = {};
+  const recDist = {};
   if (recommendationDistResult.status === 'fulfilled') {
     for (const run of recommendationDistResult.value.data ?? []) {
       recDist[run.recommendation] = (recDist[run.recommendation] ?? 0) + 1;
@@ -151,15 +179,15 @@ export default async function handler(req) {
   }
 
   // ── Alerts ──
-  const alerts: string[] = [];
+  const alerts = [];
   if ((deadLetters ?? 0) > 0) {
     alerts.push(`DEAD_LETTER: ${deadLetters} recompute task(s) exhausted retries — check runbook`);
   }
-  if (captureRate !== null && totalCompleted !== null && totalCompleted >= 10 && captureRate < 0.95) {
+  if (captureRate !== null && totalCompleted >= 10 && captureRate < 0.95) {
     alerts.push(`SLO-1 breach: learning capture rate is ${Math.round(captureRate * 100)}% (target >= 95%)`);
   }
-  if (freshnessMins !== null && freshnessMins > 5) {
-    alerts.push(`SLO-2 breach: calibration is ${freshnessMins}m stale (target <= 5m)`);
+  if (lagMins !== null && lagMins > 5) {
+    alerts.push(`SLO-2 breach: calibration is ${lagMins}m stale (target <= 5m)`);
   }
   if (successRate24h !== null && total24h >= 10 && successRate24h < 0.995) {
     alerts.push(`SLO-3 breach: 24h recompute success rate is ${Math.round(successRate24h * 100)}% (target >= 99.5%)`);
@@ -170,17 +198,18 @@ export default async function handler(req) {
     alerts,
     slo1_learningCapture: {
       description: '>= 95% of completed jobs have learning-grade actuals within 7 days',
-      completedJobsOver7Days: totalCompleted,
+      cohortDefinition: 'bookings.completed_at <= 7d ago → work_items.source_booking_id → estimation_runs → actual_outcomes(actual_labor_hours > 0)',
+      completedBookingsInCohort: totalCompleted,
       withLearningGradeActuals: withActuals,
-      captureRate: captureRate !== null ? Math.round(captureRate * 1000) / 10 : null, // as percent
+      captureRate: captureRate !== null ? Math.round(captureRate * 1000) / 10 : null,
       sloMet: captureRate !== null ? captureRate >= 0.95 : null,
     },
     slo2_calibrationFreshness: {
-      description: 'p95 <= 5 min from close-out to cache update',
+      description: 'p95 <= 5 min from close-out to cache update (lag = outcomeAt - calibAt)',
       latestOutcomeAt,
       latestCalibratedAt: latestCalibAt,
-      freshnessMinutes: freshnessMins,
-      sloMet: freshnessMins !== null ? freshnessMins <= 5 : null,
+      lagMinutes: lagMins,
+      sloMet: slo2Met,
     },
     slo3_recomputeSuccess: {
       description: '>= 99.5% of recompute tasks succeed within 24h; dead-letter = 0',
