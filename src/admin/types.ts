@@ -33,6 +33,60 @@ export type MaterialsBom = {
   notes?: string;
 };
 
+export type ResearchBriefMaterial = {
+  item: string;
+  lowQty?: number;
+  highQty?: number;
+  unit?: string;
+  unitCostHint?: string;
+};
+
+export type EnrichmentStageStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'skipped';
+
+export type EnrichmentStage = {
+  status: EnrichmentStageStatus;
+  enqueued_at?: string;
+  started_at?: string;
+  completed_at?: string;
+  last_error?: string | null;
+};
+
+export type EnrichmentStatus = {
+  research?: EnrichmentStage;
+  bom?: EnrichmentStage;
+  reestimate?: EnrichmentStage;
+};
+
+export type EstimateState =
+  | 'pending_enrichment'
+  | 'ready_initial'
+  | 'ready_final'
+  | 'ready_initial_with_warning'
+  | 'failed_enrichment';
+
+export type EstimateDelta = {
+  previous_price: number;
+  new_price: number;
+  delta_amount: number;
+  delta_pct: number;
+  previous_hours: number | null;
+  new_hours: number | null;
+  reason_flags: string[];
+  recorded_at: string;
+};
+
+export type ResearchBrief = {
+  probableJobArchetype: string;
+  taskSequence: string[];
+  materialsLikely: ResearchBriefMaterial[];
+  laborComplexityBand: 'low' | 'standard' | 'high';
+  scopeRisks: string[];
+  hiddenWorkCandidates: string[];
+  criticalUnknowns: string[];
+  confidenceNotes: string;
+  sourceSummary: { types: string[]; overallConfidence: number };
+};
+
 export type WorkItem = {
   id: number;
   title: string;
@@ -81,6 +135,12 @@ export type WorkItem = {
   scopeAnalysis?: { readyToQuote: boolean; questions: string[]; context: string };
   contractorNotes?: string;
   materialsBom?: MaterialsBom;
+  researchBrief?: ResearchBrief;
+  enrichmentStatus?: EnrichmentStatus;
+  estimateState?: EstimateState;
+  estimateVersion?: number;
+  estimateDelta?: EstimateDelta;
+  estimateFinalizedAt?: string;
   /** When false, this job does not move this week's earned $ or hours left. */
   countsTowardCurrentWeek?: boolean;
 };

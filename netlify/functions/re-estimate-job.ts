@@ -25,6 +25,10 @@ export default async function handler(req: Request) {
 
     if (itemErr || !item) return errorResponse('Work item not found', 404);
 
+    const prevPrice = (item.price as number) ?? 0;
+    const prevHoursNum = (item.hours_num as number) ?? 0;
+    const prevVersion = (item.estimate_version as number) ?? 1;
+
     const { data: business } = await supabase
       .from('businesses')
       .select('settings')
@@ -85,6 +89,26 @@ export default async function handler(req: Request) {
     const decision = deriveRecommendation(economicJob, config, ctx, (estimate as any).reliabilityTier);
 
     const displayPrice = decision.suggestedPrice ?? Math.round(economicJob.evaluatedPrice);
+    const newHoursNum = economicJob.laborHours.expected;
+
+    // Compute delta — only record if price changed >= 2%
+    let estimateDelta: Record<string, unknown> | null = null;
+    if (prevPrice > 0) {
+      const deltaAmount = displayPrice - prevPrice;
+      const deltaPct = deltaAmount / prevPrice;
+      if (Math.abs(deltaPct) >= 0.02) {
+        estimateDelta = {
+          previous_price: Math.round(prevPrice),
+          new_price:      Math.round(displayPrice),
+          delta_amount:   Math.round(deltaAmount),
+          delta_pct:      Math.round(deltaPct * 1000) / 10,
+          previous_hours: prevHoursNum,
+          new_hours:      newHoursNum,
+          reason_flags:   ['manual_reestimate'],
+          recorded_at:    new Date().toISOString(),
+        };
+      }
+    }
 
     // Create a new estimation run to record the re-estimate
     const runId = crypto.randomUUID();
@@ -130,11 +154,33 @@ export default async function handler(req: Request) {
         reasons: decision.reasons,
         estimation_run_id: runId,
         extraction_result: extraction,
+        estimate_version: prevVersion + 1,
+        ...(estimateDelta ? { estimate_delta: estimateDelta } : {}),
       })
       .eq('id', workItemId)
       .eq('business_id', businessId);
 
     if (updateErr) return errorResponse(`Update failed: ${updateErr.message}`, 500);
+
+    // Re-select to get the authoritative post-update state (concurrent enrichment worker may
+    // have already transitioned estimate_state between our update and this read).
+    const { data: freshItem } = await supabase
+      .from('work_items')
+      .select('estimate_state, estimate_version, estimate_delta, estimate_finalized_at')
+      .eq('id', workItemId)
+      .eq('business_id', businessId)
+      .single();
+
+    // Fire enrichment trigger non-blocking — re-evaluate whether research/BOM are needed.
+    const origin = new URL(req.url).origin;
+    fetch(`${origin}/api/enrichment-trigger`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(process.env.INTERNAL_SERVICE_TOKEN ? { 'x-internal-token': process.env.INTERNAL_SERVICE_TOKEN } : {}),
+      },
+      body: JSON.stringify({ businessId, workItemId, estimationRunId: runId }),
+    }).catch(err => console.error('[enrichment] trigger after re-estimate failed:', err));
 
     return jsonResponse({
       updated: true,
@@ -142,6 +188,10 @@ export default async function handler(req: Request) {
       price: displayPrice,
       profit: Math.round(economicJob.contributionProfit.expected),
       hours: `${economicJob.laborHours.low.toFixed(0)}–${economicJob.laborHours.high.toFixed(0)} hrs`,
+      estimationRunId: runId,
+      estimateState: (freshItem?.estimate_state as string) ?? null,
+      estimateVersion: (freshItem?.estimate_version as number) ?? prevVersion + 1,
+      estimateDelta: (freshItem?.estimate_delta as Record<string, unknown>) ?? estimateDelta,
     });
   } catch (err: any) {
     console.error('re-estimate-job error:', err);

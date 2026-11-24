@@ -12,17 +12,33 @@ export default async function handler(req: Request) {
 
     const result = await processBooking(bookingId, businessId);
 
-    // Fire scope analysis for new review jobs — non-blocking, don't fail the booking
-    if (!result.alreadyProcessed && result.recommendation === 'review' && result.workItemId) {
-      fetch(`${AGENTS_URL}/agent`, {
+    if (!result.alreadyProcessed && result.workItemId) {
+      // Fire scope analysis for new review jobs — non-blocking
+      if (result.recommendation === 'review') {
+        fetch(`${AGENTS_URL}/agent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            task: 'refresh-scope',
+            businessId,
+            workItemId: result.workItemId,
+          }),
+        }).catch(err => console.error('[agents] scope analysis failed:', err));
+      }
+
+      // Fire enrichment trigger for all new estimate runs — non-blocking
+      fetch(`${new URL(req.url).origin}/api/enrichment-trigger`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(process.env.INTERNAL_SERVICE_TOKEN ? { 'x-internal-token': process.env.INTERNAL_SERVICE_TOKEN } : {}),
+        },
         body: JSON.stringify({
-          task: 'refresh-scope',
           businessId,
           workItemId: result.workItemId,
+          estimationRunId: result.estimationRunId,
         }),
-      }).catch(err => console.error('[agents] scope analysis failed:', err));
+      }).catch(err => console.error('[enrichment] trigger failed:', err));
     }
 
     return jsonResponse(result, (result as { alreadyProcessed?: boolean }).alreadyProcessed ? 200 : 201);

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import type { WorkItem, MaterialsBom } from './types';
+import type { WorkItem, MaterialsBom, ResearchBrief, EnrichmentStatus, EstimateDelta } from './types';
 import type { ReasonCode } from '../estimator/types';
 import type { OwnerAction, DecisionSnapshot } from '../estimator/types';
 import { createAdjustmentEntry, saveAdjustment, saveOwnerDecision } from '../estimator/persistence';
@@ -236,6 +236,29 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
   const jobSummary = rawSummary.length > 130 ? rawSummary.slice(0, 130).trimEnd() + '…' : rawSummary;
   const sentenceIsRedundant = !item.walkAwayPrice && (effectiveRec === 'take' || effectiveRec === 'take_at_price');
 
+  // Mirrors getSendBlockForState from estimateState.js.
+  // Hard-block mode is opt-in via VITE_ESTIMATE_STATE_HARD_BLOCK=true (default: shadow).
+  const ESTIMATE_STATE_HARD_BLOCK = import.meta.env.VITE_ESTIMATE_STATE_HARD_BLOCK === 'true';
+  const sendBlock = (() => {
+    const state = item.estimateState;
+    if (!state || state === 'ready_final' || state === 'ready_initial') return { blocked: false as const };
+    if (state === 'pending_enrichment') {
+      const es = item.enrichmentStatus;
+      let msg = 'Finalizing estimate…';
+      if (es) {
+        const active = (s?: { status?: string }) => s?.status === 'pending' || s?.status === 'running';
+        if (active(es.research)) msg = 'Analyzing scope…';
+        else if (active(es.bom)) msg = 'Pricing materials…';
+      }
+      return ESTIMATE_STATE_HARD_BLOCK
+        ? { blocked: true as const, reason: msg }
+        : { blocked: false as const, shadowReason: msg };
+    }
+    if (state === 'ready_initial_with_warning') return { blocked: false as const, warning: 'Estimate still refining — sending now may underprice.' };
+    if (state === 'failed_enrichment') return { blocked: false as const, warning: 'Enrichment failed — review manually before sending.' };
+    return { blocked: false as const };
+  })();
+
   const contactHref = item.phone
     ? `tel:${item.phone.replace(/\s/g, '')}`
     : item.email
@@ -367,9 +390,26 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
               ? <span className="status-badge quoted">Ready to Quote</span>
               : <StatusBadge status={item.opStatus} />}
             <BillingBadge status={item.billingStatus} />
+            {item.researchBrief && (
+              <span className="status-badge research-assist" title="AI research was used to enrich this job's scope">Research Assist</span>
+            )}
+            <EnrichmentStatusChips status={item.enrichmentStatus} />
           </div>
         </div>
         <div className="drawer-scroll">
+          {/* Estimate state banners */}
+          {(('reason' in sendBlock && sendBlock.reason) || ('shadowReason' in sendBlock && (sendBlock as any).shadowReason)) && (
+            <div className={`estimate-state-banner pending${sendBlock.blocked ? ' hard-block' : ''}`}>
+              <Loader2 size={14} className="spin" />
+              {'reason' in sendBlock ? sendBlock.reason : (sendBlock as any).shadowReason}
+            </div>
+          )}
+          {'warning' in sendBlock && sendBlock.warning && (
+            <div className="estimate-state-banner warning">
+              {sendBlock.warning}
+            </div>
+          )}
+
           <div className={`drawer-rec ${effectiveRec}`}>
             <div className="rec-badge-large">
               <span className="rec-icon-large">{recIcon(effectiveRec)}</span>
@@ -511,6 +551,14 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
                 )}
               </div>
             </div>
+          )}
+
+          {/* Research Assist panel — shown whenever a brief exists */}
+          {item.researchBrief && <ResearchAssistPanel brief={item.researchBrief} />}
+
+          {/* Estimate delta panel — shown when enrichment improved the estimate */}
+          {item.estimateDelta && item.estimateState === 'ready_final' && (
+            <EstimateDeltaPanel delta={item.estimateDelta} />
           )}
 
           {/* Review job UI */}
@@ -820,9 +868,16 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
                 {ctaLabel}<ArrowRight size={17} />
               </a>
             ) : (
-              <button className={`btn-primary-cta ${effectiveRec}`} onClick={requestApprove} disabled={actionLoading || !!actionPrompt || showReasonPicker}>
+              <button
+                className={`btn-primary-cta ${effectiveRec}${sendBlock.blocked ? ' cta-blocked' : ''}`}
+                onClick={requestApprove}
+                disabled={actionLoading || !!actionPrompt || showReasonPicker || sendBlock.blocked}
+                title={sendBlock.blocked ? (sendBlock as any).reason : undefined}
+              >
                 {actionLoading ? (
                   <><Loader2 size={17} className="spin" /> Processing...</>
+                ) : sendBlock.blocked ? (
+                  <><Loader2 size={17} className="spin" /> {(sendBlock as any).reason ?? 'Finalizing…'}</>
                 ) : showReasonPicker ? (
                   <>Pick a reason above first</>
                 ) : (
@@ -833,6 +888,135 @@ export function WorkDetailDrawer({ item, onClose, onActionComplete }: DrawerProp
           </div>
         )}
       </aside>
+    </div>
+  );
+}
+
+function EnrichmentStatusChips({ status }: { status?: EnrichmentStatus }) {
+  if (!status) return null;
+
+  const chips: { label: string; cls: string }[] = [];
+
+  for (const [stage, label] of [['research', 'Research'], ['bom', 'BOM pricing'], ['reestimate', 'Re-estimating']] as const) {
+    const s = status[stage]?.status;
+    if (!s || s === 'succeeded' || s === 'skipped') continue;
+    if (s === 'pending' || s === 'running') chips.push({ label: `${label}…`, cls: 'enrichment-pending' });
+    if (s === 'failed') chips.push({ label: `${label} failed`, cls: 'enrichment-failed' });
+  }
+
+  if (chips.length === 0) return null;
+
+  return (
+    <>
+      {chips.map((c, i) => (
+        <span key={i} className={`status-badge ${c.cls}`}>{c.label}</span>
+      ))}
+    </>
+  );
+}
+
+function EstimateDeltaPanel({ delta }: { delta: EstimateDelta }) {
+  const sign = delta.delta_amount >= 0 ? '+' : '';
+  const cls = delta.delta_amount >= 0 ? 'positive' : 'negative';
+  const reasonLabel = delta.reason_flags.includes('research') && delta.reason_flags.includes('bom')
+    ? 'Research + material pricing'
+    : delta.reason_flags.includes('research') ? 'AI research'
+    : delta.reason_flags.includes('bom') ? 'Material pricing'
+    : 'Re-estimate';
+
+  return (
+    <div className={`detail-section estimate-delta-panel ${cls}`}>
+      <div className="section-heading"><h3>Estimate updated</h3><span>{reasonLabel}</span></div>
+      <div className="delta-row">
+        <div className="delta-stat">
+          <span className="eval-stat-label">Was</span>
+          <span className="eval-stat-value">${delta.previous_price.toLocaleString()}</span>
+        </div>
+        <ArrowRight size={16} className="delta-arrow" />
+        <div className="delta-stat">
+          <span className="eval-stat-label">Now</span>
+          <span className="eval-stat-value">${delta.new_price.toLocaleString()}</span>
+        </div>
+        <div className={`delta-change ${cls}`}>
+          {sign}${Math.abs(delta.delta_amount).toLocaleString()} ({sign}{delta.delta_pct}%)
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResearchAssistPanel({ brief }: { brief: ResearchBrief }) {
+  const [expanded, setExpanded] = useState(false);
+  const topAssumptions = brief.taskSequence.slice(0, 3);
+  const topUnknowns = brief.criticalUnknowns.slice(0, 3);
+
+  return (
+    <div className="detail-section research-assist-panel">
+      <div className="section-heading">
+        <h3>Research Assist</h3>
+        <button className="eval-pricing-toggle" onClick={() => setExpanded(!expanded)}>
+          {brief.probableJobArchetype} <ChevronDown size={14} className={expanded ? 'flip' : ''} />
+        </button>
+      </div>
+      {topAssumptions.length > 0 && (
+        <div className="research-assumptions">
+          <span className="context-label">Likely scope</span>
+          <ul className="reason-list">
+            {topAssumptions.map((step, i) => (
+              <li key={i} className="check">
+                <span className="reason-icon check">{reasonGlyph('check')}</span>
+                {step}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {topUnknowns.length > 0 && (
+        <div className="research-unknowns">
+          <span className="context-label">Confirm before quoting</span>
+          <ul className="reason-list">
+            {topUnknowns.map((q, i) => (
+              <li key={i} className="caution">
+                <span className="reason-icon caution">{reasonGlyph('caution')}</span>
+                {q}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {expanded && (
+        <>
+          {brief.hiddenWorkCandidates.length > 0 && (
+            <div className="research-hidden-work">
+              <span className="context-label">Often missed</span>
+              <ul className="reason-list">
+                {brief.hiddenWorkCandidates.map((item, i) => (
+                  <li key={i} className="caution">
+                    <span className="reason-icon caution">{reasonGlyph('caution')}</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {brief.scopeRisks.length > 0 && (
+            <div className="research-risks">
+              <span className="context-label">Scope risks</span>
+              <ul className="reason-list">
+                {brief.scopeRisks.map((risk, i) => (
+                  <li key={i} className="x">
+                    <span className="reason-icon x">{reasonGlyph('x')}</span>
+                    {risk}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {brief.confidenceNotes && (
+            <p className="review-contact-note">{brief.confidenceNotes}</p>
+          )}
+        </>
+      )}
     </div>
   );
 }

@@ -47,6 +47,13 @@ function mapRow(row: Record<string, unknown>): WorkItem {
     completedAt: (row.completed_at as string) ?? undefined,
     scopeAnalysis: (row.scope_analysis as WorkItem['scopeAnalysis']) ?? undefined,
     contractorNotes: (row.contractor_notes as string) ?? undefined,
+    materialsBom: (row.materials_bom as WorkItem['materialsBom']) ?? undefined,
+    researchBrief: (row.research_brief as WorkItem['researchBrief']) ?? undefined,
+    enrichmentStatus: (row.enrichment_status as WorkItem['enrichmentStatus']) ?? undefined,
+    estimateState: (row.estimate_state as WorkItem['estimateState']) ?? undefined,
+    estimateVersion: (row.estimate_version as number) ?? undefined,
+    estimateDelta: (row.estimate_delta as WorkItem['estimateDelta']) ?? undefined,
+    estimateFinalizedAt: (row.estimate_finalized_at as string) ?? undefined,
   };
 }
 

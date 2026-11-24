@@ -6,6 +6,8 @@ import { buildDecisionContext, parseTravelMiles } from '../../../src/estimator/w
 import { economicsFromSettings } from '../../../src/estimator/economicsFromSettings';
 import { ESTIMATOR_VERSION } from '../../../src/estimator/types';
 import { PROMPT_VERSION, AI_MODEL } from '../../../src/estimator/extract';
+import { evaluateTriggers } from './enrichmentOrchestrator.js';
+import { ESTIMATE_STATE_ENABLED, ENRICHMENT_TIMEOUT_MS } from './estimateState.js';
 
 /**
  * Process a booking into a work item. Callable directly from any function.
@@ -97,6 +99,17 @@ export async function processBooking(bookingId, businessId) {
   const displayPrice = decision.suggestedPrice ?? Math.round(economicJob.evaluatedPrice);
   const title = (description.split(/[.!\n]/)[0] || 'New handyman request').slice(0, 80);
 
+  // Determine initial estimate state based on enrichment trigger policy
+  let initialEstimateState = null;
+  let enrichmentTimeoutAt = null;
+  if (ESTIMATE_STATE_ENABLED) {
+    const emptyItem = { enrichment_status: null, research_brief_meta: null, materials_bom_meta: null, materials_bom: null };
+    const { shouldResearch, shouldBom } = evaluateTriggers(extraction, emptyItem);
+    const willEnrich = shouldResearch || shouldBom;
+    initialEstimateState = willEnrich ? 'pending_enrichment' : 'ready_initial';
+    enrichmentTimeoutAt = willEnrich ? new Date(Date.now() + ENRICHMENT_TIMEOUT_MS).toISOString() : null;
+  }
+
   const { error: runErr } = await supabase.from('estimation_runs').insert({
     id: runId,
     business_id: businessId,
@@ -168,6 +181,12 @@ export async function processBooking(bookingId, businessId) {
     service_type: 'Handyman',
     estimation_run_id: runId,
     source_booking_id: bookingId,
+    extraction_result: extraction,
+    ...(initialEstimateState ? {
+      estimate_state:        initialEstimateState,
+      estimate_version:      1,
+      enrichment_timeout_at: enrichmentTimeoutAt,
+    } : {}),
   }).select('id').single();
 
   if (workErr) throw new Error(`work_items insert failed: ${workErr.message}`);
@@ -176,5 +195,5 @@ export async function processBooking(bookingId, businessId) {
     await supabase.from('estimation_runs').update({ work_id: workItem.id }).eq('id', runId);
   }
 
-  return { workItemId: workItem.id, runId, recommendation: decision.recommendation };
+  return { workItemId: workItem.id, runId, estimationRunId: runId, recommendation: decision.recommendation, estimateState: initialEstimateState };
 }
