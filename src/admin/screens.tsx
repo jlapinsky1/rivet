@@ -385,8 +385,8 @@ export function SettingsScreen({
   // Only show sections that have actual content built. Unbuilt placeholder sections
   // are excluded from the nav entirely so contractors don't see empty pages.
   const BUILT_SECTIONS = new Set([
-    'Business', 'Profitability Planner', 'Goals & Capacity', 'Pricing & Costs',
-    'Advanced Engine', 'Quote Form', 'Service Area', 'Decision Lab',
+    'Business', 'Profitability Planner', 'Pricing & Costs',
+    'Quote Form', 'Service Area', 'Decision Lab',
   ]);
   const visibleNav = useMemo(
     () => settingsNav.filter(s => BUILT_SECTIONS.has(s) && (s !== 'Decision Lab' || labEnabled)),
@@ -435,6 +435,7 @@ export function SettingsScreen({
               <h3>What does an hour of your time need to be worth?</h3>
               <div className="settings-field"><label>Minimum hourly rate</label><div className="price-input"><span>$</span><input type="number" value={field('minimumHourlyRate', 70)} onChange={e => handleChange('minimumHourlyRate', Number(e.target.value))} /><span>/hr</span></div></div>
               <div className="settings-field"><label>Smallest job worth leaving the house for</label><div className="price-input"><span>$</span><input type="number" value={field('minimumPrice', 175)} onChange={e => handleChange('minimumPrice', Number(e.target.value))} /><span>USD</span></div></div>
+              <div className="settings-field"><label>Minimum profit per job</label><div className="price-input"><span>$</span><input type="number" value={field('minimumJobProfit', 75)} onChange={e => handleChange('minimumJobProfit', Number(e.target.value))} /><span>USD</span></div></div>
               <h4>Typical costs</h4>
               <div className="settings-field"><label>Labor rate (if you hire help)</label><div className="price-input"><span>$</span><input type="number" value={field('helperRate', 30)} onChange={e => handleChange('helperRate', Number(e.target.value))} /><span>/hr</span></div></div>
               <div className="settings-field">
@@ -443,15 +444,6 @@ export function SettingsScreen({
                 <MileageCalculator currentRate={field('mileageRate', 0.70)} onUseRate={rate => handleChange('mileageRate', rate)} />
               </div>
               <div className="settings-field"><label>Material markup</label><div className="price-input"><input type="number" value={field('materialMarkup', 20)} onChange={e => handleChange('materialMarkup', Number(e.target.value))} /><span>%</span></div></div>
-            </div>
-          )}
-          {activeSection === 'Advanced Engine' && (
-            <div className="settings-section">
-              <h3>Advanced engine settings</h3>
-              <p className="settings-warning">These settings control the decision engine directly. Most owners don't need to change these.</p>
-              <div className="settings-field"><label>Minimum margin floor</label><div className="price-input"><input type="number" value={field('minimumMargin', 55)} onChange={e => handleChange('minimumMargin', Number(e.target.value))} /><span>%</span></div></div>
-              <div className="settings-field"><label>Minimum job profit</label><div className="price-input"><span>$</span><input type="number" value={field('minimumJobProfit', 75)} onChange={e => handleChange('minimumJobProfit', Number(e.target.value))} /><span>USD</span></div></div>
-              <div className="settings-field"><label>Daily capacity limit</label><div className="price-input"><input type="number" value={field('dailyCapacityLimit', 4)} onChange={e => handleChange('dailyCapacityLimit', Number(e.target.value))} /><span>jobs</span></div></div>
             </div>
           )}
           {activeSection === 'Quote Form' && (
@@ -770,15 +762,16 @@ function QuoteFormSettings({ settings, onSave }: { settings: any; onSave: (updat
 /* ===== PROFITABILITY PLANNER ===== */
 function ProfitabilityPlanner({ settings, onSave }: { settings: any; onSave: (u: Record<string, any>) => void }) {
   const [hours, setHours] = useState<number>(settings.weeklyHours ?? 35);
-  const [monthlyProfit, setMonthlyProfit] = useState<number>(Math.round((settings.weeklyGoal ?? 2500) * 4.33));
+  const [weeklyGoal, setWeeklyGoal] = useState<number>(settings.weeklyGoal ?? 2500);
   const [margin, setMargin] = useState<number>(settings.minimumMargin ?? 55);
   const [saved, setSaved] = useState(false);
 
-  const requiredRevenue = margin > 0 ? Math.round(monthlyProfit / (margin / 100)) : 0;
-  const revenuePerHour = hours > 0 ? Math.round(requiredRevenue / (hours * 4.33)) : 0;
+  const requiredWeeklyRevenue = margin > 0 ? Math.round(weeklyGoal / (margin / 100)) : 0;
+  const ratePerHour = hours > 0 ? Math.round(requiredWeeklyRevenue / hours) : 0;
+  const annualTakeHome = weeklyGoal * 52;
 
   function handleSave() {
-    onSave({ weeklyHours: hours, weeklyGoal: Math.round(monthlyProfit / 4.33), minimumMargin: margin });
+    onSave({ weeklyHours: hours, weeklyGoal, minimumMargin: margin });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }
@@ -789,7 +782,7 @@ function ProfitabilityPlanner({ settings, onSave }: { settings: any; onSave: (u:
         <h3>Profitability Planner</h3>
         <span className="planner-badge">Illustrative</span>
       </div>
-      <p className="planner-hint">Drag the sliders to find settings that match your income goals. Hit Save when it looks right.</p>
+      <p className="planner-hint">Set your hours and income target. Rivet uses these to evaluate whether a job is worth taking.</p>
 
       <div className="planner-slider-row">
         <div className="planner-slider-top">
@@ -801,10 +794,10 @@ function ProfitabilityPlanner({ settings, onSave }: { settings: any; onSave: (u:
 
       <div className="planner-slider-row">
         <div className="planner-slider-top">
-          <span className="planner-slider-label">Target monthly profit</span>
-          <span className="planner-slider-value">${monthlyProfit.toLocaleString()}</span>
+          <span className="planner-slider-label">Weekly take-home goal</span>
+          <span className="planner-slider-value">${weeklyGoal.toLocaleString()}</span>
         </div>
-        <input type="range" className="planner-range" min={500} max={20000} step={100} value={monthlyProfit} onChange={e => setMonthlyProfit(Number(e.target.value))} />
+        <input type="range" className="planner-range" min={500} max={10000} step={50} value={weeklyGoal} onChange={e => setWeeklyGoal(Number(e.target.value))} />
       </div>
 
       <div className="planner-slider-row">
@@ -819,17 +812,21 @@ function ProfitabilityPlanner({ settings, onSave }: { settings: any; onSave: (u:
 
       <div className="planner-outputs">
         <div>
-          <div className="planner-output-label">Required monthly revenue</div>
-          <div className="planner-output-value">${requiredRevenue.toLocaleString()}</div>
+          <div className="planner-output-label">Take-home if you fill your week</div>
+          <div className="planner-output-value">${weeklyGoal.toLocaleString()}<span className="planner-output-unit">/wk</span></div>
         </div>
         <div>
-          <div className="planner-output-label">Revenue per working hour</div>
-          <div className="planner-output-value">${revenuePerHour}/hr</div>
+          <div className="planner-output-label">You need to bill</div>
+          <div className="planner-output-value">${ratePerHour}<span className="planner-output-unit">/hr</span></div>
+        </div>
+        <div>
+          <div className="planner-output-label">At this pace, yearly</div>
+          <div className="planner-output-value">${Math.round(annualTakeHome / 1000)}K</div>
         </div>
       </div>
 
       <p className="planner-disclaimer">
-        Simplified illustration assuming 4.33 weeks/month. Actual pricing must account for travel, materials, downtime, taxes, and owner's labor.
+        Assumes a full schedule every week. Actual take-home depends on job mix, travel, materials, downtime, and taxes.
       </p>
 
       <button className={`planner-save${saved ? ' saved' : ''}`} onClick={handleSave}>
